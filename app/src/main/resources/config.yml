@@ -1,9 +1,9 @@
 # Cloudly Plugin Configuration
-# Version: 1.0.0.0 (Epoch.Major.Minor.Patch)
+# Version: 1.0.0.0
 
 # Plugin Settings
 plugin:
-  # Language for messages (future feature)
+  # Language for messages - Available: en, de
   language: "en"
 
 # Feature toggles (add features here as you develop them)
@@ -25,17 +25,6 @@ features:
 #     minimum-connections: 2
 #     maximum-connections: 10
 #     connection-timeout: 30000
-
-# Message configuration
-messages:
-  # Prefix for all plugin messages
-  prefix: "&8[&bCloudly&8]&r "
-  
-  # Common messages
-  no-permission: "&cYou don't have permission to use this command."
-  player-only: "&cThis command can only be used by players."
-  reload-success: "&aCloudly has been reloaded successfully!"
-  reload-failed: "&cFailed to reload Cloudly. Check console for errors."
 
 # Development settings (remove in production)
 development:

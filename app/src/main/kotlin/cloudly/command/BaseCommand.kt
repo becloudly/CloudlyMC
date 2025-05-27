@@ -58,13 +58,13 @@ abstract class BaseCommand : CommandExecutor, TabCompleter {
         try {
             // Check if command is player-only
             if (playerOnly && sender !is Player) {
-                CloudlyUtils.sendPrefixedMessage(sender, "&cThis command can only be used by players.")
+                CloudlyUtils.sendPrefixedTranslatedMessage(sender, "common.player-only")
                 return true
             }
             
             // Check permissions
             if (permission != null && sender is Player && !CloudlyUtils.hasPermission(sender, permission!!)) {
-                CloudlyUtils.sendPrefixedMessage(sender, "&cYou don't have permission to use this command.")
+                CloudlyUtils.sendPrefixedTranslatedMessage(sender, "common.no-permission")
                 return true
             }
             
@@ -72,7 +72,7 @@ abstract class BaseCommand : CommandExecutor, TabCompleter {
             return execute(sender, command, args)
             
         } catch (e: Exception) {
-            CloudlyUtils.sendPrefixedMessage(sender, "&cAn error occurred while executing this command.")
+            CloudlyUtils.sendPrefixedTranslatedMessage(sender, "common.error-occurred")
             e.printStackTrace()
             return true
         }
@@ -106,7 +106,7 @@ abstract class BaseCommand : CommandExecutor, TabCompleter {
      * Helper method to send usage message
      */
     protected fun sendUsage(sender: CommandSender, usage: String) {
-        CloudlyUtils.sendPrefixedMessage(sender, "&cUsage: &f$usage")
+        CloudlyUtils.sendPrefixedTranslatedMessage(sender, "common.usage-format", usage)
     }
     
     /**
@@ -114,57 +114,9 @@ abstract class BaseCommand : CommandExecutor, TabCompleter {
      */
     protected fun requirePlayer(sender: CommandSender): Player? {
         if (sender !is Player) {
-            CloudlyUtils.sendPrefixedMessage(sender, "&cThis command can only be used by players.")
+            CloudlyUtils.sendPrefixedTranslatedMessage(sender, "common.player-only")
             return null
         }
         return sender
-    }
-}
-
-/**
- * Example command implementation
- * Remove this when you create your actual commands
- */
-class ExampleCommand : BaseCommand() {
-    
-    override val permission = "cloudly.command.example"
-    override val playerOnly = false
-    
-    override fun execute(sender: CommandSender, command: Command, args: Array<String>): Boolean {
-        when {
-            args.isEmpty() -> {
-                CloudlyUtils.sendPrefixedMessage(sender, "&aCloudly is running! Version: ${org.bukkit.Bukkit.getPluginManager().getPlugin("Cloudly")?.description?.version}")
-                return true
-            }
-            
-            args[0].equals("reload", ignoreCase = true) -> {
-                if (sender is Player && !CloudlyUtils.hasPermission(sender, "cloudly.admin")) {
-                    CloudlyUtils.sendPrefixedMessage(sender, "&cYou don't have permission to reload the plugin.")
-                    return true
-                }
-                
-                // Reload logic would go here
-                CloudlyUtils.sendPrefixedMessage(sender, "&aCloudly reloaded successfully!")
-                return true
-            }
-            
-            else -> {
-                sendUsage(sender, "/cloudly [reload]")
-                return true
-            }
-        }
-    }
-    
-    override fun complete(sender: CommandSender, command: Command, args: Array<String>): List<String> {
-        return when (args.size) {
-            1 -> {
-                val suggestions = mutableListOf<String>()
-                if (sender !is Player || CloudlyUtils.hasPermission(sender, "cloudly.admin")) {
-                    suggestions.add("reload")
-                }
-                suggestions.filter { it.startsWith(args[0], ignoreCase = true) }
-            }
-            else -> emptyList()
-        }
     }
 }

@@ -42,8 +42,22 @@ object CloudlyUtils {
     /**
      * Send a message with the plugin prefix
      */
-    fun sendPrefixedMessage(sender: CommandSender, message: String, prefix: String = "&8[&bCloudly&8]&r ") {
+    fun sendPrefixedMessage(sender: CommandSender, message: String, prefix: String = LanguageManager.getPrefix()) {
         sender.sendMessage(colorize(prefix + message))
+    }
+    
+    /**
+     * Send a translated message to a command sender
+     */
+    fun sendTranslatedMessage(sender: CommandSender, key: String, vararg args: Any) {
+        sender.sendMessage(LanguageManager.getMessage(key, *args))
+    }
+    
+    /**
+     * Send a translated message with the plugin prefix
+     */
+    fun sendPrefixedTranslatedMessage(sender: CommandSender, key: String, vararg args: Any) {
+        sender.sendMessage(LanguageManager.getPrefixedMessage(key, *args))
     }
     
     /**

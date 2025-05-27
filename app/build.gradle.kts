@@ -73,5 +73,10 @@ tasks {
         filesMatching("plugin.yml") {
             expand(props)
         }
+        
+        // Include language files
+        from("src/main/resources/lang") {
+            into("lang")
+        }
     }
 }

@@ -1,0 +1,28 @@
+# Cloudly English Language File
+# Language: English (en)
+
+# Common messages used throughout the plugin
+common:
+  prefix: "&8[&bCloudly&8]&r "
+  no-permission: "&cYou don't have permission to use this command."
+  player-only: "&cThis command can only be used by players."
+  reload-success: "&aCloudly has been reloaded successfully!"
+  reload-failed: "&cFailed to reload Cloudly. Check console for errors."
+  error-occurred: "&cAn error occurred while executing this command."
+  usage-format: "&cUsage: &f{0}"
+
+# System messages
+system:
+  startup: "&aCloudly v{0} is starting up..."
+  running-on: "&7Running on {0} {1}"
+  enabled-success: "&aCloudly has been enabled successfully!"
+  enable-failed: "&cFailed to enable Cloudly"
+  shutdown: "&aCloudly has been disabled successfully!"
+  shutdown-error: "&cError during plugin shutdown"
+  reloading: "&7Reloading Cloudly..."
+
+# Command-specific messages
+commands:
+  cloudly:
+    info: "&aCloudly is running! Version: {0}"
+    reload-no-permission: "&cYou don't have permission to reload the plugin."

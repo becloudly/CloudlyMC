@@ -14,6 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.event.Listener
 import java.util.logging.Level
 import cloudly.util.ConfigHelper
+import cloudly.util.LanguageManager
 import cloudly.command.ExampleCommand
 
 /**
@@ -46,18 +47,23 @@ class CloudlyPlugin : JavaPlugin(), Listener {
     override fun onEnable() {
         instance = this
         
-        // Log plugin startup with version info
-        logger.info("Cloudly v${description.version} is starting up...")
-        logger.info("Running on ${server.name} ${server.version}")
-        logger.info("Java version: ${System.getProperty("java.version")}")
+        // First save default config and initialize language manager
+        // since we need it for logging with translations
+        saveDefaultConfig()
+        LanguageManager.initialize(this)
+        
+        // Log plugin startup with version info using raw logger initially
+        // (since we need to ensure language files are loaded first)
+        logger.info(LanguageManager.getMessage("system.startup", description.version))
+        logger.info(LanguageManager.getMessage("system.running-on", server.name, server.version))
         
         try {
             // Initialize plugin components here
             initializePlugin()
             
-            logger.info("Cloudly has been enabled successfully!")
+            logger.info(LanguageManager.getMessage("system.enabled-success"))
         } catch (e: Exception) {
-            logger.log(Level.SEVERE, "Failed to enable Cloudly", e)
+            logger.log(Level.SEVERE, LanguageManager.getMessage("system.enable-failed"), e)
             server.pluginManager.disablePlugin(this)
         }
     }
@@ -71,9 +77,9 @@ class CloudlyPlugin : JavaPlugin(), Listener {
             // Cleanup plugin components here
             cleanupPlugin()
             
-            logger.info("Cloudly has been disabled successfully!")
+            logger.info(LanguageManager.getMessage("system.shutdown"))
         } catch (e: Exception) {
-            logger.log(Level.SEVERE, "Error during plugin shutdown", e)
+            logger.log(Level.SEVERE, LanguageManager.getMessage("system.shutdown-error"), e)
         }
     }
       /**
@@ -81,11 +87,11 @@ class CloudlyPlugin : JavaPlugin(), Listener {
      * Add your initialization logic here
      */
     private fun initializePlugin() {
-        // Save default config if it doesn't exist
-        saveDefaultConfig()
-
+        // Language manager is already initialized in onEnable
+        // to enable translated logging during startup
+        
         // Initialize configuration helper
-        // ConfigHelper.initialize(this) // ConfigHelper will use hardcoded values or access config directly for non-plugin settings
+        ConfigHelper.initialize(this)
         
         // Register event listeners here
         // server.pluginManager.registerEvents(this, this)
@@ -118,18 +124,23 @@ class CloudlyPlugin : JavaPlugin(), Listener {
      */
     fun reloadPlugin() {
         try {
-            logger.info("Reloading Cloudly...")
+            logger.info(LanguageManager.getMessage("system.reloading"))
 
             // Reload configuration for settings not hardcoded
             reloadConfig()
-            ConfigHelper.initialize(this) // Re-initialize for any non-hardcoded settings
+            
+            // Reload language files
+            LanguageManager.reload(this)
+            
+            // Re-initialize for any non-hardcoded settings
+            ConfigHelper.initialize(this)
 
             // Reinitialize components that depend on config
             // Example: reinitializeConfigDependentComponents()
 
-            logger.info("Cloudly reloaded successfully!")
+            logger.info(LanguageManager.getMessage("common.reload-success"))
         } catch (e: Exception) {
-            logger.log(Level.SEVERE, "Failed to reload Cloudly", e)
+            logger.log(Level.SEVERE, LanguageManager.getMessage("common.reload-failed"), e)
         }
     }
 }

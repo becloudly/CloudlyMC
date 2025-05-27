@@ -1,0 +1,28 @@
+# Cloudly German Language File
+# Language: German (de)
+
+# Common messages used throughout the plugin
+common:
+  prefix: "&8[&bCloudly&8]&r "
+  no-permission: "&cDu hast keine Berechtigung, diesen Befehl zu verwenden."
+  player-only: "&cDieser Befehl kann nur von Spielern verwendet werden."
+  reload-success: "&aCloudly wurde erfolgreich neu geladen!"
+  reload-failed: "&cFehler beim Neuladen von Cloudly. Überprüfe die Konsole auf Fehler."
+  error-occurred: "&cBei der Ausführung dieses Befehls ist ein Fehler aufgetreten."
+  usage-format: "&cVerwendung: &f{0}"
+
+# System messages
+system:
+  startup: "&aCloudly v{0} wird gestartet..."
+  running-on: "&7Läuft auf {0} {1}"
+  enabled-success: "&aCloudly wurde erfolgreich aktiviert!"
+  enable-failed: "&cFehler beim Aktivieren von Cloudly"
+  shutdown: "&aCloudly wurde erfolgreich deaktiviert!"
+  shutdown-error: "&cFehler beim Herunterfahren des Plugins"
+  reloading: "&7Cloudly wird neu geladen..."
+
+# Command-specific messages
+commands:
+  cloudly:
+    info: "&aCloudly läuft! Version: {0}"
+    reload-no-permission: "&cDu hast keine Berechtigung, das Plugin neu zu laden."
