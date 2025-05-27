@@ -1,8 +1,8 @@
 # ☁️ The Cloudly Server Plugin
 
-![Cloudly Banner](https://github.com/Gerrxt07/cloudly/blob/master/content/Cloudly_PreviewBanner.png)
+![Cloudly Banner](https://github.com/Gerrxt07/cloudlymc/blob/master/content/Cloudly_PreviewBanner.png)
 
-*A high-performance Minecraft server plugin for paper-based servers built with Kotlin to manage your server with various integrations, highly configurable and multi-language support.*
+*☁️ A high-performance Minecraft server plugin for paper-based servers built with Kotlin to manage your server with various integrations, highly configurable and multi-language support.*
 
 ---
 
@@ -21,7 +21,7 @@
 
 ## 🚀 Installation
 
-1. Download the latest version of the plugin from the [Releases](https://github.com/gerrxt07/cloudly/releases) section.
+1. Download the latest version of the plugin from the [Releases](https://github.com/gerrxt07/cloudlymc/releases) section.
 2. Place the JAR file in your server folder under `/plugins`.
 3. Restart your server or use a plugin manager to load the plugin.
 4. Configure the plugin to your preferences in the `config.yml`.
@@ -34,7 +34,7 @@ You can find our detailed documentation [here]().
 
 We have an interactive and updated [Trello Board](https://trello.com/b/GMKCYKXv/cloudly)!
 
-Would you like to participate in development or have feature requests? [Open an Issue](https://github.com/gerrxt07/cloudly/issues) or join our [Discord Server](https://phantomcommunity.de/discord)!
+Would you like to participate in development or have feature requests? [Open an Issue](https://github.com/gerrxt07/cloudlymc/issues) or join our [Discord Server](https://phantomcommunity.de/discord)!
 
 ## 💻 Development
 
