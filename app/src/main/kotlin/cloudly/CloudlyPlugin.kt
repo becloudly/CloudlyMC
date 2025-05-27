@@ -15,7 +15,7 @@ import org.bukkit.event.Listener
 import java.util.logging.Level
 import cloudly.util.ConfigHelper
 import cloudly.util.LanguageManager
-import cloudly.command.ExampleCommand
+import cloudly.command.CloudlyCommand
 
 /**
  * Main plugin class for Cloudly
@@ -92,12 +92,11 @@ class CloudlyPlugin : JavaPlugin(), Listener {
         
         // Initialize configuration helper
         ConfigHelper.initialize(this)
-        
-        // Register event listeners here
+          // Register event listeners here
         // server.pluginManager.registerEvents(this, this)
         
         // Register commands here
-        getCommand("cloudly")?.setExecutor(ExampleCommand())
+        getCommand("cloudly")?.setExecutor(CloudlyCommand())
         
         // Initialize any managers, services, or components here
         // Example: playerManager = PlayerManager()
