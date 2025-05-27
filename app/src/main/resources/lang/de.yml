@@ -26,3 +26,13 @@ commands:
   cloudly:
     info: "&aCloudly läuft! Version: {0}"
     reload-no-permission: "&cDu hast keine Berechtigung, das Plugin neu zu laden."
+    info-command:
+      header: "&8&m-----&r &b&lCloudly Informationen &8&m-----"
+      version: "&7Version: &f{0}"
+      server: "&7Server: &f{0} {1}"
+      author: "&7Autor: &fGerrxt07"
+      language: "&7Aktuelle Sprache: &f{0}"
+      memory: "&7Speichernutzung: &f{0}MB / {1}MB"
+      uptime: "&7Laufzeit: &f{0}"
+      players: "&7Spieler Online: &f{0}/{1}"
+      footer: "&8&m--------------------------"
