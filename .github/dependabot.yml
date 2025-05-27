@@ -1,0 +1,57 @@
+# Dependabot configuration for Cloudly
+# Automatically keep dependencies up-to-date with pull requests
+
+version: 2
+updates:
+  # Keep Gradle dependencies up-to-date
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "gradle"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # Set reviewers for dependency PRs
+    reviewers:
+      - "gerrxt07"
+    
+  # Keep GitHub Actions up-to-date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    # Set reviewers for dependency PRs
+    reviewers:
+      - "gerrxt07"
+    
+  # Monitor Gradle wrapper updates
+  - package-ecosystem: "gradle"
+    directory: "/"
+    allow:
+      - dependency-name: "gradle"
+        dependency-type: "direct"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "gradle-wrapper"
+    commit-message:
+      prefix: "build"
+      include: "scope"
