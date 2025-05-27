@@ -23,8 +23,8 @@ loadbefore: []
 commands:
   cloudly:
     description: Main Cloudly command
-    usage: /cloudly
-    permission: cloudly.admin
+    usage: /cloudly [info|reload]
+    permission: cloudly.command
     permission-message: You don't have permission to use this command.
 
 # Permissions section (add permissions here when needed)
@@ -32,3 +32,9 @@ permissions:
   cloudly.admin:
     description: Access to all Cloudly admin commands
     default: op
+  cloudly.command:
+    description: Basic access to Cloudly commands
+    default: true
+  cloudly.command.info:
+    description: Access to view plugin information
+    default: true
