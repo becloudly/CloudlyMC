@@ -1,0 +1,243 @@
+/*
+ * Cloudly - Utility Functions
+ * 
+ * This file contains common utility functions and performance optimizations
+ * for the Cloudly plugin.
+ */
+package cloudly.util
+
+import cloudly.CloudlyPlugin
+import org.bukkit.ChatColor
+import org.bukkit.command.CommandSender
+import org.bukkit.entity.Player
+import kotlinx.coroutines.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Logger
+
+/**
+ * Utility object containing common functions used throughout the plugin
+ */
+object CloudlyUtils {
+    
+    private val logger: Logger = Logger.getLogger("Cloudly")
+    
+    // Create a coroutine scope for async operations
+    private val pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    /**
+     * Color code translation for chat messages
+     * Uses & as the color code prefix
+     */
+    fun colorize(message: String): String {
+        return ChatColor.translateAlternateColorCodes('&', message)
+    }
+    
+    /**
+     * Send a colored message to a command sender
+     */
+    fun sendMessage(sender: CommandSender, message: String) {
+        sender.sendMessage(colorize(message))
+    }
+    
+    /**
+     * Send a message with the plugin prefix
+     */
+    fun sendPrefixedMessage(sender: CommandSender, message: String, prefix: String = "&8[&bCloudly&8]&r ") {
+        sender.sendMessage(colorize(prefix + message))
+    }
+    
+    /**
+     * Check if a player has a specific permission
+     * Returns true if player has permission or is OP
+     */
+    fun hasPermission(player: Player, permission: String): Boolean {
+        return player.hasPermission(permission) || player.isOp
+    }
+      /**
+     * Safe async execution with error handling
+     * Use this for any async operations to prevent plugin crashes
+     */
+    fun runAsync(action: suspend () -> Unit) {
+        pluginScope.launch {
+            try {
+                action()
+            } catch (e: Exception) {
+                logger.severe("Error in async operation: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    /**
+     * Safe sync execution (run on main thread)
+     * Use this when you need to interact with Bukkit API from async context
+     */
+    fun runSync(plugin: org.bukkit.plugin.Plugin, action: () -> Unit) {
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            try {
+                action()
+            } catch (e: Exception) {
+                logger.severe("Error in sync operation: ${e.message}")
+                e.printStackTrace()
+            }
+        })
+    }
+    
+    /**
+     * Cancel all running coroutines - call this when the plugin is disabled
+     */
+    fun cleanup() {
+        pluginScope.cancel()
+    }
+}
+
+/**
+ * High-performance cache implementation using ConcurrentHashMap
+ * Thread-safe and optimized for concurrent access
+ */
+class FastCache<K, V>(private val maxSize: Int = 1000) {
+    
+    private val cache = ConcurrentHashMap<K, V>()
+    private val accessOrder = ConcurrentHashMap<K, Long>()
+    
+    /**
+     * Get a value from the cache
+     */
+    fun get(key: K): V? {
+        val value = cache[key]
+        if (value != null) {
+            accessOrder[key] = System.currentTimeMillis()
+        }
+        return value
+    }
+    
+    /**
+     * Put a value into the cache
+     * Automatically removes oldest entries if cache exceeds max size
+     */
+    fun put(key: K, value: V) {
+        if (cache.size >= maxSize) {
+            removeOldestEntry()
+        }
+        cache[key] = value
+        accessOrder[key] = System.currentTimeMillis()
+    }
+    
+    /**
+     * Remove a specific key from the cache
+     */
+    fun remove(key: K): V? {
+        accessOrder.remove(key)
+        return cache.remove(key)
+    }
+    
+    /**
+     * Clear the entire cache
+     */
+    fun clear() {
+        cache.clear()
+        accessOrder.clear()
+    }
+    
+    /**
+     * Get current cache size
+     */
+    fun size(): Int = cache.size
+    
+    /**
+     * Check if cache contains a key
+     */
+    fun containsKey(key: K): Boolean = cache.containsKey(key)
+    
+    /**
+     * Remove the oldest accessed entry from the cache
+     */
+    private fun removeOldestEntry() {
+        val oldestKey = accessOrder.minByOrNull { it.value }?.key
+        if (oldestKey != null) {
+            cache.remove(oldestKey)
+            accessOrder.remove(oldestKey)
+        }
+    }
+}
+
+/**
+ * Configuration helper for easy config access
+ */
+object ConfigHelper {
+
+    private lateinit var plugin: org.bukkit.plugin.Plugin
+    private var language: String = "en" // Default language
+
+    // Hardcoded performance settings
+    private const val ASYNC_OPERATIONS = true
+    private const val PLAYER_CACHE_SIZE = 1000
+    private const val CACHE_EXPIRATION = 30
+
+
+    fun initialize(pluginInstance: org.bukkit.plugin.Plugin) {
+        plugin = pluginInstance
+        // Load language from config, as it's not hardcoded
+        language = plugin.config.getString("plugin.language", "en") ?: "en"
+    }
+
+    // Getter for debug (uses hardcoded value from CloudlyPlugin)
+    fun isDebug(): Boolean {
+        return CloudlyPlugin.DEBUG
+    }
+
+    // Getter for language (loaded from config)
+    fun getLanguage(): String {
+        return language
+    }
+
+    // Getter for async-operations (hardcoded)
+    fun useAsyncOperations(): Boolean {
+        return ASYNC_OPERATIONS
+    }
+
+    // Getter for player-cache-size (hardcoded)
+    fun getPlayerCacheSize(): Int {
+        return PLAYER_CACHE_SIZE
+    }
+
+    // Getter for cache-expiration (hardcoded)
+    fun getCacheExpiration(): Int {
+        return CACHE_EXPIRATION
+    }
+    
+    /**
+     * Get a string value from config with default
+     */
+    fun getString(path: String, default: String = ""): String {
+        return plugin.config.getString(path, default) ?: default
+    }
+    
+    /**
+     * Get an integer value from config with default
+     */
+    fun getInt(path: String, default: Int = 0): Int {
+        return plugin.config.getInt(path, default)
+    }
+    
+    /**
+     * Get a boolean value from config with default
+     */
+    fun getBoolean(path: String, default: Boolean = false): Boolean {
+        return plugin.config.getBoolean(path, default)
+    }
+    
+    /**
+     * Get a double value from config with default
+     */
+    fun getDouble(path: String, default: Double = 0.0): Double {
+        return plugin.config.getDouble(path, default)
+    }
+    
+    /**
+     * Get a string list from config with default
+     */
+    fun getStringList(path: String): List<String> {
+        return plugin.config.getStringList(path)
+    }
+}

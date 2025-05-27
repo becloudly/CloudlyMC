@@ -1,0 +1,34 @@
+# Cloudly Plugin Configuration
+# This file defines the plugin metadata for PaperMC/Bukkit
+
+name: ${name}
+version: ${version}
+main: ${main}
+api-version: 1.18
+author: Gerrxt07
+description: High-performance Minecraft plugin built with Kotlin
+website: https://github.com/gerrxt07/cloudly
+
+# Minimum Minecraft version support
+# 1.18+ for Paper API compatibility
+folia-supported: true
+
+# Plugin loading
+load: STARTUP
+depend: []
+softdepend: []
+loadbefore: []
+
+# Commands section (add commands here when needed)
+commands:
+  cloudly:
+    description: Main Cloudly command
+    usage: /cloudly
+    permission: cloudly.admin
+    permission-message: You don't have permission to use this command.
+
+# Permissions section (add permissions here when needed)
+permissions:
+  cloudly.admin:
+    description: Access to all Cloudly admin commands
+    default: op
