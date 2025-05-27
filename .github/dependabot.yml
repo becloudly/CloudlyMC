@@ -3,7 +3,7 @@
 
 version: 2
 updates:
-  # Keep Gradle dependencies up-to-date
+  # Keep all Gradle dependencies up-to-date (including wrapper)
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
@@ -40,18 +40,3 @@ updates:
     # Set reviewers for dependency PRs
     reviewers:
       - "gerrxt07"
-    
-  # Monitor Gradle wrapper updates
-  - package-ecosystem: "gradle"
-    directory: "/"
-    allow:
-      - dependency-name: "gradle"
-        dependency-type: "direct"
-    schedule:
-      interval: "monthly"
-    labels:
-      - "dependencies"
-      - "gradle-wrapper"
-    commit-message:
-      prefix: "build"
-      include: "scope"
