@@ -59,11 +59,14 @@ tasks {
         
         minimize()
     }
-    
-    build {
+      build {
         dependsOn(shadowJar)
     }
-      processResources {
+    
+    processResources {
+        // Set duplicates strategy to handle duplicate files
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+        
         val props = mapOf(
             "version" to version,
             "name" to "Cloudly",
@@ -72,11 +75,6 @@ tasks {
         inputs.properties(props)
         filesMatching("plugin.yml") {
             expand(props)
-        }
-        
-        // Include language files
-        from("src/main/resources/lang") {
-            into("lang")
         }
     }
 }
