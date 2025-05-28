@@ -6,7 +6,7 @@ version: ${version}
 main: ${main}
 api-version: 1.18
 author: Gerrxt07
-description: High-performance Minecraft plugin built with Kotlin
+description: High-performance Minecraft Server Management plugin built with Kotlin
 website: https://github.com/gerrxt07/cloudly
 
 # Minimum Minecraft version support

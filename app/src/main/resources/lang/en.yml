@@ -24,7 +24,7 @@ system:
 # Command-specific messages
 commands:
   cloudly:
-    info: "&aCloudly is running! Version: {0}"
+    info: "&aCloudly is running on Version: {0}!"
     reload-no-permission: "&cYou don't have permission to reload the plugin."
     info-command:
       header: "&8&m-----&r &b&lCloudly Information &8&m-----"
@@ -35,4 +35,4 @@ commands:
       memory: "&7Memory Usage: &f{0}MB / {1}MB"
       uptime: "&7Uptime: &f{0}"
       players: "&7Online Players: &f{0}/{1}"
-      footer: "&8&m--------------------------"
+      footer: "&8&m----------------------------------

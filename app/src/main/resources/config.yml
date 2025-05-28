@@ -1,35 +1,23 @@
 # Cloudly Plugin Configuration
 # Version: 1.0.0.0
 
-# Plugin Settings
 plugin:
-  # Language for messages - Available: en, de
   language: "en"
 
-# Feature toggles (add features here as you develop them)
 features:
   # Example feature toggle
   # example-feature: true
   
-# Database configuration (if needed in the future)
-# database:
-#   type: "sqlite" # sqlite, mysql, postgresql
-#   host: "localhost"
-#   port: 3306
-#   database: "cloudly"
-#   username: "root"
-#   password: "password"
-#   
-#   # Connection pool settings
-#   pool:
-#     minimum-connections: 2
-#     maximum-connections: 10
-#     connection-timeout: 30000
 
-# Development settings (remove in production)
-development:
-  # Enable development mode features
-  enabled: true
-  
-  # Show additional debug information
-  verbose-logging: false
+database:
+  type: "sqlite"
+
+  sqlite:
+    file: "cloudly.db"
+
+  mysql:  
+    host: "localhost"
+    port: 3306
+    database: "cloudly"
+    username: "username"
+    password: "password"
