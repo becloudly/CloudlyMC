@@ -15,6 +15,7 @@ import org.bukkit.event.Listener
 import java.util.logging.Level
 import cloudly.util.ConfigHelper
 import cloudly.util.LanguageManager
+import cloudly.util.CloudlyUtils
 import cloudly.command.CloudlyCommand
 
 /**
@@ -41,29 +42,39 @@ class CloudlyPlugin : JavaPlugin(), Listener {
     }
     
     /**
+     * Called when the plugin is loading - used to colorize the loading message
+     */
+    override fun onLoad() {
+        // Use a custom colored message for plugin loading
+        val consoleMessage = "§b[Cloudly] §fLoading server plugin Cloudly v${description.version}"
+        server.consoleSender.sendMessage(consoleMessage)
+    }
+      /**
      * Called when the plugin is enabled
      * This is where initialization logic should go
-     */
-    override fun onEnable() {
+     */    override fun onEnable() {
         instance = this
+        
+        // Send colored plugin enabling message
+        server.consoleSender.sendMessage("§7[INFO]: §r[Cloudly] §fEnabling Cloudly v${description.version}")
         
         // First save default config and initialize language manager
         // since we need it for logging with translations
         saveDefaultConfig()
         LanguageManager.initialize(this)
         
-        // Log plugin startup with version info using raw logger initially
-        // (since we need to ensure language files are loaded first)
-        logger.info(LanguageManager.getMessage("system.startup", description.version))
-        logger.info(LanguageManager.getMessage("system.running-on", server.name, server.version))
-        
-        try {
+        // Log plugin startup with version info using colored console output
+        // instead of raw logger to ensure color codes are rendered properly
+        CloudlyUtils.logColored(LanguageManager.getMessage("system.startup", description.version))
+        CloudlyUtils.logColored(LanguageManager.getMessage("system.running-on", server.name, server.version))
+          try {
             // Initialize plugin components here
             initializePlugin()
             
-            logger.info(LanguageManager.getMessage("system.enabled-success"))
+            CloudlyUtils.logColored(LanguageManager.getMessage("system.enabled-success"))
         } catch (e: Exception) {
-            logger.log(Level.SEVERE, LanguageManager.getMessage("system.enable-failed"), e)
+            CloudlyUtils.logColored(LanguageManager.getMessage("system.enable-failed"), Level.SEVERE)
+            logger.log(Level.SEVERE, "Error details:", e)
             server.pluginManager.disablePlugin(this)
         }
     }
@@ -71,15 +82,15 @@ class CloudlyPlugin : JavaPlugin(), Listener {
     /**
      * Called when the plugin is disabled
      * This is where cleanup logic should go
-     */
-    override fun onDisable() {
+     */    override fun onDisable() {
         try {
             // Cleanup plugin components here
             cleanupPlugin()
             
-            logger.info(LanguageManager.getMessage("system.shutdown"))
+            CloudlyUtils.logColored(LanguageManager.getMessage("system.shutdown"))
         } catch (e: Exception) {
-            logger.log(Level.SEVERE, LanguageManager.getMessage("system.shutdown-error"), e)
+            CloudlyUtils.logColored(LanguageManager.getMessage("system.shutdown-error"), Level.SEVERE)
+            logger.log(Level.SEVERE, "Error details:", e)
         }
     }
       /**

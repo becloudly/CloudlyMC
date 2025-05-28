@@ -10,9 +10,24 @@ import cloudly.CloudlyPlugin
 import org.bukkit.ChatColor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import org.bukkit.Bukkit
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Logger
+import java.util.logging.Level
+
+/**
+ * Extension function to check if a Kotlin object is initialized
+ */
+fun <T : Any> Class<T>.isInitialized(): Boolean {
+    return try {
+        // For Kotlin object classes, we can check if INSTANCE is accessible
+        this.getDeclaredField("INSTANCE").get(null) != null
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
 
 /**
  * Utility object containing common functions used throughout the plugin
@@ -102,6 +117,42 @@ object CloudlyUtils {
      */
     fun cleanup() {
         pluginScope.cancel()
+    }
+      /**
+     * Log a message to console with proper color support
+     * This uses Bukkit's console sender instead of java.util.logging
+     * to ensure color codes are properly rendered
+     */
+    fun logColored(message: String, level: Level = Level.INFO) {
+        val coloredMessage = "[Cloudly] " + colorize(message)
+        
+        when (level) {
+            Level.SEVERE -> Bukkit.getConsoleSender().sendMessage("§c" + coloredMessage)
+            Level.WARNING -> Bukkit.getConsoleSender().sendMessage("§e" + coloredMessage)
+            Level.INFO -> Bukkit.getConsoleSender().sendMessage(coloredMessage)
+            else -> Bukkit.getConsoleSender().sendMessage("§7" + coloredMessage)
+        }
+    }
+    
+    /**
+     * Format a console message to match the server log format with colors
+     * This creates a message that looks like: [HH:MM:SS] [Level]: [Cloudly] Message
+     * Used for special cases where we need to maintain log format consistency
+     */
+    fun logFormattedColored(message: String, level: Level = Level.INFO) {
+        // Get current time for timestamp
+        val timestamp = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"))
+        
+        // Create the formatted message with timestamp
+        val formattedMessage = when (level) {
+            Level.SEVERE -> "§7[${timestamp}] §c[SEVERE]: §r[Cloudly] " + colorize(message)
+            Level.WARNING -> "§7[${timestamp}] §e[WARNING]: §r[Cloudly] " + colorize(message)
+            Level.INFO -> "§7[${timestamp}] §7[INFO]: §r[Cloudly] " + colorize(message) 
+            else -> "§7[${timestamp}] §7[${level.name}]: §r[Cloudly] " + colorize(message)
+        }
+        
+        // Send to console
+        Bukkit.getConsoleSender().sendMessage(formattedMessage)
     }
 }
 

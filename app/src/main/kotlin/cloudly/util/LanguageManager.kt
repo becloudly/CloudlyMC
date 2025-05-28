@@ -26,15 +26,19 @@ object LanguageManager {
     /**
      * Initialize the language manager with the plugin instance
      * Loads the configured language file
-     */
-    fun initialize(plugin: JavaPlugin) {
+     */    fun initialize(plugin: JavaPlugin) {
         // Get language from config
         currentLanguage = plugin.config.getString("plugin.language", defaultLanguage) ?: defaultLanguage
         
         // Load language file
         loadLanguage(plugin)
         
-        plugin.logger.info("Loaded language: $currentLanguage")
+        // Use colored logging for language loading message
+        if (CloudlyUtils::class.java.isInitialized()) {
+            CloudlyUtils.logColored("&aLoaded language: &f$currentLanguage")
+        } else {
+            plugin.logger.info("Loaded language: $currentLanguage")
+        }
     }
     
     /**
@@ -55,15 +59,19 @@ object LanguageManager {
             
             // Try to load the configured language
             val langFile = File(langDir, "$currentLanguage.yml")
-            
-            // If the language file doesn't exist, try to create it from the jar
+              // If the language file doesn't exist, try to create it from the jar
             if (!langFile.exists()) {
                 plugin.saveResource("lang/$currentLanguage.yml", false)
             }
             
             // If the file still doesn't exist, fall back to English
             if (!langFile.exists()) {
-                plugin.logger.warning("Language file for '$currentLanguage' not found, falling back to English")
+                // Use colored warning if possible
+                if (CloudlyUtils::class.java.isInitialized()) {
+                    CloudlyUtils.logColored("&eLanguage file for '$currentLanguage' not found, falling back to English", Level.WARNING)
+                } else {
+                    plugin.logger.warning("Language file for '$currentLanguage' not found, falling back to English")
+                }
                 currentLanguage = defaultLanguage
                 
                 // Try to load English file
@@ -71,20 +79,28 @@ object LanguageManager {
                 if (!defaultLangFile.exists()) {
                     plugin.saveResource("lang/$defaultLanguage.yml", false)
                 }
-                
-                if (defaultLangFile.exists()) {
+                  if (defaultLangFile.exists()) {
                     messages = YamlConfiguration.loadConfiguration(defaultLangFile)
                 } else {
-                    plugin.logger.severe("Default language file not found! Messages will not be available.")
+                    // Use colored severe message if possible
+                    if (CloudlyUtils::class.java.isInitialized()) {
+                        CloudlyUtils.logColored("&cDefault language file not found! Messages will not be available.", Level.SEVERE)
+                    } else {
+                        plugin.logger.severe("Default language file not found! Messages will not be available.")
+                    }
                     messages = YamlConfiguration()
                 }
             } else {
                 // Load the language file
                 messages = YamlConfiguration.loadConfiguration(langFile)
             }
-            
-        } catch (e: Exception) {
-            plugin.logger.log(Level.SEVERE, "Failed to load language file", e)
+              } catch (e: Exception) {
+            // Use colored severe message if possible
+            if (CloudlyUtils::class.java.isInitialized()) {
+                CloudlyUtils.logColored("&cFailed to load language file: " + e.message, Level.SEVERE)
+            } else {
+                plugin.logger.log(Level.SEVERE, "Failed to load language file", e)
+            }
             messages = YamlConfiguration()
         }
     }
@@ -148,8 +164,7 @@ object LanguageManager {
     fun getPrefixedMessage(key: String, vararg args: Any): String {
         return getPrefix() + getMessage(key, *args)
     }
-    
-    /**
+      /**
      * Reload the language files
      * Used when the plugin is reloaded
      */
@@ -160,7 +175,12 @@ object LanguageManager {
         // Reload language file
         loadLanguage(plugin)
         
-        plugin.logger.info("Reloaded language: $currentLanguage")
+        // Use colored logging for reload message
+        if (CloudlyUtils::class.java.isInitialized()) {
+            CloudlyUtils.logColored("&aReloaded language: &f$currentLanguage")
+        } else {
+            plugin.logger.info("Reloaded language: $currentLanguage")
+        }
     }
     
     /**
