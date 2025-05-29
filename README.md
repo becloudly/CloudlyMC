@@ -28,7 +28,7 @@
 
 ## ⚙️ Documentations
 
-You can find our detailed documentation [here]().
+You can find our detailed documentation [here](https://gerrxt.gitbook.io/cloudlymc).
 
 ## 🗺️ Other things
 
