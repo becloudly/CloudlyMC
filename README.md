@@ -1,7 +1,3 @@
----
-icon: cloud
----
-
 # Welcome to Cloudly
 
 <figure><img src=".gitbook/assets/Cloudly_PreviewBanner.png" alt=""><figcaption></figcaption></figure>
