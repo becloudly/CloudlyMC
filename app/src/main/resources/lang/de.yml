@@ -35,4 +35,3 @@ commands:
       memory: "&7Speichernutzung: &f{0}MB / {1}MB"
       uptime: "&7Laufzeit: &f{0}"
       players: "&7Spieler Online: &f{0}/{1}"
-      footer: "&8&m-------------------------------------"

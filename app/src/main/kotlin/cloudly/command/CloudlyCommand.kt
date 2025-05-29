@@ -182,7 +182,6 @@ class CloudlyCommand : BaseCommand() {
             sendTranslatedMessage(sender, "commands.cloudly.info-command.memory", info.memoryInfo.first, info.memoryInfo.second)
             sendTranslatedMessage(sender, "commands.cloudly.info-command.uptime", info.uptime)
             sendTranslatedMessage(sender, "commands.cloudly.info-command.players", info.playerInfo.first, info.playerInfo.second)
-            sendTranslatedMessage(sender, "commands.cloudly.info-command.footer")
         } catch (e: Exception) {
             handleCommandError(sender, "sendInfoMessages", e)
         }
