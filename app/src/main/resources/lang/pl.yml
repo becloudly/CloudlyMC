@@ -1,0 +1,37 @@
+# Cloudly Polish Language File
+# Language: Polish (pl)
+
+# Common messages used throughout the plugin
+common:
+  prefix: "&8[&bCloudly&8]&r "
+  no-permission: "&cNie masz uprawnień do używania tego polecenia."
+  player-only: "&cTo polecenie może być używane tylko przez graczy."
+  reload-success: "&aCloudly został pomyślnie przeładowany!"
+  reload-failed: "&cNie udało się przeładować Cloudly. Sprawdź konsolę pod kątem błędów."
+  error-occurred: "&cWystąpił błąd podczas wykonywania tego polecenia."
+  usage-format: "&cUżycie: &f{0}"
+
+# System messages
+system:
+  startup: "&aCloudly v{0} się uruchamia..."
+  running-on: "&7Działa na {0} {1}"
+  enabled-success: "&aCloudly został pomyślnie włączony!"
+  enable-failed: "&cNie udało się włączyć Cloudly"
+  shutdown: "&aCloudly został pomyślnie wyłączony!"
+  shutdown-error: "&cBłąd podczas wyłączania wtyczki"
+  reloading: "&7Przeładowywanie Cloudly..."
+
+# Command-specific messages
+commands:
+  cloudly:
+    info: "&aCloudly działa w wersji: {0}!"
+    reload-no-permission: "&cNie masz uprawnień do przeładowania wtyczki."
+    info-command:
+      header: "&8&m-----&r &b&lInformacje o Cloudly &8&m-----"
+      version: "&7Wersja: &f{0}"
+      server: "&7Serwer: &f{0} {1}"
+      author: "&7Autor: &fGerrxt07"
+      language: "&7Aktualny język: &f{0}"
+      memory: "&7Użycie pamięci: &f{0}MB / {1}MB"
+      uptime: "&7Czas działania: &f{0}"
+      players: "&7Gracze online: &f{0}/{1}"

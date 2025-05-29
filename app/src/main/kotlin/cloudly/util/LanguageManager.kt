@@ -56,13 +56,14 @@ object LanguageManager {
             val langDir = File(plugin.dataFolder, "lang")
             if (!langDir.exists()) {
                 langDir.mkdirs()
-                
-                // Save default language files safely
-                try {
-                    plugin.saveResource("lang/en.yml", false)
-                    plugin.saveResource("lang/de.yml", false)
-                } catch (e: Exception) {
-                    safeLog(plugin, "Could not save default language files: ${e.message}", Level.WARNING)
+                  // Save default language files safely
+                val languageFiles = listOf("en.yml", "de.yml", "fr.yml", "es.yml", "pt.yml", "pl.yml", "ru.yml", "zh.yml")
+                for (langFile in languageFiles) {
+                    try {
+                        plugin.saveResource("lang/$langFile", false)
+                    } catch (e: Exception) {
+                        safeLog(plugin, "Could not save language file $langFile: ${e.message}", Level.FINE)
+                    }
                 }
             }
             

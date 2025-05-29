@@ -1,0 +1,37 @@
+# Cloudly Russian Language File
+# Language: Russian (ru)
+
+# Common messages used throughout the plugin
+common:
+  prefix: "&8[&bCloudly&8]&r "
+  no-permission: "&cУ вас нет прав для использования этой команды."
+  player-only: "&cЭта команда может использоваться только игроками."
+  reload-success: "&aCloudly был успешно перезагружен!"
+  reload-failed: "&cНе удалось перезагрузить Cloudly. Проверьте консоль на наличие ошибок."
+  error-occurred: "&cПроизошла ошибка при выполнении этой команды."
+  usage-format: "&cИспользование: &f{0}"
+
+# System messages
+system:
+  startup: "&aCloudly v{0} запускается..."
+  running-on: "&7Работает на {0} {1}"
+  enabled-success: "&aCloudly был успешно включён!"
+  enable-failed: "&cНе удалось включить Cloudly"
+  shutdown: "&aCloudly был успешно отключён!"
+  shutdown-error: "&cОшибка при выключении плагина"
+  reloading: "&7Перезагрузка Cloudly..."
+
+# Command-specific messages
+commands:
+  cloudly:
+    info: "&aCloudly работает на версии: {0}!"
+    reload-no-permission: "&cУ вас нет прав для перезагрузки плагина."
+    info-command:
+      header: "&8&m-----&r &b&lИнформация о Cloudly &8&m-----"
+      version: "&7Версия: &f{0}"
+      server: "&7Сервер: &f{0} {1}"
+      author: "&7Автор: &fGerrxt07"
+      language: "&7Текущий язык: &f{0}"
+      memory: "&7Использование памяти: &f{0}MB / {1}MB"
+      uptime: "&7Время работы: &f{0}"
+      players: "&7Игроков онлайн: &f{0}/{1}"

@@ -2,6 +2,8 @@
 # Version: 1.0.0.0
 
 plugin:
+  # Language setting for the plugin
+  # Available languages: en (English), de (German), fr (French), es (Spanish), pt (Portuguese), pl (Polish), ru (Russian), zh (Chinese)
   language: "en"
 
 features:

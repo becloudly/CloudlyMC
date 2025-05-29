@@ -1,0 +1,37 @@
+# Cloudly Portuguese Language File
+# Language: Portuguese (pt)
+
+# Common messages used throughout the plugin
+common:
+  prefix: "&8[&bCloudly&8]&r "
+  no-permission: "&cVocê não tem permissão para usar este comando."
+  player-only: "&cEste comando só pode ser usado por jogadores."
+  reload-success: "&aCloudly foi recarregado com sucesso!"
+  reload-failed: "&cFalha ao recarregar Cloudly. Verifique o console para erros."
+  error-occurred: "&cOcorreu um erro ao executar este comando."
+  usage-format: "&cUso: &f{0}"
+
+# System messages
+system:
+  startup: "&aCloudly v{0} está iniciando..."
+  running-on: "&7Executando em {0} {1}"
+  enabled-success: "&aCloudly foi habilitado com sucesso!"
+  enable-failed: "&cFalha ao habilitar Cloudly"
+  shutdown: "&aCloudly foi desabilitado com sucesso!"
+  shutdown-error: "&cErro durante o desligamento do plugin"
+  reloading: "&7Recarregando Cloudly..."
+
+# Command-specific messages
+commands:
+  cloudly:
+    info: "&aCloudly está executando na Versão: {0}!"
+    reload-no-permission: "&cVocê não tem permissão para recarregar o plugin."
+    info-command:
+      header: "&8&m-----&r &b&lInformações do Cloudly &8&m-----"
+      version: "&7Versão: &f{0}"
+      server: "&7Servidor: &f{0} {1}"
+      author: "&7Autor: &fGerrxt07"
+      language: "&7Idioma atual: &f{0}"
+      memory: "&7Uso de memória: &f{0}MB / {1}MB"
+      uptime: "&7Tempo ativo: &f{0}"
+      players: "&7Jogadores online: &f{0}/{1}"
