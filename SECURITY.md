@@ -1,4 +1,8 @@
-# 🛡️ Safety guidelines
+---
+icon: shield-exclamation
+---
+
+# Safety guidelines
 
 The security of our code and our users has the highest priority. We are grateful for any information and assistance regarding possible security vulnerabilities. We give security researchers the right to check our code for problems.
 
@@ -7,33 +11,32 @@ The security of our code and our users has the highest priority. We are grateful
 ### ✉️ Process of Reporting
 
 1. **Reporting**:
-   - Send an email to: ```report@phantomcommunity.de```
-
+   * Send an email to: `report@phantomcommunity.de`
 2. **Required information**:
-   - Detailed description of the vulnerability
-   - Steps to reproduce
-   - Possible consequences
-   - Version
-   - Operating System
-
+   * Detailed description of the vulnerability
+   * Steps to reproduce
+   * Possible consequences
+   * Version
+   * Operating System
 3. **Response time**:
-   - First response: within 24 hours
-   - Updates: at least every 3 days
-   - Processing time: depending on severity
-   - You get:
-     - Confirmation of the vulnerability with subsequent description.
-     - An (internal) CVE report with a mention in the project.
-
+   * First response: within 24 hours
+   * Updates: at least every 3 days
+   * Processing time: depending on severity
+   * You get:
+     * Confirmation of the vulnerability with subsequent description.
+     * An (internal) CVE report with a mention in the project.
 
 ## 🔒 Our security measures
 
 ### 📦 Code-Safety
-- Code scanning
-- Regular security audits
+
+* Code scanning
+* Regular security audits
 
 ### 🛡️ Data processing
-- Encrypted data transfer & storage
-- Local processing prioritized
+
+* Encrypted data transfer & storage
+* Local processing prioritized
 
 ## 📜 Responsible disclosure
 
@@ -67,6 +70,6 @@ We follow the principle of responsible disclosure:
 - [ ] Suggested remedy (optional)
 ```
 
----
+***
 
 Last update: 26/05/2025

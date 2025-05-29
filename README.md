@@ -1,23 +1,27 @@
-# ☁️ The Cloudly Server Plugin
-
-![Cloudly Banner](https://github.com/Gerrxt07/cloudlymc/blob/master/content/Cloudly_PreviewBanner.png)
-
-*☁️ A high-performance Minecraft server plugin for paper-based servers built with Kotlin to manage your server with various integrations, highly configurable and multi-language support.*
-
 ---
+icon: cloud
+---
+
+# Welcome to Cloudly
+
+<figure><img src=".gitbook/assets/Cloudly_PreviewBanner.png" alt=""><figcaption></figcaption></figure>
+
+_☁️ A high-performance Minecraft server plugin for paper-based servers built with Kotlin to manage your server with various integrations, highly configurable and multi-language support._
+
+***
 
 ## ✨ Our Features
 
-- 🌐 Multi-language support (English, German, French, Spanish, Portuguese, Polish, Russian, Chinese)
-- 📋 Highly configurable through config, language files and more
-- 🎮 Support for Paper-Based Minecraft 1.18+ 
-- ☕ Fully written in Async Kotlin
-- 🛡️ Modern standards for security and stability
+* 🌐 Multi-language support (English, German, French, Spanish, Portuguese, Polish, Russian, Chinese)
+* 📋 Highly configurable through config, language files and more
+* 🎮 Support for Paper-Based Minecraft 1.18+
+* ☕ Fully written in Async Kotlin
+* 🛡️ Modern standards for security and stability
 
 ## 📋 Requirements
 
-- 📄 Paper-based server (Version 1.18 or higher - PaperMC, Purpur, Pufferfish, CanvasMC etc.)
-- ☕ Java 17 or higher
+* 📄 Paper-based server (Version 1.18 or higher - PaperMC, Purpur, Pufferfish, CanvasMC etc.)
+* ☕ Java 17 or higher
 
 ## 🚀 Installation
 
@@ -40,25 +44,23 @@ Would you like to participate in development or have feature requests? [Open an 
 
 ### Setting Up the Development Environment
 
-1. Clone the repository:
+1.  Clone the repository:
 
-   ```bash
-   git clone https://github.com/gerrxt/cloudly.git
-   ```
-
+    ```bash
+    git clone https://github.com/gerrxt/CloudlyMC.git
+    ```
 2. Import the project into your IDE (e.g., IntelliJ, Eclipse, VSCode, etc.).
+3.  Run the Gradle build:
 
-3. Run the Maven build:
+    ```bash
+    ./gradlew clean build
+    ```
 
-   ```bash
-   mvn clean package
-   ```
-
-The compiled JAR file can be found in the `target` folder.
+The compiled JAR file can be found in `app/build/libs` .
 
 ## 📜 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE/).
 
 ## 👏 Credits
 
