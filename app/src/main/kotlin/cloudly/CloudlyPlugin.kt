@@ -17,6 +17,7 @@ import cloudly.util.ConfigHelper
 import cloudly.util.LanguageManager
 import cloudly.util.CloudlyUtils
 import cloudly.command.CloudlyCommand
+import kotlinx.coroutines.*
 
 /**
  * Main plugin class for Cloudly
@@ -52,8 +53,15 @@ class CloudlyPlugin : JavaPlugin(), Listener {
             } catch (e: Exception) {
                 null
             }
+        }    }
+    
+    // Plugin coroutine scope with proper lifecycle management
+    private val pluginScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Default + 
+        CoroutineExceptionHandler { _, exception ->
+            logger.log(Level.SEVERE, "Unhandled coroutine exception", exception)
         }
-    }
+    )
     
     // Track initialization state
     private var isInitialized = false
@@ -102,8 +110,7 @@ class CloudlyPlugin : JavaPlugin(), Listener {
             }
         }
     }
-    
-    /**
+      /**
      * Called when the plugin is disabled
      * This is where cleanup logic should go
      */
@@ -111,6 +118,9 @@ class CloudlyPlugin : JavaPlugin(), Listener {
         isShuttingDown = true
         
         try {
+            // Cancel all plugin coroutines first
+            pluginScope.cancel("Plugin disabled")
+            
             // Cleanup plugin components
             cleanupPlugin()
             
@@ -235,8 +245,7 @@ class CloudlyPlugin : JavaPlugin(), Listener {
             logger.log(Level.WARNING, "Failed to initialize some components", e)
         }
     }
-    
-    /**
+      /**
      * Cleanup plugin components safely
      */
     private fun cleanupPlugin() {
@@ -245,6 +254,13 @@ class CloudlyPlugin : JavaPlugin(), Listener {
             server?.scheduler?.cancelTasks(this)
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Error canceling tasks", e)
+        }
+        
+        try {
+            // Cleanup utilities (clear caches, etc.)
+            CloudlyUtils.cleanup()
+        } catch (e: Exception) {
+            logger.log(Level.WARNING, "Error cleaning up utilities", e)
         }
         
         try {
@@ -355,9 +371,14 @@ class CloudlyPlugin : JavaPlugin(), Listener {
             "Unknown Version"
         }
     }
-    
-    /**
+      /**
      * Check if plugin is properly initialized
      */
     fun isPluginInitialized(): Boolean = isInitialized && !isShuttingDown
+    
+    /**
+     * Get the plugin's coroutine scope for async operations
+     * This scope is automatically cancelled when the plugin is disabled
+     */
+    fun getPluginScope(): CoroutineScope = pluginScope
 }

@@ -13,6 +13,7 @@ import org.bukkit.entity.Player
 import org.bukkit.Bukkit
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
 import java.util.logging.Level
 
@@ -44,19 +45,32 @@ private fun getLoggerSafely(): Logger {
  */
 object CloudlyUtils {
     
-    // Create a coroutine scope for async operations
-    private val pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-      /**
-     * Color code translation for chat messages
+    // Color code cache to improve performance
+    private val colorCodeCache = ConcurrentHashMap<String, String>()
+    
+    // Limit cache size to prevent memory leaks
+    private const val MAX_COLOR_CACHE_SIZE = 1000    /**
+     * Color code translation for chat messages with caching
      * Uses & as the color code prefix - null-safe implementation
      */
     fun colorize(message: String?): String {
         if (message.isNullOrBlank()) return ""
         
+        // Check cache first for performance
+        colorCodeCache[message]?.let { return it }
+        
+        // Prevent cache from growing too large
+        if (colorCodeCache.size >= MAX_COLOR_CACHE_SIZE) {
+            colorCodeCache.clear()
+        }
+        
         return try {
-            ChatColor.translateAlternateColorCodes('&', message)
+            val colorized = ChatColor.translateAlternateColorCodes('&', message)
+            colorCodeCache[message] = colorized
+            colorized
         } catch (e: Exception) {
             getLoggerSafely().warning("Error colorizing message: ${e.message}")
+            colorCodeCache[message] = message
             message
         }
     }
@@ -135,21 +149,26 @@ object CloudlyUtils {
             false
         }
     }
-    
-    /**
+      /**
      * Safe async execution with comprehensive error handling
      * Use this for any async operations to prevent plugin crashes
+     * Now uses the plugin's managed scope instead of a separate one
      */
     fun runAsync(action: suspend () -> Unit) {
         try {
-            pluginScope.launch {
-                try {
-                    action()
-                } catch (e: CancellationException) {
-                    // Coroutine was cancelled, this is normal
-                } catch (e: Exception) {
-                    getLoggerSafely().log(Level.SEVERE, "Error in async operation: ${e.message}", e)
+            val plugin = getPluginInstanceSafely()
+            if (plugin?.isPluginInitialized() == true) {
+                plugin.getPluginScope().launch {
+                    try {
+                        action()
+                    } catch (e: CancellationException) {
+                        // Coroutine was cancelled, this is normal
+                    } catch (e: Exception) {
+                        getLoggerSafely().log(Level.SEVERE, "Error in async operation: ${e.message}", e)
+                    }
                 }
+            } else {
+                getLoggerSafely().warning("Cannot run async operation: plugin not initialized")
             }
         } catch (e: Exception) {
             getLoggerSafely().log(Level.SEVERE, "Error launching async operation: ${e.message}", e)
@@ -177,14 +196,16 @@ object CloudlyUtils {
             getLoggerSafely().log(Level.SEVERE, "Error scheduling sync operation: ${e.message}", e)
         }
     }
-    
-    /**
+      /**
      * Cancel all running coroutines - call this when the plugin is disabled
      * Safe to call multiple times
+     * Note: Now handled by the plugin's scope lifecycle
      */
     fun cleanup() {
         try {
-            pluginScope.cancel("Plugin cleanup")
+            // Clear caches to free memory
+            colorCodeCache.clear()
+            getLoggerSafely().info("CloudlyUtils cleanup completed")
         } catch (e: Exception) {
             getLoggerSafely().warning("Error during cleanup: ${e.message}")
         }
@@ -266,70 +287,82 @@ object CloudlyUtils {
 /**
  * High-performance cache implementation using ConcurrentHashMap
  * Thread-safe and optimized for concurrent access - null-safe implementation
+ * Now includes TTL (Time To Live) to prevent memory leaks
  */
-class FastCache<K : Any, V : Any>(private val maxSize: Int = 1000) {
+class FastCache<K : Any, V : Any>(
+    private val maxSize: Int = 1000,
+    private val ttlMillis: Long = TimeUnit.MINUTES.toMillis(30)
+) {
     
-    private val cache = ConcurrentHashMap<K, V>()
-    private val accessOrder = ConcurrentHashMap<K, Long>()
+    private val cache = ConcurrentHashMap<K, CacheEntry<V>>()
     
-    /**
+    private data class CacheEntry<V>(
+        val value: V,
+        val timestamp: Long = System.currentTimeMillis()
+    ) {
+        fun isExpired(ttlMillis: Long): Boolean = 
+            System.currentTimeMillis() - timestamp > ttlMillis
+    }
+      /**
      * Get a value from the cache - null-safe
+     * Automatically removes expired entries
      */
     fun get(key: K?): V? {
         if (key == null) return null
         
         return try {
-            val value = cache[key]
-            if (value != null) {
-                accessOrder[key] = System.currentTimeMillis()
+            val entry = cache[key] ?: return null
+            if (entry.isExpired(ttlMillis)) {
+                cache.remove(key)
+                null
+            } else {
+                entry.value
             }
-            value
         } catch (e: Exception) {
             getLoggerSafely().warning("Error getting value from cache: ${e.message}")
             null
         }
     }
-    
-    /**
+      /**
      * Put a value into the cache - null-safe
-     * Automatically removes oldest entries if cache exceeds max size
+     * Automatically removes expired entries and enforces size limits
      */
     fun put(key: K?, value: V?) {
         if (key == null || value == null) return
         
         try {
+            // Clean up expired entries first
+            cleanupExpired()
+            
+            // If still at max capacity, remove oldest entries
             if (cache.size >= maxSize) {
-                removeOldestEntry()
+                removeOldestEntries()
             }
-            cache[key] = value
-            accessOrder[key] = System.currentTimeMillis()
+            
+            cache[key] = CacheEntry(value)
         } catch (e: Exception) {
             getLoggerSafely().warning("Error putting value into cache: ${e.message}")
         }
     }
-    
-    /**
+      /**
      * Remove a specific key from the cache - null-safe
      */
     fun remove(key: K?): V? {
         if (key == null) return null
         
         return try {
-            accessOrder.remove(key)
-            cache.remove(key)
+            cache.remove(key)?.value
         } catch (e: Exception) {
             getLoggerSafely().warning("Error removing value from cache: ${e.message}")
             null
         }
     }
-    
-    /**
+      /**
      * Clear the entire cache - safe operation
      */
     fun clear() {
         try {
             cache.clear()
-            accessOrder.clear()
         } catch (e: Exception) {
             getLoggerSafely().warning("Error clearing cache: ${e.message}")
         }
@@ -345,33 +378,56 @@ class FastCache<K : Any, V : Any>(private val maxSize: Int = 1000) {
             0
         }
     }
-    
-    /**
+      /**
      * Check if cache contains a key - null-safe
+     * Also validates that the entry hasn't expired
      */
     fun containsKey(key: K?): Boolean {
         if (key == null) return false
         
         return try {
-            cache.containsKey(key)
+            val entry = cache[key] ?: return false
+            if (entry.isExpired(ttlMillis)) {
+                cache.remove(key)
+                false
+            } else {
+                true
+            }
         } catch (e: Exception) {
             getLoggerSafely().warning("Error checking if cache contains key: ${e.message}")
             false
         }
     }
-    
-    /**
-     * Remove the oldest accessed entry from the cache - safe operation
+      /**
+     * Clean up expired entries to prevent memory leaks
      */
-    private fun removeOldestEntry() {
+    private fun cleanupExpired() {
         try {
-            val oldestKey = accessOrder.minByOrNull { it.value }?.key
-            if (oldestKey != null) {
-                cache.remove(oldestKey)
-                accessOrder.remove(oldestKey)
+            val now = System.currentTimeMillis()
+            cache.entries.removeIf { (_, entry) ->
+                now - entry.timestamp > ttlMillis
             }
         } catch (e: Exception) {
-            getLoggerSafely().warning("Error removing oldest cache entry: ${e.message}")
+            getLoggerSafely().warning("Error cleaning up expired cache entries: ${e.message}")
+        }
+    }
+    
+    /**
+     * Remove oldest entries when cache is at capacity
+     */
+    private fun removeOldestEntries() {
+        try {
+            // Remove 25% of entries when at capacity to avoid frequent cleanups
+            val entriesToRemove = (maxSize * 0.25).toInt().coerceAtLeast(1)
+            
+            cache.entries
+                .sortedBy { it.value.timestamp }
+                .take(entriesToRemove)
+                .forEach { (key, _) ->
+                    cache.remove(key)
+                }
+        } catch (e: Exception) {
+            getLoggerSafely().warning("Error removing oldest cache entries: ${e.message}")
         }
     }
 }
