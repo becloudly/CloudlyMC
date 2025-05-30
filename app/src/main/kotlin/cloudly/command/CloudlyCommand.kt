@@ -148,8 +148,7 @@ class CloudlyCommand : BaseCommand() {
             showBasicInfo(sender)
         }
     }
-    
-    /**
+      /**
      * Gather plugin information safely
      */
     private fun gatherPluginInfo(): PluginInfo {
@@ -161,15 +160,17 @@ class CloudlyCommand : BaseCommand() {
                 language = getCurrentLanguageSafely(),
                 memoryInfo = getMemoryInfoSafely(),
                 uptime = getUptimeSafely(),
-                playerInfo = getPlayerInfoSafely()
+                playerInfo = getPlayerInfoSafely(),
+                javaVersion = getJavaVersionSafely(),
+                operatingSystem = getOperatingSystemSafely(),
+                performanceRating = getPerformanceRatingSafely()
             )
         } catch (e: Exception) {
             // Fallback with safe defaults
             PluginInfo()
         }
     }
-    
-    /**
+      /**
      * Send info messages to sender
      */
     private fun sendInfoMessages(sender: CommandSender, info: PluginInfo) {
@@ -177,11 +178,14 @@ class CloudlyCommand : BaseCommand() {
             sendTranslatedMessage(sender, "commands.cloudly.info-command.header")
             sendTranslatedMessage(sender, "commands.cloudly.info-command.version", info.version)
             sendTranslatedMessage(sender, "commands.cloudly.info-command.server", info.serverName, info.serverVersion)
-            sendTranslatedMessage(sender, "commands.cloudly.info-command.author")
             sendTranslatedMessage(sender, "commands.cloudly.info-command.language", info.language)
             sendTranslatedMessage(sender, "commands.cloudly.info-command.memory", info.memoryInfo.first, info.memoryInfo.second)
             sendTranslatedMessage(sender, "commands.cloudly.info-command.uptime", info.uptime)
             sendTranslatedMessage(sender, "commands.cloudly.info-command.players", info.playerInfo.first, info.playerInfo.second)
+            sendTranslatedMessage(sender, "commands.cloudly.info-command.java-version", info.javaVersion)
+            sendTranslatedMessage(sender, "commands.cloudly.info-command.os", info.operatingSystem)
+            sendTranslatedMessage(sender, "commands.cloudly.info-command.performance", info.performanceRating)
+            sendTranslatedMessage(sender, "commands.cloudly.info-command.footer")
         } catch (e: Exception) {
             handleCommandError(sender, "sendInfoMessages", e)
         }
@@ -281,8 +285,7 @@ class CloudlyCommand : BaseCommand() {
             Pair(0, 0)
         }
     }
-    
-    /**
+      /**
      * Format the JVM uptime in a human-readable format - null-safe
      */
     private fun formatUptimeSafely(): String {
@@ -299,6 +302,51 @@ class CloudlyCommand : BaseCommand() {
                 hours > 0 -> "${hours}h ${minutes}m ${seconds}s"
                 minutes > 0 -> "${minutes}m ${seconds}s"
                 else -> "${seconds}s"
+            }
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
+
+    /**
+     * Get Java version safely
+     */
+    private fun getJavaVersionSafely(): String {
+        return try {
+            System.getProperty("java.version") ?: "Unknown"
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
+
+    /**
+     * Get operating system information safely
+     */
+    private fun getOperatingSystemSafely(): String {
+        return try {
+            val osName = System.getProperty("os.name") ?: "Unknown"
+            val osArch = System.getProperty("os.arch") ?: "Unknown"
+            "$osName ($osArch)"
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
+
+    /**
+     * Get performance rating based on memory usage and TPS
+     */
+    private fun getPerformanceRatingSafely(): String {
+        return try {
+            val memoryInfo = getMemoryInfoSafely()
+            val memoryUsagePercentage = if (memoryInfo.second > 0) {
+                (memoryInfo.first.toDouble() / memoryInfo.second.toDouble()) * 100
+            } else 0.0
+
+            when {
+                memoryUsagePercentage < 50 -> "Excellent"
+                memoryUsagePercentage < 70 -> "Good"
+                memoryUsagePercentage < 85 -> "Fair"
+                else -> "Poor"
             }
         } catch (e: Exception) {
             "Unknown"
@@ -373,8 +421,7 @@ class CloudlyCommand : BaseCommand() {
             exception.printStackTrace()
         }
     }
-    
-    /**
+      /**
      * Data class to hold plugin information
      */
     private data class PluginInfo(
@@ -384,6 +431,9 @@ class CloudlyCommand : BaseCommand() {
         val language: String = "Unknown",
         val memoryInfo: Pair<Long, Long> = Pair(0L, 0L),
         val uptime: String = "Unknown",
-        val playerInfo: Pair<Int, Int> = Pair(0, 0)
+        val playerInfo: Pair<Int, Int> = Pair(0, 0),
+        val javaVersion: String = "Unknown",
+        val operatingSystem: String = "Unknown",
+        val performanceRating: String = "Unknown"
     )
 }
