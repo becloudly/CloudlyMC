@@ -37,4 +37,3 @@ commands:
       java-version: "&7Versión de Java: &f{0}"
       os: "&7Sistema Operativo: &f{0}"
       performance: "&7Calificación de Rendimiento: &f{0}"
-      footer: "&8&m-----&r &7Plugin CloudlyMC &8&m-----"

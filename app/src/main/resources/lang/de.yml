@@ -37,4 +37,3 @@ commands:
       java-version: "&7Java Version: &f{0}"
       os: "&7Betriebssystem: &f{0}"
       performance: "&7Leistungsbewertung: &f{0}"
-      footer: "&8&m-----&r &7CloudlyMC Plugin &8&m-----"

@@ -37,4 +37,3 @@ commands:
       java-version: "&7Java 版本：&f{0}"
       os: "&7操作系统：&f{0}"
       performance: "&7性能评级：&f{0}"
-      footer: "&8&m-----&r &7CloudlyMC 插件 &8&m-----"

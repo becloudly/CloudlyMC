@@ -185,7 +185,6 @@ class CloudlyCommand : BaseCommand() {
             sendTranslatedMessage(sender, "commands.cloudly.info-command.java-version", info.javaVersion)
             sendTranslatedMessage(sender, "commands.cloudly.info-command.os", info.operatingSystem)
             sendTranslatedMessage(sender, "commands.cloudly.info-command.performance", info.performanceRating)
-            sendTranslatedMessage(sender, "commands.cloudly.info-command.footer")
         } catch (e: Exception) {
             handleCommandError(sender, "sendInfoMessages", e)
         }
