@@ -87,27 +87,33 @@ The main command interface for interacting with the Cloudly plugin.
 ```
 /cloudly info
 ```
-**Description:** Displays detailed plugin and server information including:
-- Plugin version and author
+**Description:** Displays comprehensive plugin and server information including:
+- Plugin version
 - Server type and version
 - Current language setting
-- Memory usage statistics
+- Memory usage statistics with performance rating
 - Server uptime
 - Online player count
+- Java version information
+- Operating system details
+- Performance assessment
 
 **Permission:** `cloudly.command.info`
 **Available to:** All players (by default)
 
 **Example Output:**
 ```
---------- Cloudly Information ---------
-Version: 1.0.0.0
+--------- Cloudly System Information ---------
+Plugin Version: 1.0.0.0
 Server: PaperMC 1.20.4
-Author: Gerrxt07
-Current Language: English
+Language: English
 Memory Usage: 512MB / 2048MB
-Uptime: 2h 34m 16s
-Online Players: 15/100
+Server Uptime: 2h 34m 16s
+Players Online: 15/100
+Java Version: 17.0.2
+Operating System: Linux (amd64)
+Performance Rating: Good
+--------- CloudlyMC Plugin ---------
 ```
 
 ##### 🔄 Reload Command
