@@ -171,7 +171,7 @@ abstract class BaseCommand : CommandExecutor, TabCompleter {
     /**
      * Check if the sender has permission to use this command - null-safe
      */
-    private fun hasPermissionSafely(sender: CommandSender?): Boolean {
+    protected fun hasPermissionSafely(sender: CommandSender?): Boolean {
         return try {
             if (sender == null) return false
             

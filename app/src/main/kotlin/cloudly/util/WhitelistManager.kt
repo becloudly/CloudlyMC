@@ -109,16 +109,16 @@ object WhitelistManager {
             
             connection = when (dbType) {
                 "sqlite" -> {
-                    val dbFile = config.getString("database.sqlite.file", "cloudly.db")
+                    val dbFile = config.getString("database.sqlite.file", "cloudly.db") ?: "cloudly.db"
                     val dbPath = plugin.dataFolder.resolve(dbFile)
                     DriverManager.getConnection("jdbc:sqlite:$dbPath")
                 }
                 "mysql" -> {
-                    val host = config.getString("database.mysql.host", "localhost")
+                    val host = config.getString("database.mysql.host", "localhost") ?: "localhost"
                     val port = config.getInt("database.mysql.port", 3306)
-                    val database = config.getString("database.mysql.database", "cloudly")
-                    val username = config.getString("database.mysql.username", "username")
-                    val password = config.getString("database.mysql.password", "password")
+                    val database = config.getString("database.mysql.database", "cloudly") ?: "cloudly"
+                    val username = config.getString("database.mysql.username", "username") ?: "username"
+                    val password = config.getString("database.mysql.password", "password") ?: "password"
                     
                     val url = "jdbc:mysql://$host:$port/$database?useSSL=false&allowPublicKeyRetrieval=true"
                     DriverManager.getConnection(url, username, password)
@@ -144,7 +144,7 @@ object WhitelistManager {
         return@withContext try {
             val conn = connection ?: return@withContext false
               // Create whitelist_users table
-            val dbType = plugin.config.getString("database.type", "sqlite")?.lowercase()
+            val dbType = plugin.config.getString("database.type", "sqlite")?.lowercase() ?: "sqlite"
             val createUsersTable = if (dbType == "mysql") {
                 """
                 CREATE TABLE IF NOT EXISTS whitelist_users (
@@ -360,10 +360,11 @@ object WhitelistManager {
             val conn = connection ?: return@withContext false
             
             // Check if player is already whitelisted
-            if (isPlayerWhitelisted(player.uniqueId)) {                return@withContext false
+            if (isPlayerWhitelisted(player.uniqueId)) {                
+                return@withContext false
             }
             
-            val dbType = plugin.config.getString("database.type", "sqlite")?.lowercase()
+            val dbType = plugin.config.getString("database.type", "sqlite")?.lowercase() ?: "sqlite"
             val query = if (dbType == "mysql") {
                 """
                 INSERT INTO whitelist_users (uuid, username, added_by, added_at, active) 
