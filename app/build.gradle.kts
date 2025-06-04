@@ -24,6 +24,12 @@ dependencies {
     
     // Coroutines for async operations (performance optimization)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+
+    // SQLite JDBC driver
+    implementation("org.xerial:sqlite-jdbc:3.45.3.0")
+
+    // MySQL JDBC driver
+    implementation("com.mysql:mysql-connector-j:8.4.0")
 }
 
 // Java version for Minecraft 1.18+ compatibility
