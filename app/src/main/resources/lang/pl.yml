@@ -37,3 +37,28 @@ commands:
       java-version: "&7Wersja Java: &f{0}"
       os: "&7System Operacyjny: &f{0}"
       performance: "&7Ocena Wydajności: &f{0}"
+
+# Whitelist system messages (ENGLISH PLACEHOLDER)
+whitelist:
+  # Whitelist system messages
+  no-permission: "&cYou don't have permission to use whitelist commands."
+  player-not-found: "&cPlayer '{0}' not found."
+  player-already-whitelisted: "&cPlayer '{0}' is already whitelisted."
+  player-not-whitelisted: "&cPlayer '{0}' is not whitelisted."
+  player-added: "&aSuccessfully added '{0}' to the whitelist."
+  player-removed: "&aSuccessfully removed '{0}' from the whitelist."
+  enabled: "&aWhitelist has been enabled."
+  disabled: "&aWhitelist has been disabled."
+  already-enabled: "&cWhitelist is already enabled."
+  already-disabled: "&cWhitelist is already disabled."
+  reloaded: "&aWhitelist has been reloaded successfully."
+  list-header: "&8&m-----&r &b&lWhitelisted Players &7(Page {0}/{1}) &8&m-----"
+  list-entry: "&7• &f{0} &8(Added by: &7{1}&8)"
+  list-empty: "&7No players are currently whitelisted."
+  list-footer: "&7Use &f/whitelist list {0} &7for the next page."
+  database-error: "&cDatabase error occurred. Check console for details."
+  invalid-page: "&cInvalid page number. Must be between 1 and {0}."
+  usage-add: "&cUsage: &f/whitelist add <player>"
+  usage-remove: "&cUsage: &f/whitelist remove <player>"
+  usage-list: "&cUsage: &f/whitelist list [page]"
+  kick-message: "&cYou are not whitelisted on this server!"
