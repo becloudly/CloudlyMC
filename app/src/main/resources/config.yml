@@ -11,6 +11,21 @@ features:
   # example-feature: true
   
 
+# Whitelist System Configuration
+whitelist:
+  # Enable/disable the custom whitelist system (overrides vanilla whitelist)
+  enabled: false
+  
+  # Cache settings for performance optimization
+  cache:
+    # How long to cache whitelist data (in minutes)
+    duration: 30
+    # Maximum number of entries to cache
+    max-size: 1000
+  
+  # Kick message for non-whitelisted players (supports color codes)
+  kick-message: "&cYou are not whitelisted on this server!"
+
 database:
   type: "sqlite"
 

@@ -16,7 +16,10 @@ import java.util.logging.Level
 import cloudly.util.ConfigHelper
 import cloudly.util.LanguageManager
 import cloudly.util.CloudlyUtils
+import cloudly.util.WhitelistManager
 import cloudly.command.CloudlyCommand
+import cloudly.command.WhitelistCommand
+import cloudly.listener.PlayerLoginListener
 import kotlinx.coroutines.*
 
 /**
@@ -159,8 +162,7 @@ class CloudlyPlugin : JavaPlugin(), Listener {
             
             // Register commands
             registerCommands()
-            
-            // Initialize any other managers, services, or components here
+              // Initialize additional components
             initializeComponents()
             
             true
@@ -206,19 +208,18 @@ class CloudlyPlugin : JavaPlugin(), Listener {
             false
         }
     }
-    
-    /**
+      /**
      * Register event listeners safely
      */
     private fun registerEventListeners() {
         try {
             server?.pluginManager?.registerEvents(this, this)
+            server?.pluginManager?.registerEvents(PlayerLoginListener(), this)
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Failed to register event listeners", e)
         }
     }
-    
-    /**
+      /**
      * Register commands safely
      */
     private fun registerCommands() {
@@ -229,17 +230,39 @@ class CloudlyPlugin : JavaPlugin(), Listener {
             } else {
                 logger.warning("Command 'cloudly' not found in plugin.yml")
             }
+            
+            val whitelistCommand = getCommand("whitelist")
+            if (whitelistCommand != null) {
+                val whitelistExecutor = WhitelistCommand()
+                whitelistCommand.setExecutor(whitelistExecutor)
+                whitelistCommand.tabCompleter = whitelistExecutor
+            } else {
+                logger.warning("Command 'whitelist' not found in plugin.yml")
+            }
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Failed to register commands", e)
         }
     }
-    
-    /**
+      /**
      * Initialize additional components
      */
     private fun initializeComponents() {
         try {
-            // Initialize any managers, services, or components here
+            // Initialize whitelist manager asynchronously
+            pluginScope.launch {
+                try {
+                    val success = WhitelistManager.initialize(this@CloudlyPlugin)
+                    if (success) {
+                        logger.info("WhitelistManager initialized successfully")
+                    } else {
+                        logger.warning("Failed to initialize WhitelistManager")
+                    }
+                } catch (e: Exception) {
+                    logger.log(Level.SEVERE, "Error initializing WhitelistManager", e)
+                }
+            }
+            
+            // Initialize any other managers, services, or components here
             // Example: playerManager = PlayerManager()
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Failed to initialize some components", e)
@@ -255,12 +278,20 @@ class CloudlyPlugin : JavaPlugin(), Listener {
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Error canceling tasks", e)
         }
-        
-        try {
+          try {
             // Cleanup utilities (clear caches, etc.)
             CloudlyUtils.cleanup()
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Error cleaning up utilities", e)
+        }
+        
+        try {
+            // Cleanup whitelist manager
+            pluginScope.launch {
+                WhitelistManager.cleanup()
+            }
+        } catch (e: Exception) {
+            logger.log(Level.WARNING, "Error cleaning up whitelist manager", e)
         }
         
         try {
@@ -310,9 +341,7 @@ class CloudlyPlugin : JavaPlugin(), Listener {
                 ConfigHelper.initialize(this)
             } catch (e: Exception) {
                 logger.log(Level.WARNING, "Failed to re-initialize config helper", e)
-            }
-
-            // Reinitialize components that depend on config
+            }            // Reinitialize components that depend on config
             try {
                 reinitializeConfigDependentComponents()
             } catch (e: Exception) {
@@ -330,7 +359,16 @@ class CloudlyPlugin : JavaPlugin(), Listener {
      * Reinitialize components that depend on configuration
      */
     private fun reinitializeConfigDependentComponents() {
-        // Add logic here for components that need to be reinitialized after config reload
+        // Reload whitelist manager settings
+        pluginScope.launch {
+            try {
+                WhitelistManager.reload()
+            } catch (e: Exception) {
+                logger.log(Level.WARNING, "Failed to reload whitelist manager", e)
+            }
+        }
+        
+        // Add logic here for other components that need to be reinitialized after config reload
     }
     
     /**

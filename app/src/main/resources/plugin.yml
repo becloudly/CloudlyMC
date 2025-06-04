@@ -26,6 +26,12 @@ commands:
     usage: /cloudly [info|reload]
     permission: cloudly.command
     permission-message: You don't have permission to use this command.
+  
+  whitelist:
+    description: Cloudly whitelist management
+    usage: /whitelist <add|remove|enable|disable|list|reload> [player] [page]
+    permission: cloudly.whitelist
+    permission-message: You don't have permission to use whitelist commands.
 
 # Permissions section (add permissions here when needed)
 permissions:
@@ -38,3 +44,40 @@ permissions:
   cloudly.command.info:
     description: Access to view plugin information
     default: true
+  
+  # Whitelist permissions
+  cloudly.whitelist:
+    description: Basic whitelist command access
+    default: op
+    children:
+      cloudly.whitelist.list: true
+  
+  cloudly.whitelist.*:
+    description: All whitelist permissions
+    default: op
+    children:
+      cloudly.whitelist.add: true
+      cloudly.whitelist.remove: true
+      cloudly.whitelist.toggle: true
+      cloudly.whitelist.list: true
+      cloudly.whitelist.reload: true
+  
+  cloudly.whitelist.add:
+    description: Permission to add players to whitelist
+    default: op
+  
+  cloudly.whitelist.remove:
+    description: Permission to remove players from whitelist
+    default: op
+  
+  cloudly.whitelist.toggle:
+    description: Permission to enable/disable whitelist
+    default: op
+  
+  cloudly.whitelist.list:
+    description: Permission to view whitelisted players
+    default: op
+  
+  cloudly.whitelist.reload:
+    description: Permission to reload whitelist data
+    default: op
