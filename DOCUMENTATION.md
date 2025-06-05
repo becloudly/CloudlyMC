@@ -2,20 +2,16 @@
 
 ![Cloudly Banner](content/Cloudly_PreviewBanner.png)
 
-*☁️ A high-performance Minecraft server plugin for Paper-based servers built with Kotlin to manage your server with various integrations, highly configurable and multi-language support.*
+*☁️ A high-performance, Kotlin-based Minecraft plugin for Paper servers, offering advanced server management, multi-language support, and various integrations.*
 
-![Java](https://img.shields.io/badge/Java-17%2B-orange)
-![Minecraft](https://img.shields.io/badge/Minecraft-1.18%2B-green)
-![Language](https://img.shields.io/badge/Language-Kotlin-blue)
-![License](https://img.shields.io/badge/License-MIT-yellow)
-![Version](https://img.shields.io/badge/Version-1.0.0.0-brightgreen)
+[![Java 17+](https://img.shields.io/badge/Java-17%2B-orange)](https://adoptium.net/) [![Minecraft 1.18+](https://img.shields.io/badge/Minecraft-1.18%2B-green)](https://www.minecraft.net/) [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org/) [![MIT License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE) [![Version 1.0.0.0](https://img.shields.io/badge/Version-1.0.0.0-brightgreen)](https://github.com/gerrxt07/cloudlymc/releases)
 
 ---
 
 ## 📋 Table of Contents
 
 - [🌟 Overview](#-overview)
-- [✨ Features](#-features)
+- [✨ Key Features](#-key-features)
 - [💻 Commands](#-commands)
 - [🔐 Permissions](#-permissions)
 - [⚙️ Configuration](#️-configuration)
@@ -30,64 +26,44 @@
 
 ## 🌟 Overview
 
-CloudlyMC is a modern, high-performance Minecraft plugin designed for Paper-based servers (Minecraft 1.18+). Built entirely in Kotlin with async operations and modern standards, it provides server management capabilities with a focus on performance, security, and user experience.
+CloudlyMC is a modern, high-performance Minecraft plugin for Paper-based servers (1.18+). Developed in Kotlin, it emphasizes performance, security, and user experience through asynchronous operations and modern development standards.
 
-### Key Highlights
+**Core Principles:**
 
-- ☕ Fully written in **Async Kotlin** for optimal performance
-- 🛡️ Modern security standards and null-safe implementations
-- 🌐 **8 language support** out of the box
-- 📋 Highly configurable with YAML configuration files
-- 🎮 Support for **Paper-based servers** (PaperMC, Purpur, Pufferfish, CanvasMC)
-- 🔄 **Folia compatible** for multi-threaded server support
+- **Performance:** Built with Async Kotlin for optimal server responsiveness.
+- **Security:** Adheres to modern security standards with null-safe implementations.
+- **User Experience:** Offers extensive configuration and multi-language support.
+- **Compatibility:** Supports Paper-based servers (PaperMC, Purpur, etc.) and is Folia compatible.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-### 🌐 Multi-Language Support
+CloudlyMC offers a comprehensive suite of features for server management:
 
-- **8 supported languages**: English, German, French, Spanish, Portuguese, Polish, Russian, Chinese
-- Dynamic language switching without server restart
-- Consistent message formatting across all languages
-- Customizable language files for server-specific modifications
-
-### ⚙️ Configuration Management
-
-- **YAML-based configuration** with comprehensive settings
-- **Hot-reload capability** - changes apply without server restart
-- Database support for **SQLite** and **MySQL**
-- Feature toggles for modular functionality
-
-### 🔧 Server Management
-
-- **Plugin information display** with detailed system metrics
-- **Real-time performance monitoring** (memory usage, uptime, player count)
-- **Reload functionality** for configuration and language files
-- **Async operations** to prevent server lag
-
-### 🛡️ Security & Stability
-
-- **Null-safe implementations** throughout the codebase
-- **Permission-based access control** with granular permissions
-- **Error handling** with graceful degradation
-- **Comprehensive logging** for debugging and monitoring
-
-### 🎯 Performance Optimization
-
-- **Async/await pattern** for all operations
-- **Memory-efficient** caching system
-- **Fast startup** and shutdown procedures
-- **Minimal resource footprint**
-
-### 🛡️ Advanced Whitelist System
-
-- **Database-powered whitelist** that overrides Minecraft's default system
-- **High-performance caching** for instant player validation
-- **Async operations** that don't block server performance
-- **Multi-database support** (SQLite/MySQL) for scalability
-- **Real-time management** with instant enable/disable functionality
-- **Comprehensive logging** and error handling
+- **🌐 Multi-Language Support:**
+  - 8 built-in languages (EN, DE, FR, ES, PT, PL, RU, ZH).
+  - Dynamic language switching and customizable language files.
+- **⚙️ Configuration Management:**
+  - YAML-based configuration with hot-reload capability.
+  - Supports SQLite and MySQL databases.
+  - Modular functionality via feature toggles.
+- **🔧 Server Management Tools:**
+  - Detailed plugin and server information (`/cloudly info`).
+  - Real-time performance metrics (memory, uptime, player count).
+  - Configuration and language file reloading without server restart.
+- **🛡️ Security & Stability:**
+  - Null-safe Kotlin codebase.
+  - Granular, permission-based access control.
+  - Robust error handling and comprehensive logging.
+- **🎯 Performance Optimization:**
+  - Asynchronous operations using Kotlin coroutines.
+  - Efficient caching mechanisms.
+  - Fast startup/shutdown and minimal resource footprint.
+- **🛡️ Advanced Whitelist System:**
+  - Database-driven (SQLite/MySQL) whitelist, overriding Minecraft's default.
+  - High-performance caching for instant player validation.
+  - Real-time management and comprehensive logging.
 
 ---
 
@@ -132,7 +108,7 @@ The main command interface for interacting with the Cloudly plugin.
 
 **Example Output:**
 
-```
+```text
 --------- Cloudly System Information ---------
 Plugin Version: 1.0.0.0
 Server: PaperMC 1.20.4
@@ -172,7 +148,7 @@ CloudlyMC uses a hierarchical permission system for granular access control.
 
 ### Permission Hierarchy
 
-```
+```text
 cloudly.admin (includes all permissions below)
 ├── cloudly.command
     ├── cloudly.command.info
@@ -286,7 +262,7 @@ database:
 
 ---
 
-## 🌐 Language Support
+## 🌐 Multi-Language Support
 
 CloudlyMC supports 8 languages with complete message translations.
 
@@ -357,7 +333,7 @@ You can customize any message by editing the language files in `/plugins/Cloudly
 
 CloudlyMC provides an advanced whitelist system that completely replaces Minecraft's default whitelist functionality with a high-performance, database-driven solution.
 
-### ✨ Key Features
+### Whitelist Key Features
 
 - **🚀 High Performance**: Database-powered with intelligent caching
 - **⚡ Async Operations**: Never blocks server performance
@@ -366,7 +342,7 @@ CloudlyMC provides an advanced whitelist system that completely replaces Minecra
 - **🌐 Language Integration**: All messages support multi-language
 - **🛡️ Override Protection**: Completely replaces vanilla whitelist
 
-### 📋 Commands
+### Whitelist Commands
 
 #### Add Player to Whitelist
 
@@ -425,7 +401,7 @@ CloudlyMC provides an advanced whitelist system that completely replaces Minecra
 **Description:** Reloads whitelist data from the database and refreshes cache.  
 **Permission:** `cloudly.whitelist.reload`
 
-### 🔐 Permissions
+### Whitelist Permissions
 
 #### Core Permissions
 
@@ -442,7 +418,7 @@ CloudlyMC provides an advanced whitelist system that completely replaces Minecra
 
 **Default:** All whitelist permissions default to `op` (operators only)
 
-### ⚙️ Configuration
+### Whitelist Configuration
 
 The whitelist system can be configured in `config.yml`:
 
@@ -463,7 +439,7 @@ whitelist:
   kick-message: "&cYou are not whitelisted on this server!"
 ```
 
-#### Configuration Options
+#### Whitelist Configuration Options
 
 - **`enabled`**: Whether the whitelist system is active
   - **Type:** Boolean
@@ -508,15 +484,15 @@ The whitelist system uses two database tables:
 | `last_modified` | BIGINT | Last modification timestamp |
 | `modified_by` | VARCHAR(16) | Who last modified settings |
 
-### 🚀 Performance Features
+### Whitelist Performance Features
 
-- **⚡ Intelligent Caching**: Keeps frequently accessed data in memory
+- **🗄️ Intelligent Caching**: Keeps frequently accessed data in memory
 - **🔄 Async Operations**: All database operations are non-blocking
 - **📊 Batch Processing**: Efficient handling of multiple operations
 - **🎯 UUID-Based**: Uses UUID for reliable player identification
 - **💾 Connection Pooling**: Optimized database connections
 
-### 🔒 Security Features
+### Whitelist Security Features
 
 - **🛡️ SQL Injection Protection**: All queries use prepared statements
 - **✅ Input Validation**: Comprehensive validation of all inputs
@@ -524,12 +500,12 @@ The whitelist system uses two database tables:
 - **📝 Audit Trail**: Complete logging of all whitelist changes
 - **🔐 Safe Defaults**: Secure configuration out of the box
 
-### 🌐 Multi-Language Support
+### Whitelist Multi-Language Support
 
 All whitelist messages support the full language system:
 
 - **English** (`en`)
-- **German** (`de`) 
+- **German** (`de`)
 - **French** (`fr`)
 - **Spanish** (`es`)
 - **Portuguese** (`pt`)
@@ -646,7 +622,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ### Copyright
 
-Copyright © 2025 Gerrit Schlinkmann / Gerrxt
+Copyright © 2025 Gerrit / Gerrxt
 
 ---
 
