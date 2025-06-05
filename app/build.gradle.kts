@@ -58,11 +58,14 @@ tasks {
     shadowJar {
         archiveClassifier.set("")
         archiveFileName.set("Cloudly-${version}.jar")
-        
+
         // Relocate dependencies to avoid conflicts
         relocate("kotlin", "cloudly.libs.kotlin")
         relocate("kotlinx", "cloudly.libs.kotlinx")
-        
+
+        // Merge service files to avoid duplicate META-INF/services/java.sql.Driver
+        mergeServiceFiles()
+
         minimize()
     }
       build {
