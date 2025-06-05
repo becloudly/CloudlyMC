@@ -17,6 +17,10 @@ import cloudly.util.ConfigHelper
 import cloudly.util.LanguageManager
 import cloudly.util.CloudlyUtils
 import cloudly.util.WhitelistManager
+import cloudly.util.ApplicationManager
+import cloudly.util.PlayerFreezeManager
+import cloudly.util.ApplicationReviewGUI
+import cloudly.util.ChatInputManager
 import cloudly.command.CloudlyCommand
 import cloudly.command.WhitelistCommand
 import cloudly.listener.PlayerLoginListener
@@ -257,13 +261,27 @@ class CloudlyPlugin : JavaPlugin(), Listener {
                     } else {
                         logger.warning("Failed to initialize WhitelistManager")
                     }
+                    
+                    // Initialize ApplicationManager
+                    val appSuccess = ApplicationManager.initialize(this@CloudlyPlugin)
+                    if (appSuccess) {
+                        logger.info("ApplicationManager initialized successfully")
+                    } else {
+                        logger.warning("Failed to initialize ApplicationManager")
+                    }
                 } catch (e: Exception) {
-                    logger.log(Level.SEVERE, "Error initializing WhitelistManager", e)
+                    logger.log(Level.SEVERE, "Error initializing managers", e)
                 }
             }
             
-            // Initialize any other managers, services, or components here
-            // Example: playerManager = PlayerManager()
+            // Initialize freeze manager
+            PlayerFreezeManager.initialize(this)
+            
+            // Initialize application review GUI
+            ApplicationReviewGUI.initialize(this)
+            
+            // Initialize chat input manager
+            ChatInputManager.initialize(this)
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Failed to initialize some components", e)
         }

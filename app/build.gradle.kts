@@ -30,6 +30,9 @@ dependencies {
 
     // MySQL JDBC driver
     implementation("com.mysql:mysql-connector-j:8.4.0")
+    
+    // JSON library for import/export functionality
+    implementation("org.json:json:20240303")
 }
 
 // Java version for Minecraft 1.18+ compatibility

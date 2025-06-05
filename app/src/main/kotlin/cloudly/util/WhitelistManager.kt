@@ -48,6 +48,17 @@ object WhitelistManager {
     )
     
     /**
+     * Data class for whitelist log entries
+     */
+    data class WhitelistLog(
+        val id: Int,
+        val actionType: String,
+        val username: String,
+        val performedBy: String,
+        val timestamp: Long
+    )
+    
+    /**
      * Initialize the whitelist manager
      */
     suspend fun initialize(pluginInstance: CloudlyPlugin): Boolean = withContext(Dispatchers.IO) {
@@ -299,6 +310,11 @@ object WhitelistManager {
             }
             
             whitelistEnabled = enabled
+            
+            // Add log entry
+            val actionType = if (enabled) "ENABLE" else "DISABLE"
+            addLogEntry(actionType, "SYSTEM", modifiedBy)
+            
             true
             
         } catch (e: Exception) {
@@ -404,6 +420,9 @@ object WhitelistManager {
             whitelistCache[player.uniqueId] = entry
             usernameCache[entry.username.lowercase()] = player.uniqueId
             
+            // Add log entry
+            addLogEntry("ADD", player.name ?: "Unknown", addedBy)
+            
             true
             
         } catch (e: Exception) {
@@ -419,6 +438,10 @@ object WhitelistManager {
         return@withContext try {
             val conn = connection ?: return@withContext false
             
+            // Get username for logging
+            val entry = whitelistCache[uuid]
+            val username = entry?.username ?: getPlayerUsername(uuid) ?: "Unknown"
+            
             val query = "UPDATE whitelist_users SET active = 0 WHERE uuid = ?"
             conn.prepareStatement(query).use { pstmt ->
                 pstmt.setString(1, uuid.toString())
@@ -428,6 +451,11 @@ object WhitelistManager {
                     // Remove from cache
                     val entry = whitelistCache.remove(uuid)
                     entry?.let { usernameCache.remove(it.username.lowercase()) }
+                    
+                    // Add log entry - get performer from the command context
+                    val performer = getPerformerForUUID(uuid) ?: "CONSOLE"
+                    addLogEntry("REMOVE", username, performer)
+                    
                     return@withContext true
                 }
             }
@@ -441,34 +469,221 @@ object WhitelistManager {
     }
     
     /**
-     * Get paginated list of whitelisted players
+     * Get username for UUID (if not in cache)
      */
-    suspend fun getWhitelistedPlayers(page: Int, pageSize: Int = 10): Pair<List<WhitelistEntry>, Int> = withContext(Dispatchers.IO) {
+    private suspend fun getPlayerUsername(uuid: UUID): String? = withContext(Dispatchers.IO) {
         return@withContext try {
-            val conn = connection ?: return@withContext Pair(emptyList(), 0)
+            val conn = connection ?: return@withContext null
             
-            // Get total count
-            val countQuery = "SELECT COUNT(*) FROM whitelist_users WHERE active = 1"
-            val totalCount = conn.prepareStatement(countQuery).use { pstmt ->
+            val query = "SELECT username FROM whitelist_users WHERE uuid = ?"
+            conn.prepareStatement(query).use { pstmt ->
+                pstmt.setString(1, uuid.toString())
                 val rs = pstmt.executeQuery()
-                if (rs.next()) rs.getInt(1) else 0
+                
+                if (rs.next()) {
+                    rs.getString("username")
+                } else {
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "Error getting username for UUID", e)
+            null
+        }
+    }
+    
+    /**
+     * Get the performer (for logging)
+     * This is a placeholder - in a real implementation, you'd get this from command context
+     */
+    private suspend fun getPerformerForUUID(uuid: UUID): String? {
+        // This would normally come from a ThreadLocal or similar in a real implementation
+        // For now, we'll just return null and let the caller handle it
+        return null
+    }
+    
+    /**
+     * Purge inactive whitelist entries
+     */
+    suspend fun purgeInactiveEntries(): Int = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val conn = connection ?: return@withContext 0
+            
+            val query = "DELETE FROM whitelist_users WHERE active = 0"
+            conn.prepareStatement(query).use { pstmt ->
+                val count = pstmt.executeUpdate()
+                
+                plugin.logger.info("Purged $count inactive whitelist entries")
+                count
             }
             
-            // Get paginated results
-            val offset = (page - 1) * pageSize
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "Error purging inactive whitelist entries", e)
+            0
+        }
+    }
+    
+    /**
+     * Get whitelist activity logs
+     */
+    suspend fun getWhitelistLogs(count: Int): List<WhitelistLog> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val conn = connection ?: return@withContext emptyList()
+            
+            // Check if whitelist_logs table exists, create if not
+            ensureLogsTableExists()
+            
             val query = """
-                SELECT uuid, username, added_by, added_at 
-                FROM whitelist_users 
-                WHERE active = 1 
-                ORDER BY added_at DESC 
-                LIMIT ? OFFSET ?
+                SELECT id, action_type, username, performed_by, timestamp 
+                FROM whitelist_logs 
+                ORDER BY timestamp DESC 
+                LIMIT ?
             """.trimIndent()
             
-            val entries = mutableListOf<WhitelistEntry>()
+            val logs = mutableListOf<WhitelistLog>()
             conn.prepareStatement(query).use { pstmt ->
-                pstmt.setInt(1, pageSize)
-                pstmt.setInt(2, offset)
+                pstmt.setInt(1, count)
                 
+                val rs = pstmt.executeQuery()
+                while (rs.next()) {
+                    val id = rs.getInt("id")
+                    val actionType = rs.getString("action_type")
+                    val username = rs.getString("username")
+                    val performedBy = rs.getString("performed_by")
+                    val timestamp = rs.getLong("timestamp")
+                    
+                    logs.add(WhitelistLog(id, actionType, username, performedBy, timestamp))
+                }
+            }
+            
+            logs
+            
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "Error getting whitelist logs", e)
+            emptyList()
+        }
+    }
+    
+    /**
+     * Ensure logs table exists
+     */
+    private suspend fun ensureLogsTableExists() = withContext(Dispatchers.IO) {
+        try {
+            val conn = connection ?: return@withContext
+            
+            val dbType = plugin.config.getString("database.type", "sqlite")?.lowercase() ?: "sqlite"
+            val createLogsTable = if (dbType == "mysql") {
+                """
+                CREATE TABLE IF NOT EXISTS whitelist_logs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    action_type VARCHAR(50) NOT NULL,
+                    username VARCHAR(16) NOT NULL,
+                    performed_by VARCHAR(16) NOT NULL,
+                    timestamp BIGINT NOT NULL
+                )
+                """.trimIndent()
+            } else {
+                """
+                CREATE TABLE IF NOT EXISTS whitelist_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    action_type VARCHAR(50) NOT NULL,
+                    username VARCHAR(16) NOT NULL,
+                    performed_by VARCHAR(16) NOT NULL,
+                    timestamp BIGINT NOT NULL
+                )
+                """.trimIndent()
+            }
+            
+            conn.createStatement().use { stmt ->
+                stmt.execute(createLogsTable)
+            }
+            
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "Error creating logs table", e)
+        }
+    }
+    
+    /**
+     * Add a log entry
+     */
+    private suspend fun addLogEntry(actionType: String, username: String, performedBy: String) = withContext(Dispatchers.IO) {
+        try {
+            val conn = connection ?: return@withContext
+            
+            // Ensure logs table exists
+            ensureLogsTableExists()
+            
+            val query = """
+                INSERT INTO whitelist_logs (action_type, username, performed_by, timestamp)
+                VALUES (?, ?, ?, ?)
+            """.trimIndent()
+            
+            conn.prepareStatement(query).use { pstmt ->
+                pstmt.setString(1, actionType)
+                pstmt.setString(2, username)
+                pstmt.setString(3, performedBy)
+                pstmt.setLong(4, System.currentTimeMillis())
+                pstmt.executeUpdate()
+            }
+            
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "Error adding log entry", e)
+        }
+    }
+    
+    /**
+     * Clear all whitelist entries
+     */
+    suspend fun clearWhitelist(clearedBy: String): Int = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val conn = connection ?: return@withContext 0
+            
+            // First, get all usernames to log them
+            val usernames = mutableListOf<String>()
+            val selectQuery = "SELECT username FROM whitelist_users WHERE active = 1"
+            conn.prepareStatement(selectQuery).use { pstmt ->
+                val rs = pstmt.executeQuery()
+                while (rs.next()) {
+                    usernames.add(rs.getString("username"))
+                }
+            }
+            
+            // Then clear the whitelist
+            val query = "UPDATE whitelist_users SET active = 0"
+            conn.prepareStatement(query).use { pstmt ->
+                val count = pstmt.executeUpdate()
+                
+                // Log each removal
+                usernames.forEach { username ->
+                    addLogEntry("CLEAR", username, clearedBy)
+                }
+                
+                // Clear cache
+                whitelistCache.clear()
+                usernameCache.clear()
+                
+                plugin.logger.info("Cleared $count whitelist entries by $clearedBy")
+                count
+            }
+            
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "Error clearing whitelist", e)
+            0
+        }
+    }
+    
+    /**
+     * Export whitelist to a file
+     */
+    suspend fun exportWhitelist(exportFile: java.io.File): Int = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val conn = connection ?: return@withContext 0
+            
+            // Get all active whitelist entries
+            val query = "SELECT uuid, username, added_by, added_at FROM whitelist_users WHERE active = 1"
+            val entries = mutableListOf<WhitelistEntry>()
+            
+            conn.prepareStatement(query).use { pstmt ->
                 val rs = pstmt.executeQuery()
                 while (rs.next()) {
                     val uuid = UUID.fromString(rs.getString("uuid"))
@@ -480,12 +695,87 @@ object WhitelistManager {
                 }
             }
             
-            val totalPages = (totalCount + pageSize - 1) / pageSize
-            Pair(entries, totalPages)
+            if (entries.isEmpty()) {
+                return@withContext 0
+            }
+            
+            // Ensure parent directory exists
+            if (!exportFile.parentFile.exists()) {
+                exportFile.parentFile.mkdirs()
+            }
+            
+            // Create export JSON
+            val json = org.json.JSONArray()
+            entries.forEach { entry ->
+                val jsonEntry = org.json.JSONObject()
+                jsonEntry.put("uuid", entry.uuid.toString())
+                jsonEntry.put("username", entry.username)
+                jsonEntry.put("addedBy", entry.addedBy)
+                jsonEntry.put("addedAt", entry.addedAt)
+                json.put(jsonEntry)
+            }
+            
+            // Write to file
+            java.io.FileWriter(exportFile).use { writer ->
+                writer.write(json.toString(2))
+            }
+            
+            plugin.logger.info("Exported ${entries.size} whitelist entries to ${exportFile.name}")
+            entries.size
             
         } catch (e: Exception) {
-            plugin.logger.log(Level.SEVERE, "Error getting whitelisted players", e)
-            Pair(emptyList(), 0)
+            plugin.logger.log(Level.SEVERE, "Error exporting whitelist", e)
+            0
+        }
+    }
+    
+    /**
+     * Import whitelist from a file
+     */
+    suspend fun importWhitelist(importFile: java.io.File, addedBy: String): Int = withContext(Dispatchers.IO) {
+        return@withContext try {
+            if (!importFile.exists() || !importFile.isFile) {
+                return@withContext 0
+            }
+            
+            // Read JSON file
+            val jsonContent = importFile.readText()
+            val jsonArray = org.json.JSONArray(jsonContent)
+            
+            var importCount = 0
+            
+            for (i in 0 until jsonArray.length()) {
+                val jsonEntry = jsonArray.getJSONObject(i)
+                
+                // Check if entry has required fields
+                if (!jsonEntry.has("uuid") || !jsonEntry.has("username")) {
+                    continue
+                }
+                
+                val uuidStr = jsonEntry.getString("uuid")
+                val username = jsonEntry.getString("username")
+                
+                try {
+                    val uuid = UUID.fromString(uuidStr)
+                    val offlinePlayer = Bukkit.getOfflinePlayer(uuid)
+                    
+                    // Add to whitelist
+                    if (addPlayerToWhitelist(offlinePlayer, addedBy)) {
+                        // Log the import
+                        addLogEntry("IMPORT", username, addedBy)
+                        importCount++
+                    }
+                } catch (e: Exception) {
+                    plugin.logger.log(Level.WARNING, "Error importing whitelist entry: $username", e)
+                }
+            }
+            
+            plugin.logger.info("Imported $importCount whitelist entries from ${importFile.name}")
+            importCount
+            
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "Error importing whitelist", e)
+            0
         }
     }
     
@@ -508,6 +798,75 @@ object WhitelistManager {
      */
     private fun isCacheValid(): Boolean {
         return System.currentTimeMillis() - lastCacheUpdate < cacheDuration
+    }
+    
+    /**
+     * Get paginated list of whitelisted players
+     * Returns a pair of (entries, totalPages)
+     */
+    suspend fun getWhitelistedPlayers(page: Int, pageSize: Int): Pair<List<WhitelistEntry>, Int> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            if (!isInitialized || connection == null) {
+                return@withContext Pair(emptyList(), 0)
+            }
+            
+            // Get total count first
+            val totalCountSql = "SELECT COUNT(*) FROM whitelist WHERE active = 1"
+            val totalCount = connection!!.use { conn ->
+                conn.prepareStatement(totalCountSql).use { stmt ->
+                    val rs = stmt.executeQuery()
+                    if (rs.next()) rs.getInt(1) else 0
+                }
+            }
+            
+            val totalPages = if (totalCount > 0) {
+                (totalCount + pageSize - 1) / pageSize // Ceiling division
+            } else {
+                0
+            }
+            
+            if (totalCount == 0) {
+                return@withContext Pair(emptyList(), 0)
+            }
+            
+            // Get paginated entries
+            val offset = (page - 1) * pageSize
+            val sql = """
+                SELECT uuid, username, added_by, added_at 
+                FROM whitelist 
+                WHERE active = 1 
+                ORDER BY added_at DESC 
+                LIMIT ? OFFSET ?
+            """.trimIndent()
+            
+            val entries = connection!!.use { conn ->
+                conn.prepareStatement(sql).use { stmt ->
+                    stmt.setInt(1, pageSize)
+                    stmt.setInt(2, offset)
+                    val rs = stmt.executeQuery()
+                    
+                    val result = mutableListOf<WhitelistEntry>()
+                    while (rs.next()) {
+                        result.add(
+                            WhitelistEntry(
+                                uuid = UUID.fromString(rs.getString("uuid")),
+                                username = rs.getString("username"),
+                                addedBy = rs.getString("added_by"),
+                                addedAt = rs.getLong("added_at"),
+                                active = true
+                            )
+                        )
+                    }
+                    result
+                }
+            }
+            
+            Pair(entries, totalPages)
+            
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "Error getting whitelisted players", e)
+            Pair(emptyList(), 0)
+        }
     }
     
     /**

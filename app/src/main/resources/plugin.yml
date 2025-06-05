@@ -29,7 +29,7 @@ commands:
   
   whitelist:
     description: Cloudly whitelist management
-    usage: /whitelist <add|remove|enable|disable|list|reload> [player] [page]
+    usage: /whitelist <add|remove|enable|disable|list|reload|apply|admin> [player] [page]
     permission: cloudly.whitelist
     permission-message: You don't have permission to use whitelist commands.
 
@@ -61,6 +61,7 @@ permissions:
       cloudly.whitelist.toggle: true
       cloudly.whitelist.list: true
       cloudly.whitelist.reload: true
+      cloudly.whitelist.admin: true
   
   cloudly.whitelist.add:
     description: Permission to add players to whitelist
@@ -80,4 +81,29 @@ permissions:
   
   cloudly.whitelist.reload:
     description: Permission to reload whitelist data
+    default: op
+  
+  # Application system permissions
+  cloudly.whitelist.apply:
+    description: Permission to submit whitelist applications
+    default: true
+  
+  cloudly.whitelist.admin:
+    description: Access to whitelist admin commands
+    default: op
+    children:
+      cloudly.whitelist.admin.review: true
+      cloudly.whitelist.admin.approve: true
+      cloudly.whitelist.admin.deny: true
+  
+  cloudly.whitelist.admin.review:
+    description: Permission to review whitelist applications
+    default: op
+  
+  cloudly.whitelist.admin.approve:
+    description: Permission to approve whitelist applications
+    default: op
+  
+  cloudly.whitelist.admin.deny:
+    description: Permission to deny whitelist applications
     default: op

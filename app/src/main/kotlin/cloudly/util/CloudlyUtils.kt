@@ -12,6 +12,8 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.Bukkit
 import kotlinx.coroutines.*
+import java.sql.Connection
+import java.sql.DriverManager
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
@@ -280,6 +282,58 @@ object CloudlyUtils {
         } catch (e: Exception) {
             getLoggerSafely().warning("Error getting translated message for key '$key': ${e.message}")
             key // Fallback: return the key itself
+        }
+    }
+
+    /**
+     * Method to establish a database connection - null-safe
+     */
+    fun getConnection(): Connection? {
+        return try {
+            val url = ConfigHelper.getString("database.url")
+            val user = ConfigHelper.getString("database.user")
+            val password = ConfigHelper.getString("database.password")
+            DriverManager.getConnection(url, user, password)
+        } catch (e: Exception) {
+            getLoggerSafely().warning("Error establishing database connection: ${e.message}")
+            null
+        }
+    }
+    
+    /**
+     * Get database connection based on configuration
+     * Supports both SQLite and MySQL databases
+     */
+    fun getDatabaseConnection(): Connection? {
+        return try {
+            val plugin = getPluginInstanceSafely() ?: return null
+            val config = plugin.config
+            val dbType = config.getString("database.type", "sqlite")?.lowercase()
+            
+            when (dbType) {
+                "sqlite" -> {
+                    val dbFile = config.getString("database.sqlite.file", "cloudly.db") ?: "cloudly.db"
+                    val dbPath = plugin.dataFolder.resolve(dbFile)
+                    DriverManager.getConnection("jdbc:sqlite:$dbPath")
+                }
+                "mysql" -> {
+                    val host = config.getString("database.mysql.host", "localhost") ?: "localhost"
+                    val port = config.getInt("database.mysql.port", 3306)
+                    val database = config.getString("database.mysql.database", "cloudly") ?: "cloudly"
+                    val username = config.getString("database.mysql.username", "username") ?: "username"
+                    val password = config.getString("database.mysql.password", "password") ?: "password"
+                    
+                    val url = "jdbc:mysql://$host:$port/$database?useSSL=false&allowPublicKeyRetrieval=true"
+                    DriverManager.getConnection(url, username, password)
+                }
+                else -> {
+                    getLoggerSafely().severe("Unsupported database type: $dbType")
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            getLoggerSafely().log(Level.SEVERE, "Error creating database connection", e)
+            null
         }
     }
 }
@@ -557,16 +611,39 @@ object ConfigHelper {
     }
     
     /**
-     * Get a string list from config with default - null-safe
+     * Get database connection based on configuration
+     * Supports both SQLite and MySQL databases
      */
-    fun getStringList(path: String?): List<String> {
-        if (path.isNullOrBlank() || plugin == null) return emptyList()
-        
+    fun getDatabaseConnection(): Connection? {
         return try {
-            plugin!!.config?.getStringList(path) ?: emptyList()
+            val plugin = getPluginInstanceSafely() ?: return null
+            val config = plugin.config
+            val dbType = config.getString("database.type", "sqlite")?.lowercase()
+            
+            when (dbType) {
+                "sqlite" -> {
+                    val dbFile = config.getString("database.sqlite.file", "cloudly.db") ?: "cloudly.db"
+                    val dbPath = plugin.dataFolder.resolve(dbFile)
+                    DriverManager.getConnection("jdbc:sqlite:$dbPath")
+                }
+                "mysql" -> {
+                    val host = config.getString("database.mysql.host", "localhost") ?: "localhost"
+                    val port = config.getInt("database.mysql.port", 3306)
+                    val database = config.getString("database.mysql.database", "cloudly") ?: "cloudly"
+                    val username = config.getString("database.mysql.username", "username") ?: "username"
+                    val password = config.getString("database.mysql.password", "password") ?: "password"
+                    
+                    val url = "jdbc:mysql://$host:$port/$database?useSSL=false&allowPublicKeyRetrieval=true"
+                    DriverManager.getConnection(url, username, password)
+                }
+                else -> {
+                    getLoggerSafely().severe("Unsupported database type: $dbType")
+                    null
+                }
+            }
         } catch (e: Exception) {
-            getLoggerSafely().warning("Error getting string list config value for '$path': ${e.message}")
-            emptyList()
+            getLoggerSafely().log(Level.SEVERE, "Error creating database connection", e)
+            null
         }
     }
 }

@@ -10,6 +10,8 @@ import cloudly.CloudlyPlugin
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.ChatColor
 import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.entity.Player
+import org.bukkit.command.CommandSender
 import java.io.File
 import java.text.MessageFormat
 import java.util.logging.Level
@@ -197,6 +199,40 @@ object LanguageManager {
         }
     }
     
+    /**
+     * Send a translated message to a player
+     * @param sender The command sender (player or console) to send the message to
+     * @param key The language key for the message
+     * @param args Optional arguments to format the message
+     */
+    fun sendMessage(sender: CommandSender, key: String, vararg args: Any) {
+        try {
+            val message = getPrefixedMessage(key, *args)
+            sender.sendMessage(message)
+        } catch (e: Exception) {
+            safeLog("Error sending message '$key' to ${sender.name}: ${e.message}", Level.WARNING)
+            // Send fallback message
+            sender.sendMessage("[Cloudly] An error occurred.")
+        }
+    }
+    
+    /**
+     * Send a translated message to a player without prefix
+     * @param sender The command sender (player or console) to send the message to
+     * @param key The language key for the message
+     * @param args Optional arguments to format the message
+     */
+    fun sendMessageNoPrefix(sender: CommandSender, key: String, vararg args: Any) {
+        try {
+            val message = getMessage(key, *args)
+            sender.sendMessage(message)
+        } catch (e: Exception) {
+            safeLog("Error sending message '$key' to ${sender.name}: ${e.message}", Level.WARNING)
+            // Send fallback message
+            sender.sendMessage("An error occurred.")
+        }
+    }
+
     /**
      * Reload the language files
      * Used when the plugin is reloaded

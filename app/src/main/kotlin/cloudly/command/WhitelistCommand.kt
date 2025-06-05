@@ -10,11 +10,14 @@ package cloudly.command
 import cloudly.CloudlyPlugin
 import cloudly.util.LanguageManager
 import cloudly.util.WhitelistManager
+import cloudly.util.ApplicationManager
+import cloudly.util.ApplicationReviewGUI
 import kotlinx.coroutines.launch
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
+import java.util.Date
 import java.util.logging.Level
 
 /**
@@ -39,6 +42,8 @@ class WhitelistCommand : BaseCommand() {
             "disable" -> handleDisable(sender)
             "list" -> handleList(sender, args)
             "reload" -> handleReload(sender)
+            "admin" -> handleAdmin(sender, args)
+            "apply" -> handleApply(sender, args)
             else -> showUsage(sender)
         }
         
@@ -69,6 +74,11 @@ class WhitelistCommand : BaseCommand() {
                 if (hasPermission(sender, "cloudly.whitelist.reload")) {
                     subcommands.add("reload")
                 }
+                if (hasPermission(sender, "cloudly.whitelist.admin")) {
+                    subcommands.add("admin")
+                }
+                // Anyone can apply for whitelist
+                subcommands.add("apply")
                 
                 subcommands.filter { it.startsWith(args[0].lowercase()) }
             }
@@ -79,6 +89,35 @@ class WhitelistCommand : BaseCommand() {
                         Bukkit.getOnlinePlayers()
                             .map { it.name }
                             .filter { it.startsWith(args[1], ignoreCase = true) }
+                    }
+                    "admin" -> {
+                        if (hasPermission(sender, "cloudly.whitelist.admin")) {
+                            listOf("info", "purge", "logs", "clear", "export", "import", "review", "approve", "deny")
+                                .filter { it.startsWith(args[1], ignoreCase = true) }
+                        } else {
+                            emptyList()
+                        }
+                    }
+                    else -> emptyList()
+                }
+            }
+            3 -> {
+                when {
+                    args[0].lowercase() == "admin" && args[1].lowercase() == "logs" -> {
+                        if (hasPermission(sender, "cloudly.whitelist.admin")) {
+                            listOf("1", "5", "10", "25", "50", "all")
+                                .filter { it.startsWith(args[2], ignoreCase = true) }
+                        } else {
+                            emptyList()
+                        }
+                    }
+                    args[0].lowercase() == "admin" && args[1].lowercase() == "clear" -> {
+                        if (hasPermission(sender, "cloudly.whitelist.admin")) {
+                            listOf("confirm")
+                                .filter { it.startsWith(args[2], ignoreCase = true) }
+                        } else {
+                            emptyList()
+                        }
                     }
                     else -> emptyList()
                 }
@@ -273,11 +312,12 @@ class WhitelistCommand : BaseCommand() {
                 return
             }
         }
-        
-        // Launch async operation
+          // Launch async operation
         CloudlyPlugin.instance.getPluginScope().launch {
             try {
-                val (entries, totalPages) = WhitelistManager.getWhitelistedPlayers(page, 10)
+                val result = WhitelistManager.getWhitelistedPlayers(page, 10)
+                val entries = result.first
+                val totalPages = result.second
                 
                 if (entries.isEmpty()) {
                     if (page == 1) {
@@ -344,28 +384,19 @@ class WhitelistCommand : BaseCommand() {
      * Show command usage
      */
     private fun showUsage(sender: CommandSender) {
-        sendMessage(sender, "common.usage-format", "/whitelist <add|remove|enable|disable|list|reload>")
+        // Show admin command only if they have the permission
+        if (hasPermission(sender, "cloudly.whitelist.admin")) {
+            sendMessage(sender, "common.usage-format", "/whitelist <add|remove|enable|disable|list|reload|admin>")
+        } else {
+            sendMessage(sender, "common.usage-format", "/whitelist <add|remove|enable|disable|list|reload>")
+        }
     }
     
     /**
      * Check if sender has specific permission
      */
     private fun hasPermission(sender: CommandSender, permission: String): Boolean {
-        return sender.hasPermission(permission) || sender.hasPermission("cloudly.whitelist.*") || sender.hasPermission("cloudly.*")
-    }
-    
-    /**
-     * Send a message to the sender using the language manager
-     */
-    private fun sendMessage(sender: CommandSender, key: String, vararg args: Any) {
-        try {
-            val message = LanguageManager.getMessage(key, *args)
-            sender.sendMessage(message)
-        } catch (e: Exception) {
-            CloudlyPlugin.instance.logger.log(Level.WARNING, "Error sending message with key: $key", e)
-            sender.sendMessage("§cError occurred while processing command")
-        }
-    }
+        return sender.hasPermission(permission) || sender.hasPermission("cloudly.whitelist.*") || sender.hasPermission("cloudly.*")    }
     
     /**
      * Kick all non-whitelisted players when whitelist is enabled
@@ -383,6 +414,396 @@ class WhitelistCommand : BaseCommand() {
             }
         } catch (e: Exception) {
             CloudlyPlugin.instance.logger.log(Level.WARNING, "Error kicking non-whitelisted players", e)
+        }
+    }
+    
+    /**
+     * Handle whitelist admin commands
+     * All admin subcommands are with the prefix `/whitelist admin <command>`
+     * Only players with the `whitelist.admin` permission can see and use these commands
+     */
+    private fun handleAdmin(sender: CommandSender, args: Array<String>) {
+        if (!hasPermission(sender, "cloudly.whitelist.admin")) {
+            sendMessage(sender, "commands.whitelist.no-permission")
+            return
+        }
+        
+        if (args.size < 2) {
+            showAdminUsage(sender)
+            return
+        }
+        
+        // Handle admin subcommands
+        when (args[1].lowercase()) {
+            "info" -> handleAdminInfo(sender)
+            "purge" -> handleAdminPurge(sender)
+            "logs" -> handleAdminLogs(sender, args)
+            "clear" -> handleAdminClear(sender, args)
+            "export" -> handleAdminExport(sender)
+            "import" -> handleAdminImport(sender, args)
+            "review" -> handleAdminReview(sender)
+            "approve" -> handleAdminApprove(sender, args)
+            "deny" -> handleAdminDeny(sender, args)
+            else -> showAdminUsage(sender)
+        }
+    }
+    
+    /**
+     * Show whitelist admin command usage
+     */
+    private fun showAdminUsage(sender: CommandSender) {
+        sendMessage(sender, "common.usage-format", "/whitelist admin <info|purge|logs|clear|export|import|review|approve|deny>")
+    }
+    
+    /**
+     * Handle whitelist admin info command
+     * Shows detailed information about the whitelist system
+     */
+    private fun handleAdminInfo(sender: CommandSender) {
+        // Launch async operation
+        CloudlyPlugin.instance.getPluginScope().launch {
+            try {                val isEnabled = WhitelistManager.isWhitelistEnabled()
+                val result = WhitelistManager.getWhitelistedPlayers(1, 999)
+                val entries = result.first
+                val playerCount = entries.size
+                
+                // Send header
+                sendMessage(sender, "commands.whitelist.admin.info-header")
+                
+                // Send whitelist status
+                val statusKey = if (isEnabled) "commands.whitelist.admin.status-enabled" else "commands.whitelist.admin.status-disabled"
+                sendMessage(sender, statusKey)
+                
+                // Send player count
+                sendMessage(sender, "commands.whitelist.admin.player-count", playerCount.toString())
+                
+                // Send database info
+                val dbType = CloudlyPlugin.instance.config.getString("database.type", "sqlite") ?: "sqlite"
+                sendMessage(sender, "commands.whitelist.admin.database-type", dbType)
+                
+                // Send cache info
+                val cacheDuration = CloudlyPlugin.instance.config.getLong("whitelist.cache.duration", 30)
+                sendMessage(sender, "commands.whitelist.admin.cache-duration", cacheDuration.toString())
+                
+            } catch (e: Exception) {
+                CloudlyPlugin.instance.logger.log(Level.SEVERE, "Error getting whitelist admin info", e)
+                sendMessage(sender, "commands.whitelist.database-error")
+            }
+        }
+    }
+    
+    /**
+     * Handle whitelist admin purge command
+     * Removes inactive or duplicate entries from the whitelist
+     */
+    private fun handleAdminPurge(sender: CommandSender) {
+        // Launch async operation
+        CloudlyPlugin.instance.getPluginScope().launch {
+            try {
+                val purgeCount = WhitelistManager.purgeInactiveEntries()
+                sendMessage(sender, "commands.whitelist.admin.purge-success", purgeCount.toString())
+            } catch (e: Exception) {
+                CloudlyPlugin.instance.logger.log(Level.SEVERE, "Error purging whitelist", e)
+                sendMessage(sender, "commands.whitelist.database-error")
+            }
+        }
+    }
+    
+    /**
+     * Handle whitelist admin logs command
+     * Shows recent whitelist activity logs
+     */
+    private fun handleAdminLogs(sender: CommandSender, args: Array<String>) {
+        var count = 10 // Default to 10 entries
+        
+        if (args.size > 2) {
+            try {
+                if (args[2].lowercase() == "all") {
+                    count = Int.MAX_VALUE
+                } else {
+                    count = args[2].toInt()
+                }
+            } catch (e: NumberFormatException) {
+                sendMessage(sender, "commands.whitelist.admin.invalid-count")
+                return
+            }
+        }
+        
+        // Launch async operation
+        CloudlyPlugin.instance.getPluginScope().launch {
+            try {
+                val logs = WhitelistManager.getWhitelistLogs(count)
+                
+                if (logs.isEmpty()) {
+                    sendMessage(sender, "commands.whitelist.admin.no-logs")
+                    return@launch
+                }
+                
+                // Send header
+                sendMessage(sender, "commands.whitelist.admin.logs-header", 
+                    logs.size.toString(),
+                    if (count == Int.MAX_VALUE) "all" else count.toString())
+                
+                // Send log entries
+                logs.forEach { log ->
+                    val actionType = log.actionType
+                    val timestamp = log.timestamp
+                    val username = log.username
+                    val performedBy = log.performedBy
+                    
+                    // Format timestamp
+                    val date = Date(timestamp)
+                    val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                    val formattedDate = dateFormat.format(date)
+                    
+                    sendMessage(sender, "commands.whitelist.admin.log-entry", 
+                        formattedDate, actionType, username, performedBy)
+                }
+                
+            } catch (e: Exception) {
+                CloudlyPlugin.instance.logger.log(Level.SEVERE, "Error retrieving whitelist logs", e)
+                sendMessage(sender, "commands.whitelist.database-error")
+            }
+        }
+    }
+    
+    /**
+     * Handle whitelist admin clear command
+     * Clears all whitelist entries
+     */
+    private fun handleAdminClear(sender: CommandSender, args: Array<String>) {
+        if (args.size < 3 || args[2].lowercase() != "confirm") {
+            sendMessage(sender, "commands.whitelist.admin.clear-confirm")
+            return
+        }
+        
+        // Launch async operation
+        CloudlyPlugin.instance.getPluginScope().launch {
+            try {
+                val clearedCount = WhitelistManager.clearWhitelist(if (sender is Player) sender.name else "CONSOLE")
+                sendMessage(sender, "commands.whitelist.admin.clear-success", clearedCount.toString())
+                
+                // Kick non-whitelisted players if whitelist is enabled
+                if (WhitelistManager.isWhitelistEnabled()) {
+                    kickNonWhitelistedPlayers()
+                }
+                
+            } catch (e: Exception) {
+                CloudlyPlugin.instance.logger.log(Level.SEVERE, "Error clearing whitelist", e)
+                sendMessage(sender, "commands.whitelist.database-error")
+            }
+        }
+    }
+    
+    /**
+     * Handle whitelist admin export command
+     * Exports the whitelist to a JSON file
+     */
+    private fun handleAdminExport(sender: CommandSender) {
+        // Launch async operation
+        CloudlyPlugin.instance.getPluginScope().launch {
+            try {
+                val fileName = "whitelist_export_${System.currentTimeMillis()}.json"
+                val exportPath = CloudlyPlugin.instance.dataFolder.resolve(fileName)
+                
+                val exportCount = WhitelistManager.exportWhitelist(exportPath)
+                
+                if (exportCount > 0) {
+                    sendMessage(sender, "commands.whitelist.admin.export-success", 
+                        exportCount.toString(), fileName)
+                } else {
+                    sendMessage(sender, "commands.whitelist.admin.export-empty")
+                }
+                
+            } catch (e: Exception) {
+                CloudlyPlugin.instance.logger.log(Level.SEVERE, "Error exporting whitelist", e)
+                sendMessage(sender, "commands.whitelist.database-error")
+            }
+        }
+    }
+    
+    /**
+     * Handle whitelist admin import command
+     * Imports whitelist entries from a JSON file
+     */
+    private fun handleAdminImport(sender: CommandSender, args: Array<String>) {
+        if (args.size < 3) {
+            sendMessage(sender, "commands.whitelist.admin.import-usage")
+            return
+        }
+        
+        val fileName = args[2]
+        
+        // Launch async operation
+        CloudlyPlugin.instance.getPluginScope().launch {
+            try {
+                val importPath = CloudlyPlugin.instance.dataFolder.resolve(fileName)
+                
+                if (!importPath.exists() || !importPath.isFile) {
+                    sendMessage(sender, "commands.whitelist.admin.file-not-found", fileName)
+                    return@launch
+                }
+                
+                val addedBy = if (sender is Player) sender.name else "CONSOLE"
+                val importCount = WhitelistManager.importWhitelist(importPath, addedBy)
+                
+                sendMessage(sender, "commands.whitelist.admin.import-success", importCount.toString(), fileName)
+                
+            } catch (e: Exception) {
+                CloudlyPlugin.instance.logger.log(Level.SEVERE, "Error importing whitelist", e)
+                sendMessage(sender, "commands.whitelist.database-error")
+            }
+        }
+    }
+    
+    /**
+     * Handle whitelist apply command
+     */
+    private fun handleApply(sender: CommandSender, args: Array<String>) {
+        // Only players can apply
+        if (sender !is Player) {
+            sendMessage(sender, "commands.whitelist.player-only")
+            return
+        }
+        
+        if (args.size < 2) {
+            sendMessage(sender, "commands.whitelist.usage-apply")
+            return
+        }
+        
+        val reason = args.drop(1).joinToString(" ")
+        
+        CloudlyPlugin.instance.getPluginScope().launch {
+            try {
+                val result = ApplicationManager.submitApplication(sender, reason)
+                
+                Bukkit.getScheduler().runTask(CloudlyPlugin.instance, Runnable {
+                    when (result) {
+                        ApplicationManager.ApplicationResult.SUCCESS -> {
+                            sendMessage(sender, "commands.whitelist.apply.success")
+                            sendMessage(sender, "commands.whitelist.apply.pending")
+                        }
+                        ApplicationManager.ApplicationResult.ALREADY_EXISTS -> {
+                            sendMessage(sender, "commands.whitelist.apply.already-exists")
+                        }
+                        ApplicationManager.ApplicationResult.ALREADY_WHITELISTED -> {
+                            sendMessage(sender, "commands.whitelist.apply.already-whitelisted")
+                        }
+                        ApplicationManager.ApplicationResult.ERROR -> {
+                            sendMessage(sender, "commands.whitelist.apply.error")
+                        }
+                    }
+                })
+                
+            } catch (e: Exception) {
+                CloudlyPlugin.instance.logger.log(Level.SEVERE, "Error processing application", e)
+                Bukkit.getScheduler().runTask(CloudlyPlugin.instance, Runnable {
+                    sendMessage(sender, "commands.whitelist.database-error")
+                })
+            }
+        }
+    }
+    
+    /**
+     * Handle whitelist admin review command
+     */
+    private fun handleAdminReview(sender: CommandSender) {
+        if (sender !is Player) {
+            sendMessage(sender, "commands.whitelist.admin.review.player-only")
+            return
+        }
+        
+        // Open the review GUI
+        ApplicationReviewGUI.openReviewGUI(sender)
+    }
+    
+    /**
+     * Handle whitelist admin approve command
+     */
+    private fun handleAdminApprove(sender: CommandSender, args: Array<String>) {
+        if (args.size < 3) {
+            sendMessage(sender, "commands.whitelist.admin.usage-approve")
+            return
+        }
+        
+        val playerName = args[2]
+        val reason = if (args.size > 3) args.drop(3).joinToString(" ") else null
+        
+        CloudlyPlugin.instance.getPluginScope().launch {
+            try {
+                // Find the application
+                val applications = ApplicationManager.getPendingApplications()
+                val application = applications.find { it.username.equals(playerName, ignoreCase = true) }
+                
+                if (application == null) {
+                    Bukkit.getScheduler().runTask(CloudlyPlugin.instance, Runnable {
+                        sendMessage(sender, "commands.whitelist.admin.application-not-found", playerName)
+                    })
+                    return@launch
+                }
+                
+                val adminName = if (sender is Player) sender.name else "CONSOLE"
+                val success = ApplicationManager.approveApplication(application.id, adminName, reason)
+                
+                Bukkit.getScheduler().runTask(CloudlyPlugin.instance, Runnable {
+                    if (success) {
+                        sendMessage(sender, "commands.whitelist.admin.approve.success", playerName)
+                    } else {
+                        sendMessage(sender, "commands.whitelist.admin.approve.error")
+                    }
+                })
+                
+            } catch (e: Exception) {
+                CloudlyPlugin.instance.logger.log(Level.SEVERE, "Error approving application", e)
+                Bukkit.getScheduler().runTask(CloudlyPlugin.instance, Runnable {
+                    sendMessage(sender, "commands.whitelist.database-error")
+                })
+            }
+        }
+    }
+    
+    /**
+     * Handle whitelist admin deny command
+     */
+    private fun handleAdminDeny(sender: CommandSender, args: Array<String>) {
+        if (args.size < 4) {
+            sendMessage(sender, "commands.whitelist.admin.usage-deny")
+            return
+        }
+        
+        val playerName = args[2]
+        val reason = args.drop(3).joinToString(" ")
+        
+        CloudlyPlugin.instance.getPluginScope().launch {
+            try {
+                // Find the application
+                val applications = ApplicationManager.getPendingApplications()
+                val application = applications.find { it.username.equals(playerName, ignoreCase = true) }
+                
+                if (application == null) {
+                    Bukkit.getScheduler().runTask(CloudlyPlugin.instance, Runnable {
+                        sendMessage(sender, "commands.whitelist.admin.application-not-found", playerName)
+                    })
+                    return@launch
+                }
+                
+                val adminName = if (sender is Player) sender.name else "CONSOLE"
+                val success = ApplicationManager.denyApplication(application.id, adminName, reason)
+                
+                Bukkit.getScheduler().runTask(CloudlyPlugin.instance, Runnable {
+                    if (success) {
+                        sendMessage(sender, "commands.whitelist.admin.deny.success", playerName)
+                    } else {
+                        sendMessage(sender, "commands.whitelist.admin.deny.error")
+                    }
+                })
+                
+            } catch (e: Exception) {
+                CloudlyPlugin.instance.logger.log(Level.SEVERE, "Error denying application", e)
+                Bukkit.getScheduler().runTask(CloudlyPlugin.instance, Runnable {
+                    sendMessage(sender, "commands.whitelist.database-error")
+                })
+            }
         }
     }
 }

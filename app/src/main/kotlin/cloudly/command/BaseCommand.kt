@@ -289,4 +289,17 @@ abstract class BaseCommand : CommandExecutor, TabCompleter {
     protected fun getSafeString(value: String?, default: String = ""): String {
         return if (isSafeString(value)) value!! else default
     }
+    
+    /**
+     * Send a translated message to a command sender - null-safe
+     */
+    protected fun sendMessage(sender: CommandSender?, messageKey: String, vararg args: Any) {
+        try {
+            if (sender != null && !messageKey.isBlank()) {
+                CloudlyUtils.sendPrefixedTranslatedMessage(sender, messageKey, *args)
+            }
+        } catch (e: Exception) {
+            logError("Error sending message '$messageKey'", e)
+        }
+    }
 }

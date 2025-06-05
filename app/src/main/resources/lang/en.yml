@@ -61,3 +61,106 @@ commands:
     usage-remove: "&cUsage: &f/whitelist remove <player>"
     usage-list: "&cUsage: &f/whitelist list [page]"
     kick-message: "&cYou are not whitelisted on this server!"
+    kick-denied: "&cYour whitelist application was denied. Please contact an administrator."
+    kick-apply: "&cYou are not whitelisted! Use &f/whitelist apply <reason> &cto request access."
+    
+    # Application system
+    usage-apply: "&cUsage: &f/whitelist apply <reason>"
+    apply:
+      success: "&aYour whitelist application has been submitted successfully!"
+      pending: "&7Your application is now pending review by administrators."
+      already-exists: "&cYou already have a pending application."
+      already-whitelisted: "&cYou are already whitelisted!"
+      error: "&cFailed to submit application. Please try again later."
+    
+    application:
+      approved: "&aYour whitelist application has been approved! {0}"
+      denied: "&cYour whitelist application has been denied."
+      denied.kick: "&cYour whitelist application was denied.\n&7Reason: &f{0}\n\n&7You may submit a new application if you wish."
+      admin:
+        notification: "&a&l[NOTIFICATION] &r&f{0} &ahas submitted a whitelist application!"
+        title: "&a&lNew Application"
+        subtitle: "&f{0} &awants to join!"
+    
+    # Freeze system
+    freeze:
+      frozen: "&e&lFROZEN &r&7You have been frozen due to: &f{0}"
+      unfrozen: "&a&lUNFROZEN &r&7You have been unfrozen and can now play!"
+      title: "&e&lYOU ARE FROZEN"
+      subtitle: "&7Please wait for admin approval"
+      unfrozen.title: "&a&lWELCOME!"
+      unfrozen.subtitle: "&7Your application was approved"
+      reminder: "&e&lFROZEN &r&7You are still frozen while your application is being reviewed."
+      actionbar: "&eApplication Status: &6PENDING REVIEW"
+      cannot:
+        move: "&cYou cannot move while frozen!"
+        break: "&cYou cannot break blocks while frozen!"
+        place: "&cYou cannot place blocks while frozen!"
+        interact: "&cYou cannot interact with objects while frozen!"
+        inventory: "&cYou cannot use your inventory while frozen!"
+        drop: "&cYou cannot drop items while frozen!"
+        attack: "&cYou cannot attack while frozen!"
+        attack.frozen: "&cYou cannot attack frozen players!"
+        command: "&cYou can only use limited commands while frozen!"
+    
+    # Admin whitelist commands
+    admin:
+      info-header: "&8&m-----&r &b&lWhitelist System Information &8&m-----"
+      status-enabled: "&7Status: &aEnabled"
+      status-disabled: "&7Status: &cDisabled"
+      player-count: "&7Whitelisted Players: &f{0}"
+      database-type: "&7Database Type: &f{0}"
+      cache-duration: "&7Cache Duration: &f{0} minutes"
+      purge-success: "&aSuccessfully purged &f{0} &ainactive whitelist entries."
+      logs-header: "&8&m-----&r &b&lWhitelist Logs &7(Showing {0}/{1}) &8&m-----"
+      log-entry: "&7[&f{0}&7] &f{1} &7- &f{2} &7by &f{3}"
+      no-logs: "&7No whitelist logs found."
+      invalid-count: "&cInvalid count. Please use a number or 'all'."
+      clear-confirm: "&cThis will remove ALL players from the whitelist! Type &f/whitelist admin clear confirm &cto confirm."
+      clear-success: "&aSuccessfully cleared &f{0} &aentries from the whitelist."
+      export-success: "&aSuccessfully exported &f{0} &awhitelist entries to &f{1}"
+      export-empty: "&cNo whitelist entries to export."
+      import-usage: "&cUsage: &f/whitelist admin import <filename>"
+      import-success: "&aSuccessfully imported &f{0} &awhitelist entries from &f{1}"
+      file-not-found: "&cFile '{0}' not found."
+      
+      # Application management
+      no.applications: "&7There are no pending applications to review."
+      gui:
+        title: "&0Review Applications ({0} pending)"
+        error: "&cFailed to open application review GUI."
+      review:
+        player-only: "&cThe review GUI can only be used by players."
+      approve:
+        prompt: "&aType your approval reason for &f{0} &a(or press Enter for no reason):"
+        instructions: "&7Type &f'cancel' &7to abort the approval process."
+        success: "&aSuccessfully approved application for &f{0}!"
+        error: "&cFailed to approve application. Please try again."
+      deny:
+        prompt: "&cType your denial reason for &f{0}&c:"
+        instructions: "&7Type &f'cancel' &7to abort the denial process."
+        success: "&aSuccessfully denied application for &f{0}!"
+        error: "&cFailed to deny application. Please try again."
+      application-not-found: "&cNo pending application found for &f{0}!"
+      usage-approve: "&cUsage: &f/whitelist admin approve <player> [reason]"
+      usage-deny: "&cUsage: &f/whitelist admin deny <player> <reason>"
+      details:
+        header: "&8&m-----&r &b&lApplication Details &8&m-----"
+        player: "&7Player: &f{0}"
+        uuid: "&7UUID: &f{0}"
+        applied: "&7Applied: &f{0}"
+        status: "&7Status: &f{0}"
+        reason: "&7Reason:"
+        footer: "&8&m-----&r &7Use commands below for actions &8&m-----"
+      stats:
+        coming.soon: "&7Application statistics feature coming soon!"
+
+# Chat input system
+chat:
+  input:
+    timeout: "&cYour input has timed out. Please try the command again."
+    timeout.warning: "&eYour input will timeout in 1 minute!"
+    cancelled: "&7Input cancelled."
+    invalid: "&cInvalid input: {0}"
+    try.again: "&7Please try again or type &f'cancel' &7to abort."
+    error: "&cAn error occurred while processing your input."
