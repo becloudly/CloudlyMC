@@ -76,7 +76,6 @@ object WhitelistManager {
             loadCacheFromDatabase()
             
             isInitialized = true
-            plugin.logger.info("WhitelistManager initialized successfully")
             true
             
         } catch (e: Exception) {
