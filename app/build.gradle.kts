@@ -32,7 +32,7 @@ dependencies {
     implementation("com.mysql:mysql-connector-j:8.4.0")
     
     // JSON library for import/export functionality
-    implementation("org.json:json:20240303")
+    implementation("org.json:json:20250517")
 }
 
 // Java version for Minecraft 1.18+ compatibility
