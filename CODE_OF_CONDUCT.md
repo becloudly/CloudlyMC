@@ -1,7 +1,3 @@
----
-icon: gear-complex-code
----
-
 # Code of Conduct
 
 ## Our Pledge
