@@ -1,6 +1,4 @@
-# Welcome to Cloudly
-
-<figure><img src=".gitbook/assets/Cloudly_PreviewBanner.png" alt=""><figcaption></figcaption></figure>
+<img src="https://github.com/Gerrxt07/CloudlyMC/blob/master/content/Cloudly_PreviewBanner.png" alt="">
 
 _☁️ A high-performance Minecraft server plugin for paper-based servers built with Kotlin to manage your server with various integrations, highly configurable and multi-language support._
 
