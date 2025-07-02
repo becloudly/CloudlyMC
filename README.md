@@ -1,4 +1,4 @@
-<center>
+<div align="center">
 
 # ☁️ Welcome to Cloudly ☁️
 
@@ -6,7 +6,8 @@
 
 _☁️ A high-performance Minecraft server plugin for paper-based servers built with Kotlin to manage your server with various integrations, highly configurable and multi-language support._
 
-</center>
+</div>
+
 
 ## ✨ Our Features
 
