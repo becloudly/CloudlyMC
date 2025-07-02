@@ -18,6 +18,8 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
 * 🎮 Support for Paper-Based Minecraft 1.20+ and Velocity Proxies
 * ☕ Fully written in Async Kotlin
 * 🛡️ Modern standards for security and stability
+* 🔗 Online Dashboard to manage your server simply
+
 
 ## 📋 Requirements
 
