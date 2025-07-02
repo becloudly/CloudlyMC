@@ -2,7 +2,7 @@ import org.jetbrains.gradle.ext.settings
 import org.jetbrains.gradle.ext.taskTriggers
 
 plugins {
-    kotlin("jvm") version "2.1.21"
+    kotlin("jvm") version "2.2.0"
     id("com.gradleup.shadow") version "9.0.0-beta15"
 }
 
