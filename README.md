@@ -1,34 +1,39 @@
-# Welcome to Cloudly
+<center>
 
-<figure><img src=".gitbook/assets/Cloudly_PreviewBanner.png" alt=""><figcaption></figcaption></figure>
+# ☁️ Welcome to Cloudly ☁️
+
+<img src="https://github.com/becloudly/.github/blob/main/assets/Cloudly-Abstract_Scaled-Round.png?raw=true" alt="Cloudly Banner" width="256">
 
 _☁️ A high-performance Minecraft server plugin for paper-based servers built with Kotlin to manage your server with various integrations, highly configurable and multi-language support._
 
-***
+</center>
 
 ## ✨ Our Features
 
-* 🌐 Multi-language support (English, German, French, Spanish, Portuguese, Polish, Russian, Chinese)
+* 🌐 Multi-language support:
+    - Yet available: English, German
+    - Planned: French, Spanish, Portuguese, Polish, Russian, Chinese and more!
 * 📋 Highly configurable through config, language files and more
-* 🎮 Support for Paper-Based Minecraft 1.18+
+* 🎮 Support for Paper-Based Minecraft 1.20+ and Velocity Proxies
 * ☕ Fully written in Async Kotlin
 * 🛡️ Modern standards for security and stability
 
 ## 📋 Requirements
 
-* 📄 Paper-based server (Version 1.18 or higher - PaperMC, Purpur, Pufferfish, CanvasMC etc.)
-* ☕ Java 17 or higher
+* 📄 Paper-based server (Version 1.20 or higher - PaperMC, Purpur, Pufferfish, CanvasMC etc.) OR
+* 📦 Velocity Proxy
+* ☕ Java 21 or higher
 
 ## 🚀 Installation
 
 1. Download the latest version of the plugin from the [Releases](https://github.com/gerrxt07/cloudlymc/releases) section.
 2. Place the JAR file in your server folder under `/plugins`.
-3. Restart your server or use a plugin manager to load the plugin.
+3. Restart your server to load the plugin.
 4. Configure the plugin to your preferences in the `config.yml`.
 
 ## ⚙️ Documentations
 
-You can find our detailed documentation [here](https://gerrxt.gitbook.io/cloudlymc).
+You can find our detailed documentation [here](https://docs.becloudly.com).
 
 ## 🗺️ Other things
 
@@ -60,6 +65,4 @@ This project is licensed under the [MIT License](LICENSE/).
 
 ## 👏 Credits
 
-Developed by [gerrxt](https://github.com/gerrxt07).
-
-Developer team from [Phantom Community](https://phantomcommunity.de).
+Developed by [gerrxt](https://github.com/gerrxt07) and the Developer team from [Phantom Community](https://phantomcommunity.de).
