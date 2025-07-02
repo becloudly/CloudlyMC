@@ -1,7 +1,3 @@
----
-icon: shield-exclamation
----
-
 # Safety guidelines
 
 The security of our code and our users has the highest priority. We are grateful for any information and assistance regarding possible security vulnerabilities. We give security researchers the right to check our code for problems.

@@ -2,12 +2,8 @@ import org.jetbrains.gradle.ext.settings
 import org.jetbrains.gradle.ext.taskTriggers
 
 plugins {
-    kotlin("jvm") version "2.0.20-Beta1"
-    kotlin("kapt") version "2.0.20-Beta1"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("eclipse")
-    id("org.jetbrains.gradle.plugin.idea-ext") version "1.1.8"
-    id("xyz.jpenilla.run-velocity") version "2.3.1"
+    kotlin("jvm") version "2.1.21"
+    id("com.gradleup.shadow") version "9.0.0-beta15"
 }
 
 group = "de.cloudly"
@@ -31,7 +27,34 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    
+    // Coroutines for async operations (performance optimization)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+
+    // SQLite JDBC driver
+    implementation("org.xerial:sqlite-jdbc:3.45.3.0")
+
+    // MySQL JDBC driver
+    implementation("com.mysql:mysql-connector-j:8.4.0")
+    
+    // JSON library for import/export functionality
+    implementation("org.json:json:20240303")
 }
+
+// Java version for Minecraft 1.18+ compatibility
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+// Version using Epoch Semantic Versioning
+val epochVersion = "1.0.0.0"
+version = epochVersion
 
 tasks {
     runVelocity {
