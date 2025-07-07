@@ -5,3 +5,5 @@
 build
 .vscode/settings.json
 app/bin/*
+Velocity Network.lnk
+deploy.bat
