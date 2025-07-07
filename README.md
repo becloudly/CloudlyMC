@@ -6,26 +6,63 @@
 
 _☁️ A high-performance Minecraft server plugin for paper-based servers built with Kotlin to manage your server with various integrations, highly configurable and multi-language support._
 
+[![Build Status](https://img.shields.io/github/actions/workflow/status/becloudly/cloudlymc/gradle-build.yml?branch=master&style=for-the-badge&logo=github)](https://github.com/becloudly/cloudlymc/actions/workflows/gradle-build.yml) [![CodeQL](https://img.shields.io/github/actions/workflow/status/becloudly/cloudlymc/codeql.yml?branch=master&style=for-the-badge&logo=github&label=CodeQL)](https://github.com/becloudly/cloudlymc/actions/workflows/codeql.yml) [![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)](https://github.com/becloudly/cloudlymc/releases) [![License](https://img.shields.io/github/license/becloudly/cloudlymc?style=for-the-badge)](LICENSE) [![Java](https://img.shields.io/badge/Java-17%2B-orange?style=for-the-badge&logo=java)](https://adoptium.net/) [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-purple?style=for-the-badge&logo=kotlin)](https://kotlinlang.org/)
+
 </div>
 
+## ✨ Features
 
-## ✨ Our Features
-
-* 🌐 Multi-language support:
-    - Yet available: English, German
+* 🌐 **Multi-language Support:**
+    - Available: English, German
     - Planned: French, Spanish, Portuguese, Polish, Russian, Chinese and more!
-* 📋 Highly configurable through config, language files and more
-* 🎮 Support for Paper-Based Minecraft 1.20+ and Velocity Proxies
-* ☕ Fully written in Async Kotlin
-* 🛡️ Modern standards for security and stability
-* 🔗 Online Dashboard to manage your server simply
-
+* 📋 **Highly Configurable:** Through config, language files and more
+* 🎮 **Cross-Platform:** Works on both Velocity proxy and Paper-based servers (1.20+)
+* ☕ **Performance-Focused:** Fully written in Async Kotlin for high performance
+* 🛡️ **Modern Standards:** Security, stability, and best practices
+* 🔗 **Online Dashboard:** Web interface to manage your server
+* 💾 **Database Support:** Integrations with SQLite and MySQL
+* 🧩 **Extensible:** Modular design for easy expansion
+* 📦 **Lightweight:** Minimized JAR size with dependency optimization
 
 ## 📋 Requirements
 
 * 📄 Paper-based server (Version 1.20 or higher - PaperMC, Purpur, Pufferfish, CanvasMC etc.) OR
 * 📦 Velocity Proxy
-* ☕ Java 21 or higher
+* ☕ Java 17 or higher (Java 21 recommended)
+
+## 📊 Project Statistics
+
+### 🏗️ Build & Development
+* **Version:** 1.0.0
+* **Build System:** Gradle 8.8
+* **Languages:** Kotlin 2.2.0, Java 17+
+* **Dependencies:**
+  * Velocity API: 3.4.0-SNAPSHOT
+  * Paper API: 1.20.1-R0.1-SNAPSHOT
+  * Kotlin Coroutines: 1.10.2
+  * SQLite JDBC: 3.50.2.0
+  * MySQL Connector: 9.3.0
+  * JSON: 20250517
+* **Artifact Size:** ~10MB (minimized with ShadowJar)
+
+### 🔍 Code Quality & Security
+* **Static Analysis:** Protected by CodeQL security scanning
+* **Dependency Management:** Automated with Dependabot
+  * Weekly updates for Gradle dependencies
+  * Weekly updates for GitHub Actions
+* **Build Automation:** GitHub Actions CI/CD pipeline
+
+### 📁 Codebase Structure
+* **Platform Support:**
+  * Velocity Proxy implementation
+  * Paper/Bukkit server implementation
+* **Template System:** Build-time constant generation
+* **Plugin Configuration:** YAML-based configuration
+
+### 🔄 Continuous Integration
+* **Automated Builds:** On push to master branch
+* **Security Scanning:** Weekly CodeQL analysis
+* **Dependency Updates:** Weekly Dependabot PRs
 
 ## 🚀 Installation
 
@@ -34,38 +71,61 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
 3. Restart your server to load the plugin.
 4. Configure the plugin to your preferences in the `config.yml`.
 
-## ⚙️ Documentations
+## 👥 Contributing
 
-You can find our detailed documentation [here](https://docs.becloudly.com).
+Contributions are welcome! Here's how you can help:
 
-## 🗺️ Other things
+1. **Fork** the repository
+2. **Clone** your fork to your local machine
+3. **Create a branch** for your feature or bugfix
+4. **Make your changes** and commit them
+5. **Push** your changes to your fork
+6. Submit a **Pull Request**
 
-We have an interactive and updated [Trello Board](https://trello.com/b/GMKCYKXv/cloudly)!
+### Development Setup
 
-Would you like to participate in development or have feature requests? [Open an Issue](https://github.com/becloudly/cloudlymc/issues) or join our [Discord Server](https://becloudly.eu/discord)!
+```bash
+# Clone the repository
+git clone https://github.com/becloudly/cloudlymc.git
+cd cloudlymc
 
-## 💻 Development
+# Build the project
+./gradlew clean build
+```
 
-### Setting Up the Development Environment
+## 📊 Activity
 
-1.  Clone the repository:
+<div align="center">
 
-    ```bash
-    git clone https://github.com/becloudly/CloudlyMC.git
-    ```
-2. Import the project into your IDE (e.g., IntelliJ, Eclipse, VSCode, etc.).
-3.  Run the Gradle build:
+[![Contributors](https://img.shields.io/github/contributors/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/graphs/contributors) [![Last Commit](https://img.shields.io/github/last-commit/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/commits/master) [![Open Issues](https://img.shields.io/github/issues-raw/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/issues) [![Open PRs](https://img.shields.io/github/issues-pr-raw/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/pulls)
 
-    ```bash
-    ./gradlew clean build
-    ```
+</div>
 
-The compiled JAR file can be found in `app/build/libs` .
+## ⚙️ Documentation
+
+Documentation is available at [docs.cloudly.de](https://docs.cloudly.de).
 
 ## 📜 License
 
-This project is licensed under the [MIT License](LICENSE/).
+Cloudly is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+```
+MIT License
+Copyright (c) 2025 Gerrit Schlinkmann / Gerrxt
+```
+
+## 🗺️ Community
+
+* **Roadmap:** Check our interactive [Trello Board](https://trello.com/b/GMKCYKXv/cloudly)
+* **Feature Requests:** [Open an Issue](https://github.com/becloudly/cloudlymc/issues)
+* **Community:** Join our [Discord Server](https://becloudly.eu/discord)
 
 ## 👏 Credits
 
-Developed by [gerrxt](https://github.com/gerrxt07) and the Developer team from [Phantom Community](https://phantomcommunity.de).
+Developed by [gerrxt](https://github.com/gerrxt07), the Developer team from [Phantom Community](https://phantomcommunity.de) and all lovely contributers.
+
+<div align="center">
+
+**Made with ❤️ by the Cloudly Team**
+
+</div>
