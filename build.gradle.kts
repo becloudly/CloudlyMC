@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm") version "2.2.0"
     id("com.gradleup.shadow") version "9.0.0-beta15"
     id("xyz.jpenilla.run-velocity") version "2.3.1"
+    id("java")
 }
 
 group = "de.cloudly"
@@ -78,9 +79,12 @@ tasks {
         dependsOn(shadowJar)
     }
 
-    // Disable the regular jar task to avoid conflicts
+    // Configure jar task for GitHub Actions workflow
     jar {
-        enabled = false
+        enabled = true
+        archiveBaseName.set("cloudly")
+        // Reads GITHUB_RUN_NUMBER from environment variables:
+        archiveVersion.set("${project.version}-${System.env.GITHUB_RUN_NUMBER ?: '0'}")
     }
 
     // Process resources to replace version in plugin.yml
