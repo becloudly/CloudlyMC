@@ -3,7 +3,6 @@ plugins {
     kotlin("jvm") version "2.2.0" apply false
     kotlin("kapt") version "2.2.0" apply false
     id("com.github.johnrengelman.shadow") version "8.1.1" apply false
-    id("eclipse")
     id("xyz.jpenilla.run-velocity") version "2.3.1" apply false
 }
 
