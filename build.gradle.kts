@@ -84,7 +84,7 @@ tasks {
         enabled = true
         archiveBaseName.set("cloudly")
         // Reads GITHUB_RUN_NUMBER from environment variables:
-        archiveVersion.set("${project.version}-${System.env.GITHUB_RUN_NUMBER ?: '0'}")
+        archiveVersion.set("${project.version}-${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}")
     }
 
     // Process resources to replace version in plugin.yml
