@@ -21,7 +21,7 @@ repositories {
 
 dependencies {
     compileOnly("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
-    kapt("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
+    annotationProcessor("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
 
     // Paper API für 1.20+
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
@@ -53,7 +53,7 @@ kotlin {
 }
 
 // Version using Epoch Semantic Versioning
-val epochVersion = "1.0.0.0"
+val epochVersion = "1.0.0"
 version = epochVersion
 
 tasks {
@@ -129,8 +129,7 @@ try {
 }
 
 // Only apply Eclipse specific configuration if the plugin is applied
-try {
+if (project.plugins.hasPlugin("eclipse")) {
+    project.the<org.gradle.plugins.ide.eclipse.EclipsePlugin>()
     project.eclipse.synchronizationTasks(generateTemplates)
-} catch (e: Exception) {
-    // Eclipse plugin not fully configured, skip
 }
