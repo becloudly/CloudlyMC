@@ -1,2 +1,2 @@
 rootProject.name = "Cloudly"
-include("app")
+// Removed app module inclusion to consolidate into a single build

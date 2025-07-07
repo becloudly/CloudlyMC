@@ -45,6 +45,14 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
+    
+    sourceSets {
+        main {
+            java.srcDirs("app/src/main/java")
+            kotlin.srcDirs("app/src/main/kotlin")
+            resources.srcDirs("app/src/main/resources")
+        }
+    }
 }
 
 kotlin {
@@ -93,7 +101,7 @@ tasks {
     }
 }
 
-val templateSource = file("src/main/templates")
+val templateSource = file("app/src/main/templates")
 val templateDest = layout.buildDirectory.dir("generated/sources/templates")
 val generateTemplates = tasks.register<Copy>("generateTemplates") {
     val props = mapOf("version" to project.version)
