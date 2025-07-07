@@ -87,12 +87,12 @@ tasks {
         dependsOn(shadowJar)
     }
 
-    // Configure jar task for GitHub Actions workflow
+    // Configure jar task to match local build
     jar {
         enabled = true
         archiveBaseName.set("cloudly")
-        // Reads GITHUB_RUN_NUMBER from environment variables:
-        archiveVersion.set("${project.version}-${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}")
+        // Use the project version without additional versioning
+        archiveVersion.set("${project.version}")
     }
 
     // Process resources to replace version in plugin.yml
