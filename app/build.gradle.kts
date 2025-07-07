@@ -3,7 +3,7 @@ import org.jetbrains.gradle.ext.taskTriggers
 
 plugins {
     kotlin("jvm") version "2.2.0"
-    id("com.gradleup.shadow") version "9.0.0-beta15"
+    id("com.gradleup.shadow") version "9.0.0-rc1"
 }
 
 group = "de.cloudly"
