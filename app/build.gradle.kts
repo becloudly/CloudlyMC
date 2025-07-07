@@ -35,7 +35,7 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.50.2.0")
 
     // MySQL JDBC driver
-    implementation("com.mysql:mysql-connector-j:8.4.0")
+    implementation("com.mysql:mysql-connector-j:9.3.0")
     
     // JSON library for import/export functionality
     implementation("org.json:json:20250517")
