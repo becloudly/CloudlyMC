@@ -29,7 +29,7 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
 
 ## 🚀 Installation
 
-1. Download the latest version of the plugin from the [Releases](https://github.com/gerrxt07/cloudlymc/releases) section.
+1. Download the latest version of the plugin from the [Releases](https://github.com/becloudly/cloudlymc/releases) section.
 2. Place the JAR file in your server folder under `/plugins`.
 3. Restart your server to load the plugin.
 4. Configure the plugin to your preferences in the `config.yml`.
@@ -42,7 +42,7 @@ You can find our detailed documentation [here](https://docs.becloudly.com).
 
 We have an interactive and updated [Trello Board](https://trello.com/b/GMKCYKXv/cloudly)!
 
-Would you like to participate in development or have feature requests? [Open an Issue](https://github.com/gerrxt07/cloudlymc/issues) or join our [Discord Server](https://phantomcommunity.de/discord)!
+Would you like to participate in development or have feature requests? [Open an Issue](https://github.com/becloudly/cloudlymc/issues) or join our [Discord Server](https://becloudly.eu/discord)!
 
 ## 💻 Development
 
@@ -51,7 +51,7 @@ Would you like to participate in development or have feature requests? [Open an 
 1.  Clone the repository:
 
     ```bash
-    git clone https://github.com/gerrxt/CloudlyMC.git
+    git clone https://github.com/becloudly/CloudlyMC.git
     ```
 2. Import the project into your IDE (e.g., IntelliJ, Eclipse, VSCode, etc.).
 3.  Run the Gradle build:
