@@ -1,9 +1,7 @@
-import org.jetbrains.gradle.ext.settings
-import org.jetbrains.gradle.ext.taskTriggers
-
 plugins {
     kotlin("jvm") version "2.2.0"
     id("com.gradleup.shadow") version "9.0.0-beta15"
+    id("xyz.jpenilla.run-velocity") version "2.3.1"
 }
 
 group = "de.cloudly"
@@ -52,15 +50,9 @@ kotlin {
     jvmToolchain(17)
 }
 
-// Version using Epoch Semantic Versioning
-val epochVersion = "1.0.0"
-version = epochVersion
-
 tasks {
     runVelocity {
         // Configure the Velocity version for our task.
-        // This is the only required configuration besides applying the plugin.
-        // Your plugin's jar (or shadowJar if present) will be used automatically.
         velocityVersion("3.4.0-SNAPSHOT")
     }
 
@@ -97,11 +89,6 @@ tasks {
     }
 }
 
-val targetJavaVersion = 17
-kotlin {
-    jvmToolchain(targetJavaVersion)
-}
-
 val templateSource = file("src/main/templates")
 val templateDest = layout.buildDirectory.dir("generated/sources/templates")
 val generateTemplates = tasks.register<Copy>("generateTemplates") {
@@ -118,18 +105,4 @@ sourceSets.main.configure { java.srcDir(generateTemplates.map { it.outputs }) }
 // VS Code friendly task to prepare templates
 tasks.register("prepareVSCode") {
     dependsOn(generateTemplates)
-}
-
-// Only apply IDEA specific configuration if the plugin is applied
-try {
-    project.the<org.jetbrains.gradle.ext.IdeaExtPlugin>()
-    project.idea.project.settings.taskTriggers.afterSync(generateTemplates)
-} catch (e: Exception) {
-    // IDEA plugin not applied, skip configuration
-}
-
-// Only apply Eclipse specific configuration if the plugin is applied
-if (project.plugins.hasPlugin("eclipse")) {
-    project.the<org.gradle.plugins.ide.eclipse.EclipsePlugin>()
-    project.eclipse.synchronizationTasks(generateTemplates)
 }
