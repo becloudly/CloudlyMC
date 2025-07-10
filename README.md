@@ -30,27 +30,13 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
 * 📦 Velocity Proxy
 * ☕ Java 17 or higher (Java 21 recommended)
 
-## 📊 Project Statistics
-
-### 🏗️ Build & Development
-* **Version:** 1.0.0
-* **Build System:** Gradle 8.8
-* **Languages:** Kotlin 2.2.0, Java 17+
-* **Dependencies:**
-  * Velocity API: 3.4.0-SNAPSHOT
-  * Paper API: 1.20.1-R0.1-SNAPSHOT
-  * Kotlin Coroutines: 1.10.2
-  * SQLite JDBC: 3.50.2.0
-  * MySQL Connector: 9.3.0
-  * JSON: 20250517
-* **Artifact Size:** ~10MB (minimized with ShadowJar)
-
 ### 🔍 Code Quality & Security
 * **Static Analysis:** Protected by CodeQL security scanning
 * **Dependency Management:** Automated with Dependabot
   * Weekly updates for Gradle dependencies
   * Weekly updates for GitHub Actions
 * **Build Automation:** GitHub Actions CI/CD pipeline
+  * Get the newest version [Here](https://github.com/becloudly/CloudlyMC/actions/workflows/gradle-build.yml).
 
 ### 📁 Codebase Structure
 * **Platform Support:**
