@@ -1,0 +1,7 @@
+# ☁️ Cloudly Plugin Configuration ☁️
+# This file will be copied to plugins/cloudly/config.yml when the plugin first loads
+
+# Plugin Settings
+plugin:
+  # Enable debug mode for verbose logging
+  debug: false
