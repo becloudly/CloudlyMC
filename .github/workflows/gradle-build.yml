@@ -42,8 +42,20 @@ jobs:
           # Optimize Gradle performance
           GRADLE_OPTS: "-Dorg.gradle.caching=true -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs='-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError'"
 
+      - name: Find built JAR file
+        id: find-jar
+        run: |
+          JAR_FILE=$(ls -t build/libs/cloudly*.jar | head -1)
+          if [ -z "$JAR_FILE" ]; then
+            echo "Error: No cloudly JAR file found in build/libs/"
+            exit 1
+          fi
+          echo "jar-file=$JAR_FILE" >> $GITHUB_OUTPUT
+          echo "jar-name=$(basename $JAR_FILE)" >> $GITHUB_OUTPUT
+          echo "Found JAR file: $JAR_FILE"
+
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 'cloudly'
-          path: 'build/libs/*.jar'
+          name: 'cloudly-${{ steps.find-jar.outputs.jar-name }}'
+          path: '${{ steps.find-jar.outputs.jar-file }}'
