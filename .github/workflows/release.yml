@@ -1,0 +1,116 @@
+name: Create Release
+
+on:
+  push:
+    branches: [ "master" ]
+    # Only run the workflow if changes happen in these files or directories:
+    paths:
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - 'app/src/**'
+      - '*.gradle.kts'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '22'
+          
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.gradle/build-cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean shadowJar --no-daemon --build-cache
+        env:
+          # Optimize Gradle performance
+          GRADLE_OPTS: "-Dorg.gradle.caching=true -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs='-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError'"
+
+      - name: Find built JAR and extract version
+        id: find-jar
+        run: |
+          JAR_FILE=$(ls -t build/libs/cloudly*.jar | head -1)
+          if [ -z "$JAR_FILE" ]; then
+            echo "Error: No cloudly JAR file found in build/libs/"
+            exit 1
+          fi
+          
+          JAR_NAME=$(basename "$JAR_FILE")
+          # Extract version from JAR filename (e.g., cloudly-1.0.0-alpha.jar -> 1.0.0-alpha)
+          VERSION=$(echo "$JAR_NAME" | sed 's/^cloudly-//' | sed 's/\.jar$//')
+          
+          echo "jar-file=$JAR_FILE" >> $GITHUB_OUTPUT
+          echo "jar-name=$JAR_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release-name=Cloudly $VERSION" >> $GITHUB_OUTPUT
+          
+          echo "Found JAR file: $JAR_FILE"
+          echo "Version: $VERSION"
+          echo "Release name: Cloudly $VERSION"
+
+      - name: Check if release already exists
+        id: check-release
+        run: |
+          if gh release view "v${{ steps.find-jar.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Release v${{ steps.find-jar.outputs.version }} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Release v${{ steps.find-jar.outputs.version }} does not exist"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        if: steps.check-release.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.find-jar.outputs.version }}"
+          name: "${{ steps.find-jar.outputs.release-name }}"
+          body: |
+            ## Cloudly ${{ steps.find-jar.outputs.version }}
+            
+            ### What's Changed
+            This release automaticly contains the latest build of Cloudly with version `${{ steps.find-jar.outputs.version }}` via GitHub Actions.
+            
+            ### Installation
+            1. Download the `${{ steps.find-jar.outputs.jar-name }}` file
+            2. Place it in your server's `plugins` folder
+            3. Restart your server
+            
+            ### Requirements
+            - Minecraft Server 1.20.1+
+            - Java 17+
+            
+            **Full Changelog**: https://github.com/${{ github.repository }}/commits/v${{ steps.find-jar.outputs.version }}
+          files: |
+            ${{ steps.find-jar.outputs.jar-file }}
+          draft: false
+          prerelease: ${{ contains(steps.find-jar.outputs.version, 'alpha') || contains(steps.find-jar.outputs.version, 'beta') || contains(steps.find-jar.outputs.version, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release already exists
+        if: steps.check-release.outputs.exists == 'true'
+        run: |
+          echo "::notice::Release v${{ steps.find-jar.outputs.version }} already exists. Skipping release creation."
