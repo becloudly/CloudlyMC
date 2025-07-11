@@ -1,0 +1,25 @@
+# English Language File for Cloudly Plugin
+
+# Plugin messages
+plugin:
+  enabled: "Cloudly Plugin v{version} enabled on Paper!"
+  disabled: "Cloudly Plugin disabled"
+  debug_enabled: "Debug mode is enabled"
+
+# Configuration messages
+config:
+  directory_created: "Created cloudly configuration directory"
+  default_created: "Created default config.yml in cloudly folder"
+  copy_failed: "Could not copy default config"
+  loaded_successfully: "Configuration loaded successfully"
+  default_file_created: "Created default configuration file"
+  create_failed: "Could not create default config file"
+  saved_successfully: "Configuration saved successfully"
+  save_failed: "Could not save config file"
+  reloaded: "Configuration reloaded"
+
+# Error messages
+error:
+  unknown: "An unknown error occurred"
+  file_not_found: "File not found"
+  permission_denied: "Permission denied"

@@ -15,6 +15,32 @@ class ConfigManager(private val plugin: JavaPlugin) {
     
     private var config: FileConfiguration? = null
     private var configFile: File? = null
+    private var languageManager: LanguageManager? = null
+    
+    /**
+     * Set the language manager for translated messages.
+     */
+    fun setLanguageManager(languageManager: LanguageManager) {
+        this.languageManager = languageManager
+    }
+    
+    /**
+     * Get a translated message, fallback to English if language manager is not set.
+     */
+    private fun getMessage(key: String, vararg placeholders: Pair<String, Any>): String {
+        return languageManager?.getMessage(key, *placeholders) ?: when (key) {
+            "config.directory_created" -> "Created cloudly configuration directory"
+            "config.default_created" -> "Created default config.yml in cloudly folder"
+            "config.copy_failed" -> "Could not copy default config"
+            "config.loaded_successfully" -> "Configuration loaded successfully"
+            "config.default_file_created" -> "Created default configuration file"
+            "config.create_failed" -> "Could not create default config file"
+            "config.saved_successfully" -> "Configuration saved successfully"
+            "config.save_failed" -> "Could not save config file"
+            "config.reloaded" -> "Configuration reloaded"
+            else -> key
+        }
+    }
     
     /**
      * Initialize the configuration system.
@@ -25,7 +51,7 @@ class ConfigManager(private val plugin: JavaPlugin) {
         val pluginFolder = File(plugin.dataFolder.parentFile, "Cloudly")
         if (!pluginFolder.exists()) {
             pluginFolder.mkdirs()
-            plugin.logger.info("Created cloudly configuration directory")
+            plugin.logger.info(getMessage("config.directory_created"))
         }
         
         // Set up config file path
@@ -37,28 +63,38 @@ class ConfigManager(private val plugin: JavaPlugin) {
     
     /**
      * Load the configuration file.
-     * If the file doesn't exist, it will be created with default values.
+     * If the file doesn't exist, it will be created by copying the resource config.yml.
      */
     private fun loadConfig() {
         configFile?.let { file ->
             if (!file.exists()) {
-                // Copy default config from plugin resources
-                try {
-                    plugin.saveResource("config.yml", false)
-                    val defaultConfig = File(plugin.dataFolder, "config.yml")
-                    if (defaultConfig.exists()) {
-                        defaultConfig.copyTo(file, overwrite = true)
-                        defaultConfig.delete()
-                        plugin.logger.info("Created default config.yml in cloudly folder")
-                    }
-                } catch (e: Exception) {
-                    plugin.logger.log(Level.WARNING, "Could not copy default config", e)
-                    createDefaultConfig(file)
-                }
+                // Copy default config directly from plugin resources to user location
+                copyResourceConfig(file)
             }
             
             config = YamlConfiguration.loadConfiguration(file)
-            plugin.logger.info("Configuration loaded successfully")
+            plugin.logger.info(getMessage("config.loaded_successfully"))
+        }
+    }
+    
+    /**
+     * Copy the config.yml from plugin resources to the target file.
+     */
+    private fun copyResourceConfig(targetFile: File) {
+        try {
+            val resourceStream = plugin.getResource("config.yml")
+            if (resourceStream != null) {
+                targetFile.outputStream().use { output ->
+                    resourceStream.copyTo(output)
+                }
+                plugin.logger.info(getMessage("config.default_created"))
+            } else {
+                // Fallback if resource is not found
+                createDefaultConfig(targetFile)
+            }
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, getMessage("config.copy_failed"), e)
+            createDefaultConfig(targetFile)
         }
     }
     
@@ -70,11 +106,12 @@ class ConfigManager(private val plugin: JavaPlugin) {
             file.createNewFile()
             val defaultConfig = YamlConfiguration()
             defaultConfig.set("plugin.debug", false)
+            defaultConfig.set("plugin.language", "en")
             defaultConfig.save(file)
             config = defaultConfig
-            plugin.logger.info("Created default configuration file")
+            plugin.logger.info(getMessage("config.default_file_created"))
         } catch (e: IOException) {
-            plugin.logger.log(Level.SEVERE, "Could not create default config file", e)
+            plugin.logger.log(Level.SEVERE, getMessage("config.create_failed"), e)
         }
     }
     
@@ -86,9 +123,9 @@ class ConfigManager(private val plugin: JavaPlugin) {
             config?.let { cfg ->
                 try {
                     cfg.save(file)
-                    plugin.logger.info("Configuration saved successfully")
+                    plugin.logger.info(getMessage("config.saved_successfully"))
                 } catch (e: IOException) {
-                    plugin.logger.log(Level.SEVERE, "Could not save config file", e)
+                    plugin.logger.log(Level.SEVERE, getMessage("config.save_failed"), e)
                 }
             }
         }
@@ -99,7 +136,7 @@ class ConfigManager(private val plugin: JavaPlugin) {
      */
     fun reloadConfig() {
         loadConfig()
-        plugin.logger.info("Configuration reloaded")
+        plugin.logger.info(getMessage("config.reloaded"))
     }
     
     /**
