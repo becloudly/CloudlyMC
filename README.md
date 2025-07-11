@@ -35,7 +35,7 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
   * Weekly updates for Gradle dependencies
   * Weekly updates for GitHub Actions
 * **Build Automation:** GitHub Actions CI/CD pipeline
-  * Get the newest version [Here](https://github.com/becloudly/CloudlyMC/actions/workflows/gradle-build.yml).
+  * Get the newest dev-version [Here](https://github.com/becloudly/CloudlyMC/actions/workflows/gradle-build.yml).
 
 ### 📁 Codebase Structure
 * **Platform Support:**
