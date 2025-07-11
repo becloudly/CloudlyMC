@@ -1,7 +1,6 @@
 plugins {
     kotlin("jvm") version "2.2.0"
     id("com.gradleup.shadow") version "9.0.0-beta15"
-    id("xyz.jpenilla.run-velocity") version "2.3.1"
     id("java")
 }
 
@@ -19,10 +18,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
-    annotationProcessor("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
-
-    // Paper API für 1.20+
+    // Paper API for 1.20+
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
@@ -60,17 +56,19 @@ kotlin {
 }
 
 tasks {
-    runVelocity {
-        // Configure the Velocity version for our task.
-        velocityVersion("3.4.0-SNAPSHOT")
-    }
-
     shadowJar {
         // Relocate Kotlin stdlib to avoid conflicts
         relocate("kotlin", "de.cloudly.libs.kotlin")
+        
+        // Relocate database drivers to avoid conflicts
+        relocate("org.sqlite", "de.cloudly.libs.sqlite")
+        relocate("com.mysql", "de.cloudly.libs.mysql")
 
         // Minimize the JAR to only include used classes
         minimize()
+
+        // Merge service files to prevent duplicates
+        mergeServiceFiles()
 
         // Set the classifier to null so shadowJar replaces the regular jar
         archiveClassifier.set("")
@@ -78,7 +76,7 @@ tasks {
         // Set the base name to "cloudly" instead of "app"
         archiveBaseName.set("cloudly")
 
-        // Include both platform implementations
+        // Include Paper implementation
         from(sourceSets.main.get().output)
     }
 

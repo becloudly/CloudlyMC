@@ -2,7 +2,7 @@ name: Cloudly
 version: ${version}
 main: de.cloudly.CloudlyPaper
 author: Phantom
-description: A simple plugin to manage a server. Useable with both Velocity and Paper servers.
+description: A simple plugin to manage a Paper server.
 api-version: 1.20
 load: STARTUP
 
