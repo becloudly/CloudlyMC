@@ -1,0 +1,223 @@
+name: Build Analytics
+
+on:
+  workflow_run:
+    workflows: ["Build and Package", "Create Release", "SonarQube Analysis", "Security Analysis", "Pull Request Testing"]
+    types: [completed]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly summary on Sunday at midnight
+
+jobs:
+  collect-metrics:
+    name: Collect Build Metrics
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Get workflow metrics
+        id: metrics
+        run: |
+          # Get workflow details
+          WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+          WORKFLOW_STATUS="${{ github.event.workflow_run.conclusion }}"
+          WORKFLOW_DURATION=$(( ${{ github.event.workflow_run.updated_at }} - ${{ github.event.workflow_run.created_at }} ))
+          
+          # Convert to readable format
+          DURATION_MINUTES=$((WORKFLOW_DURATION / 60))
+          DURATION_SECONDS=$((WORKFLOW_DURATION % 60))
+          
+          echo "workflow_name=${WORKFLOW_NAME}" >> $GITHUB_OUTPUT
+          echo "workflow_status=${WORKFLOW_STATUS}" >> $GITHUB_OUTPUT
+          echo "workflow_duration=${DURATION_MINUTES}m ${DURATION_SECONDS}s" >> $GITHUB_OUTPUT
+          echo "workflow_duration_seconds=${WORKFLOW_DURATION}" >> $GITHUB_OUTPUT
+          echo "workflow_date=$(date -d @${{ github.event.workflow_run.created_at }} '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+          echo "commit_sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          
+      - name: Store metrics
+        run: |
+          mkdir -p .github/metrics
+          echo "${{ steps.metrics.outputs.workflow_date }},${{ steps.metrics.outputs.workflow_name }},${{ steps.metrics.outputs.workflow_status }},${{ steps.metrics.outputs.workflow_duration_seconds }},${{ steps.metrics.outputs.branch }},${{ steps.metrics.outputs.commit_sha }}" >> .github/metrics/build-metrics.csv
+          
+      - name: Commit metrics
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .github/metrics/build-metrics.csv
+          git commit -m "📊 Update build metrics" || exit 0
+          git push
+
+  generate-report:
+    name: Generate Weekly Analytics Report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install pandas matplotlib seaborn
+          
+      - name: Generate analytics report
+        run: |
+          python3 << 'EOF'
+          import pandas as pd
+          import matplotlib.pyplot as plt
+          import seaborn as sns
+          from datetime import datetime, timedelta
+          import os
+          
+          # Create metrics directory if it doesn't exist
+          os.makedirs('.github/metrics', exist_ok=True)
+          
+          # Check if metrics file exists
+          if not os.path.exists('.github/metrics/build-metrics.csv'):
+              print("No metrics file found, creating empty report")
+              with open('.github/metrics/analytics-report.md', 'w') as f:
+                  f.write("# 📊 Build Analytics Report\n\n")
+                  f.write("No build metrics available yet.\n")
+              exit()
+          
+          # Read metrics
+          df = pd.read_csv('.github/metrics/build-metrics.csv', 
+                          names=['date', 'workflow', 'status', 'duration', 'branch', 'commit'])
+          df['date'] = pd.to_datetime(df['date'])
+          
+          # Filter last week
+          last_week = datetime.now() - timedelta(days=7)
+          df_week = df[df['date'] >= last_week]
+          
+          # Generate report
+          report = "# 📊 Build Analytics Report\n\n"
+          report += f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+          
+          # Summary stats
+          total_builds = len(df_week)
+          success_rate = (df_week['status'] == 'success').mean() * 100
+          avg_duration = df_week['duration'].mean()
+          
+          report += "## 📈 Weekly Summary\n\n"
+          report += f"- **Total Builds:** {total_builds}\n"
+          report += f"- **Success Rate:** {success_rate:.1f}%\n"
+          report += f"- **Average Duration:** {avg_duration:.0f} seconds\n\n"
+          
+          # Workflow breakdown
+          workflow_stats = df_week.groupby('workflow').agg({
+              'status': ['count', lambda x: (x == 'success').mean() * 100],
+              'duration': 'mean'
+          }).round(2)
+          
+          report += "## 🔄 Workflow Breakdown\n\n"
+          report += "| Workflow | Builds | Success Rate | Avg Duration |\n"
+          report += "|----------|--------|--------------|-------------|\n"
+          
+          for workflow in workflow_stats.index:
+              count = workflow_stats.loc[workflow, ('status', 'count')]
+              success = workflow_stats.loc[workflow, ('status', '<lambda_0>')]
+              duration = workflow_stats.loc[workflow, ('duration', 'mean')]
+              report += f"| {workflow} | {count} | {success:.1f}% | {duration:.0f}s |\n"
+          
+          report += "\n## 📅 Daily Activity\n\n"
+          daily_builds = df_week.groupby(df_week['date'].dt.date).size()
+          for date, count in daily_builds.items():
+              report += f"- **{date}:** {count} builds\n"
+          
+          # Save report
+          with open('.github/metrics/analytics-report.md', 'w') as f:
+              f.write(report)
+          
+          print("Analytics report generated successfully!")
+          EOF
+          
+      - name: Update README with analytics
+        run: |
+          # Check if README exists
+          if [ ! -f "README.md" ]; then
+              echo "README.md not found, skipping update"
+              exit 0
+          fi
+          
+          # Create analytics section
+          cat > analytics_section.md << 'EOF'
+          
+          ## 📊 Build Analytics
+          
+          ![Build Status](https://img.shields.io/github/actions/workflow/status/becloudly/CloudlyMC/gradle-build.yml?branch=master&label=Build&logo=github)
+          ![Security](https://img.shields.io/github/actions/workflow/status/becloudly/CloudlyMC/security.yml?branch=master&label=Security&logo=security)
+          ![Code Quality](https://img.shields.io/github/actions/workflow/status/becloudly/CloudlyMC/sonarqube.yml?branch=master&label=Quality&logo=sonarqube)
+          
+          **Last Updated:** $(date '+%Y-%m-%d %H:%M:%S')
+          
+          ### Recent Build Performance
+          
+          <!-- BUILD_ANALYTICS_START -->
+          EOF
+          
+          # Add analytics report content
+          if [ -f ".github/metrics/analytics-report.md" ]; then
+              cat .github/metrics/analytics-report.md >> analytics_section.md
+          else
+              echo "No analytics data available yet." >> analytics_section.md
+          fi
+          
+          echo "<!-- BUILD_ANALYTICS_END -->" >> analytics_section.md
+          
+          # Update README
+          if grep -q "<!-- BUILD_ANALYTICS_START -->" README.md; then
+              # Replace existing section
+              sed -i '/<!-- BUILD_ANALYTICS_START -->/,/<!-- BUILD_ANALYTICS_END -->/d' README.md
+              cat analytics_section.md >> README.md
+          else
+              # Add new section
+              cat analytics_section.md >> README.md
+          fi
+          
+          rm analytics_section.md
+          
+      - name: Commit analytics updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .github/metrics/analytics-report.md README.md
+          git commit -m "📊 Update weekly analytics report" || exit 0
+          git push
+          
+      - name: Send Discord analytics summary
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            {
+              "embeds": [
+                {
+                  "title": "📊 Weekly Build Analytics",
+                  "description": "Weekly build performance summary for CloudlyMC",
+                  "color": 3066993,
+                  "fields": [
+                    {
+                      "name": "📈 Report Generated",
+                      "value": "Weekly analytics report has been updated",
+                      "inline": false
+                    },
+                    {
+                      "name": "📋 Details",
+                      "value": "[View Full Report](https://github.com/${{ github.repository }}/blob/master/.github/metrics/analytics-report.md)",
+                      "inline": false
+                    }
+                  ],
+                  "timestamp": "${{ github.event.repository.updated_at }}",
+                  "footer": {
+                    "text": "CloudlyMC CI/CD Analytics",
+                    "icon_url": "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
+                  }
+                }
+              ]
+            }

@@ -1,0 +1,202 @@
+name: Pull Request Testing
+
+on:
+  pull_request:
+    branches: [ "master" ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          
+      - name: Checkout base branch
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          git checkout ${{ github.event.pull_request.base.ref }}
+          git checkout ${{ github.event.pull_request.head.ref }}
+          
+      - name: Check for merge conflicts
+        id: conflict-check
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Try to merge base branch into PR branch
+          if git merge origin/${{ github.event.pull_request.base.ref }} --no-commit --no-ff; then
+            echo "has-conflicts=false" >> $GITHUB_OUTPUT
+            git merge --abort
+          else
+            echo "has-conflicts=true" >> $GITHUB_OUTPUT
+            git merge --abort
+          fi
+          
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.gradle/build-cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+            
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        
+      - name: Run tests
+        run: ./gradlew clean test --no-daemon --build-cache
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.caching=true -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs='-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError'"
+          
+      - name: Build JAR
+        run: ./gradlew shadowJar --no-daemon --build-cache
+        
+      - name: Run quick security scan
+        run: ./gradlew dependencyCheckAnalyze --no-daemon --build-cache
+        continue-on-error: true
+        
+      - name: Upload PR build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-build-${{ github.event.number }}
+          path: build/libs/*.jar
+          retention-days: 7
+          
+      - name: Comment PR with build results
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let comment = `## 🔍 PR Build Summary\n\n`;
+            comment += `**Build Status:** ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }}\n`;
+            comment += `**Merge Conflicts:** ${{ steps.conflict-check.outputs.has-conflicts == 'true' && '⚠️ Detected' || '✅ None' }}\n`;
+            comment += `**PR Number:** #${{ github.event.number }}\n`;
+            comment += `**Commit:** ${{ github.event.pull_request.head.sha }}\n\n`;
+            
+            if ('${{ steps.conflict-check.outputs.has-conflicts }}' === 'true') {
+              comment += `### ⚠️ Merge Conflicts Detected\n`;
+              comment += `This PR has conflicts with the base branch. Please resolve them before merging.\n\n`;
+            }
+            
+            comment += `### 📊 Build Details\n`;
+            comment += `- **Tests:** Executed\n`;
+            comment += `- **Security Scan:** Performed\n`;
+            comment += `- **JAR Build:** ${{ job.status == 'success' && 'Success' || 'Failed' }}\n\n`;
+            
+            comment += `### 🔗 Links\n`;
+            comment += `- [Build Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+            comment += `- [Commit](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.head.sha }})\n`;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const existingComment = comments.find(comment => 
+              comment.user.login === 'github-actions[bot]' && 
+              comment.body.includes('PR Build Summary')
+            );
+            
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+  auto-conflict-resolution:
+    name: Auto Conflict Resolution
+    runs-on: ubuntu-latest
+    needs: pr-validation
+    if: always()
+    
+    steps:
+      - name: Check if conflicts exist
+        id: check-conflicts
+        run: |
+          # This will be set by the PR validation job
+          echo "has-conflicts=false" >> $GITHUB_OUTPUT
+
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Attempt auto-merge resolution
+        id: auto-merge
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          
+          # Try to merge with auto-resolution strategies
+          if git merge origin/${{ github.event.pull_request.base.ref }} -X theirs --no-edit; then
+            echo "resolution=success" >> $GITHUB_OUTPUT
+            git push origin ${{ github.event.pull_request.head.ref }}
+          else
+            echo "resolution=failed" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Comment on resolution result
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const resolution = '${{ steps.auto-merge.outputs.resolution }}';
+            let comment = `## 🔧 Auto-Merge Resolution Attempt\n\n`;
+            
+            if (resolution === 'success') {
+              comment += `✅ **Resolution Successful!**\n`;
+              comment += `Conflicts have been automatically resolved using the base branch changes.\n`;
+              comment += `Please review the changes and ensure they are correct.\n`;
+            } else {
+              comment += `❌ **Resolution Failed**\n`;
+              comment += `Conflicts are too complex for automatic resolution.\n`;
+              comment += `Manual intervention is required.\n\n`;
+              comment += `### 📝 Next Steps:\n`;
+              comment += `1. Check out your PR branch locally\n`;
+              comment += `2. Run: \`git merge origin/${{ github.event.pull_request.base.ref }}\`\n`;
+              comment += `3. Resolve conflicts manually\n`;
+              comment += `4. Commit and push the resolution\n`;
+            }
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });

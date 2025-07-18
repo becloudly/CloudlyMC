@@ -1,0 +1,183 @@
+name: Discord Notifications
+
+on:
+  workflow_run:
+    workflows: ["Build and Package", "Create Release", "SonarQube Analysis", "Security Analysis", "Pull Request Testing"]
+    types: [completed]
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+    types: [opened, closed]
+
+jobs:
+  discord-notification:
+    name: Discord Notification
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Get workflow info
+        id: workflow-info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "workflow_name=${{ github.event.workflow_run.name }}" >> $GITHUB_OUTPUT
+            echo "workflow_status=${{ github.event.workflow_run.conclusion }}" >> $GITHUB_OUTPUT
+            echo "workflow_url=${{ github.event.workflow_run.html_url }}" >> $GITHUB_OUTPUT
+            echo "commit_sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          else
+            echo "workflow_name=${{ github.workflow }}" >> $GITHUB_OUTPUT
+            echo "workflow_status=running" >> $GITHUB_OUTPUT
+            echo "workflow_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+            echo "commit_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Get commit info
+        id: commit-info
+        run: |
+          COMMIT_MESSAGE=$(git log --format=%B -n 1 ${{ steps.workflow-info.outputs.commit_sha }})
+          COMMIT_AUTHOR=$(git log --format=%an -n 1 ${{ steps.workflow-info.outputs.commit_sha }})
+          echo "commit_message=${COMMIT_MESSAGE}" >> $GITHUB_OUTPUT
+          echo "commit_author=${COMMIT_AUTHOR}" >> $GITHUB_OUTPUT
+          
+      - name: Send Discord notification for workflow completion
+        if: github.event_name == 'workflow_run'
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            {
+              "embeds": [
+                {
+                  "title": "🔄 Workflow Completed: ${{ steps.workflow-info.outputs.workflow_name }}",
+                  "description": "${{ steps.commit-info.outputs.commit_message }}",
+                  "color": ${{ steps.workflow-info.outputs.workflow_status == 'success' && '3066993' || steps.workflow-info.outputs.workflow_status == 'failure' && '15158332' || '16776960' }},
+                  "fields": [
+                    {
+                      "name": "Status",
+                      "value": "${{ steps.workflow-info.outputs.workflow_status == 'success' && '✅ Success' || steps.workflow-info.outputs.workflow_status == 'failure' && '❌ Failed' || '⚠️ Cancelled' }}",
+                      "inline": true
+                    },
+                    {
+                      "name": "Branch",
+                      "value": "`${{ steps.workflow-info.outputs.branch }}`",
+                      "inline": true
+                    },
+                    {
+                      "name": "Author",
+                      "value": "${{ steps.commit-info.outputs.commit_author }}",
+                      "inline": true
+                    },
+                    {
+                      "name": "Commit",
+                      "value": "[${{ steps.workflow-info.outputs.commit_sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.workflow-info.outputs.commit_sha }})",
+                      "inline": true
+                    },
+                    {
+                      "name": "Workflow",
+                      "value": "[View Run](${{ steps.workflow-info.outputs.workflow_url }})",
+                      "inline": true
+                    }
+                  ],
+                  "timestamp": "${{ github.event.workflow_run.updated_at || github.event.head_commit.timestamp }}",
+                  "footer": {
+                    "text": "CloudlyMC CI/CD",
+                    "icon_url": "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
+                  }
+                }
+              ]
+            }
+            
+      - name: Send Discord notification for PR events
+        if: github.event_name == 'pull_request'
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            {
+              "embeds": [
+                {
+                  "title": "${{ github.event.action == 'opened' && '🔀 Pull Request Opened' || github.event.action == 'closed' && github.event.pull_request.merged && '✅ Pull Request Merged' || github.event.action == 'closed' && '❌ Pull Request Closed' || '🔄 Pull Request Updated' }}",
+                  "description": "${{ github.event.pull_request.title }}",
+                  "color": ${{ github.event.action == 'opened' && '3066993' || github.event.pull_request.merged && '5763719' || github.event.action == 'closed' && '15158332' || '16776960' }},
+                  "fields": [
+                    {
+                      "name": "Author",
+                      "value": "${{ github.event.pull_request.user.login }}",
+                      "inline": true
+                    },
+                    {
+                      "name": "Branch",
+                      "value": "`${{ github.event.pull_request.head.ref }}` → `${{ github.event.pull_request.base.ref }}`",
+                      "inline": true
+                    },
+                    {
+                      "name": "PR Number",
+                      "value": "#${{ github.event.pull_request.number }}",
+                      "inline": true
+                    },
+                    {
+                      "name": "Changes",
+                      "value": "+${{ github.event.pull_request.additions }} -${{ github.event.pull_request.deletions }}",
+                      "inline": true
+                    },
+                    {
+                      "name": "Link",
+                      "value": "[View PR](${{ github.event.pull_request.html_url }})",
+                      "inline": true
+                    }
+                  ],
+                  "timestamp": "${{ github.event.pull_request.updated_at }}",
+                  "footer": {
+                    "text": "CloudlyMC CI/CD",
+                    "icon_url": "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
+                  }
+                }
+              ]
+            }
+            
+      - name: Send Discord notification for releases
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            {
+              "embeds": [
+                {
+                  "title": "🚀 New Commit on Master",
+                  "description": "${{ steps.commit-info.outputs.commit_message }}",
+                  "color": 5763719,
+                  "fields": [
+                    {
+                      "name": "Author",
+                      "value": "${{ steps.commit-info.outputs.commit_author }}",
+                      "inline": true
+                    },
+                    {
+                      "name": "Branch",
+                      "value": "`${{ steps.workflow-info.outputs.branch }}`",
+                      "inline": true
+                    },
+                    {
+                      "name": "Commit",
+                      "value": "[${{ steps.workflow-info.outputs.commit_sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.workflow-info.outputs.commit_sha }})",
+                      "inline": true
+                    }
+                  ],
+                  "timestamp": "${{ github.event.head_commit.timestamp }}",
+                  "footer": {
+                    "text": "CloudlyMC CI/CD",
+                    "icon_url": "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
+                  }
+                }
+              ]
+            }
