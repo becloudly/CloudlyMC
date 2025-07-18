@@ -40,144 +40,290 @@ jobs:
       - name: Get commit info
         id: commit-info
         run: |
-          COMMIT_MESSAGE=$(git log --format=%B -n 1 ${{ steps.workflow-info.outputs.commit_sha }})
-          COMMIT_AUTHOR=$(git log --format=%an -n 1 ${{ steps.workflow-info.outputs.commit_sha }})
-          echo "commit_message=${COMMIT_MESSAGE}" >> $GITHUB_OUTPUT
-          echo "commit_author=${COMMIT_AUTHOR}" >> $GITHUB_OUTPUT
+          # Use proper encoding to handle special characters
+          COMMIT_SHA="${{ steps.workflow-info.outputs.commit_sha }}"
+          
+          # Get commit message and encode it properly
+          COMMIT_MESSAGE=$(git log --format=%B -n 1 "$COMMIT_SHA" | head -1 | tr -d '\n' | sed 's/"/\\"/g')
+          COMMIT_AUTHOR=$(git log --format=%an -n 1 "$COMMIT_SHA" | tr -d '\n' | sed 's/"/\\"/g')
+          
+          # Write to files instead of using problematic output format
+          echo "$COMMIT_MESSAGE" > /tmp/commit_message.txt
+          echo "$COMMIT_AUTHOR" > /tmp/commit_author.txt
+          
+          # Use proper output encoding
+          echo "commit_message<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "commit_author<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "Commit message: $COMMIT_MESSAGE"
+          echo "Commit author: $COMMIT_AUTHOR"
           
       - name: Send Discord notification for workflow completion
         if: github.event_name == 'workflow_run'
-        uses: Ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        uses: actions/github-script@v7
         with:
-          args: |
-            {
-              "embeds": [
-                {
-                  "title": "🔄 Workflow Completed: ${{ steps.workflow-info.outputs.workflow_name }}",
-                  "description": "${{ steps.commit-info.outputs.commit_message }}",
-                  "color": ${{ steps.workflow-info.outputs.workflow_status == 'success' && '3066993' || steps.workflow-info.outputs.workflow_status == 'failure' && '15158332' || '16776960' }},
-                  "fields": [
-                    {
-                      "name": "Status",
-                      "value": "${{ steps.workflow-info.outputs.workflow_status == 'success' && '✅ Success' || steps.workflow-info.outputs.workflow_status == 'failure' && '❌ Failed' || '⚠️ Cancelled' }}",
-                      "inline": true
-                    },
-                    {
-                      "name": "Branch",
-                      "value": "`${{ steps.workflow-info.outputs.branch }}`",
-                      "inline": true
-                    },
-                    {
-                      "name": "Author",
-                      "value": "${{ steps.commit-info.outputs.commit_author }}",
-                      "inline": true
-                    },
-                    {
-                      "name": "Commit",
-                      "value": "[${{ steps.workflow-info.outputs.commit_sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.workflow-info.outputs.commit_sha }})",
-                      "inline": true
-                    },
-                    {
-                      "name": "Workflow",
-                      "value": "[View Run](${{ steps.workflow-info.outputs.workflow_url }})",
-                      "inline": true
-                    }
-                  ],
-                  "timestamp": "${{ github.event.workflow_run.updated_at || github.event.head_commit.timestamp }}",
-                  "footer": {
-                    "text": "CloudlyMC CI/CD",
-                    "icon_url": "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
+          script: |
+            const webhook = '${{ secrets.DISCORD_WEBHOOK }}';
+            if (!webhook) {
+              console.log('Discord webhook not configured, skipping notification');
+              return;
+            }
+            
+            // Get commit info safely
+            const { execSync } = require('child_process');
+            const commitSha = '${{ steps.workflow-info.outputs.commit_sha }}';
+            
+            let commitMessage = '';
+            let commitAuthor = '';
+            
+            try {
+              commitMessage = execSync(`git log --format=%B -n 1 ${commitSha}`, { encoding: 'utf8' }).trim().split('\n')[0];
+              commitAuthor = execSync(`git log --format=%an -n 1 ${commitSha}`, { encoding: 'utf8' }).trim();
+            } catch (error) {
+              console.error('Error getting commit info:', error);
+              commitMessage = 'Unable to retrieve commit message';
+              commitAuthor = 'Unknown';
+            }
+            
+            // Clean up commit message for Discord
+            commitMessage = commitMessage.replace(/"/g, '\\"').substring(0, 200);
+            
+            const workflowStatus = '${{ steps.workflow-info.outputs.workflow_status }}';
+            const color = workflowStatus === 'success' ? 3066993 : workflowStatus === 'failure' ? 15158332 : 16776960;
+            const statusEmoji = workflowStatus === 'success' ? '✅ Success' : workflowStatus === 'failure' ? '❌ Failed' : '⚠️ Cancelled';
+            
+            const payload = {
+              embeds: [{
+                title: `🔄 Workflow Completed: ${{ steps.workflow-info.outputs.workflow_name }}`,
+                description: commitMessage,
+                color: color,
+                fields: [
+                  {
+                    name: "Status",
+                    value: statusEmoji,
+                    inline: true
+                  },
+                  {
+                    name: "Branch",
+                    value: "`${{ steps.workflow-info.outputs.branch }}`",
+                    inline: true
+                  },
+                  {
+                    name: "Author",
+                    value: commitAuthor,
+                    inline: true
+                  },
+                  {
+                    name: "Commit",
+                    value: `[${commitSha.substring(0, 7)}](${{ github.server_url }}/${{ github.repository }}/commit/${commitSha})`,
+                    inline: true
+                  },
+                  {
+                    name: "Workflow",
+                    value: "[View Run](${{ steps.workflow-info.outputs.workflow_url }})",
+                    inline: true
                   }
+                ],
+                timestamp: new Date().toISOString(),
+                footer: {
+                  text: "CloudlyMC CI/CD",
+                  icon_url: "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
                 }
-              ]
+              }]
+            };
+            
+            // Send to Discord
+            const fetch = require('node-fetch');
+            try {
+              const response = await fetch(webhook, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+              });
+              
+              if (!response.ok) {
+                console.error('Discord webhook failed:', response.status, response.statusText);
+              } else {
+                console.log('Discord notification sent successfully');
+              }
+            } catch (error) {
+              console.error('Error sending Discord notification:', error);
             }
             
       - name: Send Discord notification for PR events
         if: github.event_name == 'pull_request'
-        uses: Ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        uses: actions/github-script@v7
         with:
-          args: |
-            {
-              "embeds": [
-                {
-                  "title": "${{ github.event.action == 'opened' && '🔀 Pull Request Opened' || github.event.action == 'closed' && github.event.pull_request.merged && '✅ Pull Request Merged' || github.event.action == 'closed' && '❌ Pull Request Closed' || '🔄 Pull Request Updated' }}",
-                  "description": "${{ github.event.pull_request.title }}",
-                  "color": ${{ github.event.action == 'opened' && '3066993' || github.event.pull_request.merged && '5763719' || github.event.action == 'closed' && '15158332' || '16776960' }},
-                  "fields": [
-                    {
-                      "name": "Author",
-                      "value": "${{ github.event.pull_request.user.login }}",
-                      "inline": true
-                    },
-                    {
-                      "name": "Branch",
-                      "value": "`${{ github.event.pull_request.head.ref }}` → `${{ github.event.pull_request.base.ref }}`",
-                      "inline": true
-                    },
-                    {
-                      "name": "PR Number",
-                      "value": "#${{ github.event.pull_request.number }}",
-                      "inline": true
-                    },
-                    {
-                      "name": "Changes",
-                      "value": "+${{ github.event.pull_request.additions }} -${{ github.event.pull_request.deletions }}",
-                      "inline": true
-                    },
-                    {
-                      "name": "Link",
-                      "value": "[View PR](${{ github.event.pull_request.html_url }})",
-                      "inline": true
-                    }
-                  ],
-                  "timestamp": "${{ github.event.pull_request.updated_at }}",
-                  "footer": {
-                    "text": "CloudlyMC CI/CD",
-                    "icon_url": "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
+          script: |
+            const webhook = '${{ secrets.DISCORD_WEBHOOK }}';
+            if (!webhook) {
+              console.log('Discord webhook not configured, skipping notification');
+              return;
+            }
+            
+            const action = '${{ github.event.action }}';
+            const merged = '${{ github.event.pull_request.merged }}';
+            
+            let title = '';
+            let color = 0;
+            
+            if (action === 'opened') {
+              title = '🔀 Pull Request Opened';
+              color = 3066993;
+            } else if (action === 'closed' && merged === 'true') {
+              title = '✅ Pull Request Merged';
+              color = 5763719;
+            } else if (action === 'closed') {
+              title = '❌ Pull Request Closed';
+              color = 15158332;
+            } else {
+              title = '🔄 Pull Request Updated';
+              color = 16776960;
+            }
+            
+            const payload = {
+              embeds: [{
+                title: title,
+                description: `${{ github.event.pull_request.title }}`.replace(/"/g, '\\"'),
+                color: color,
+                fields: [
+                  {
+                    name: "Author",
+                    value: "${{ github.event.pull_request.user.login }}",
+                    inline: true
+                  },
+                  {
+                    name: "Branch",
+                    value: "`${{ github.event.pull_request.head.ref }}` → `${{ github.event.pull_request.base.ref }}`",
+                    inline: true
+                  },
+                  {
+                    name: "PR Number",
+                    value: "#${{ github.event.pull_request.number }}",
+                    inline: true
+                  },
+                  {
+                    name: "Changes",
+                    value: "+${{ github.event.pull_request.additions }} -${{ github.event.pull_request.deletions }}",
+                    inline: true
+                  },
+                  {
+                    name: "Link",
+                    value: "[View PR](${{ github.event.pull_request.html_url }})",
+                    inline: true
                   }
+                ],
+                timestamp: new Date().toISOString(),
+                footer: {
+                  text: "CloudlyMC CI/CD",
+                  icon_url: "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
                 }
-              ]
+              }]
+            };
+            
+            // Send to Discord
+            const fetch = require('node-fetch');
+            try {
+              const response = await fetch(webhook, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+              });
+              
+              if (!response.ok) {
+                console.error('Discord webhook failed:', response.status, response.statusText);
+              } else {
+                console.log('Discord notification sent successfully');
+              }
+            } catch (error) {
+              console.error('Error sending Discord notification:', error);
             }
             
       - name: Send Discord notification for releases
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        uses: Ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        uses: actions/github-script@v7
         with:
-          args: |
-            {
-              "embeds": [
-                {
-                  "title": "🚀 New Commit on Master",
-                  "description": "${{ steps.commit-info.outputs.commit_message }}",
-                  "color": 5763719,
-                  "fields": [
-                    {
-                      "name": "Author",
-                      "value": "${{ steps.commit-info.outputs.commit_author }}",
-                      "inline": true
-                    },
-                    {
-                      "name": "Branch",
-                      "value": "`${{ steps.workflow-info.outputs.branch }}`",
-                      "inline": true
-                    },
-                    {
-                      "name": "Commit",
-                      "value": "[${{ steps.workflow-info.outputs.commit_sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.workflow-info.outputs.commit_sha }})",
-                      "inline": true
-                    }
-                  ],
-                  "timestamp": "${{ github.event.head_commit.timestamp }}",
-                  "footer": {
-                    "text": "CloudlyMC CI/CD",
-                    "icon_url": "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
+          script: |
+            const webhook = '${{ secrets.DISCORD_WEBHOOK }}';
+            if (!webhook) {
+              console.log('Discord webhook not configured, skipping notification');
+              return;
+            }
+            
+            // Get commit info safely
+            const { execSync } = require('child_process');
+            const commitSha = '${{ steps.workflow-info.outputs.commit_sha }}';
+            
+            let commitMessage = '';
+            let commitAuthor = '';
+            
+            try {
+              commitMessage = execSync(`git log --format=%B -n 1 ${commitSha}`, { encoding: 'utf8' }).trim().split('\n')[0];
+              commitAuthor = execSync(`git log --format=%an -n 1 ${commitSha}`, { encoding: 'utf8' }).trim();
+            } catch (error) {
+              console.error('Error getting commit info:', error);
+              commitMessage = 'Unable to retrieve commit message';
+              commitAuthor = 'Unknown';
+            }
+            
+            // Clean up commit message for Discord
+            commitMessage = commitMessage.replace(/"/g, '\\"').substring(0, 200);
+            
+            const payload = {
+              embeds: [{
+                title: "🚀 New Commit on Master",
+                description: commitMessage,
+                color: 5763719,
+                fields: [
+                  {
+                    name: "Author",
+                    value: commitAuthor,
+                    inline: true
+                  },
+                  {
+                    name: "Branch",
+                    value: "`${{ steps.workflow-info.outputs.branch }}`",
+                    inline: true
+                  },
+                  {
+                    name: "Commit",
+                    value: `[${commitSha.substring(0, 7)}](${{ github.server_url }}/${{ github.repository }}/commit/${commitSha})`,
+                    inline: true
                   }
+                ],
+                timestamp: new Date().toISOString(),
+                footer: {
+                  text: "CloudlyMC CI/CD",
+                  icon_url: "https://github.com/${{ github.repository }}/blob/master/content/Cloudly-Abstract_Scaled-Round.png?raw=true"
                 }
-              ]
+              }]
+            };
+            
+            // Send to Discord
+            const fetch = require('node-fetch');
+            try {
+              const response = await fetch(webhook, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+              });
+              
+              if (!response.ok) {
+                console.error('Discord webhook failed:', response.status, response.statusText);
+              } else {
+                console.log('Discord notification sent successfully');
+              }
+            } catch (error) {
+              console.error('Error sending Discord notification:', error);
             }
