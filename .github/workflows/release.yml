@@ -68,6 +68,107 @@ jobs:
           echo "Version: $VERSION"
           echo "Release name: Cloudly $VERSION"
 
+      - name: Get previous release tag
+        id: get-previous-tag
+        run: |
+          # Get the most recent tag (excluding the current one we're about to create)
+          PREVIOUS_TAG=$(git tag -l "v*" --sort=-version:refname | head -1)
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, using initial commit"
+            PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          echo "previous-tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+          echo "Previous tag: $PREVIOUS_TAG"
+
+      - name: Generate detailed changelog
+        id: generate-changelog
+        run: |
+          PREVIOUS_TAG="${{ steps.get-previous-tag.outputs.previous-tag }}"
+          CURRENT_SHA="${{ github.sha }}"
+          
+          # Get commits since last release
+          COMMITS=$(git log --pretty=format:"%h|%s|%an|%ad" --date=short "$PREVIOUS_TAG..$CURRENT_SHA")
+          
+          # Initialize changelog sections
+          FEATURES=""
+          FIXES=""
+          IMPROVEMENTS=""
+          CHORES=""
+          BREAKING=""
+          OTHER=""
+          
+          # Process each commit
+          while IFS='|' read -r hash subject author date; do
+            # Skip empty lines
+            [ -z "$hash" ] && continue
+            
+            # Format commit line
+            COMMIT_LINE="- $subject ([${hash}](https://github.com/${{ github.repository }}/commit/${hash})) - @${author}"
+            
+            # Categorize based on commit message
+            case "$subject" in
+              feat:*|feature:*|add:*|new:*)
+                FEATURES="$FEATURES$COMMIT_LINE"$'\n'
+                ;;
+              fix:*|bugfix:*|patch:*)
+                FIXES="$FIXES$COMMIT_LINE"$'\n'
+                ;;
+              improve:*|enhancement:*|optimize:*|perf:*)
+                IMPROVEMENTS="$IMPROVEMENTS$COMMIT_LINE"$'\n'
+                ;;
+              chore:*|build:*|ci:*|docs:*|style:*|refactor:*)
+                CHORES="$CHORES$COMMIT_LINE"$'\n'
+                ;;
+              breaking:*|"BREAKING CHANGE"*|break:*)
+                BREAKING="$BREAKING$COMMIT_LINE"$'\n'
+                ;;
+              *)
+                OTHER="$OTHER$COMMIT_LINE"$'\n'
+                ;;
+            esac
+          done <<< "$COMMITS"
+          
+          # Build changelog
+          CHANGELOG=""
+          
+          if [ -n "$BREAKING" ]; then
+            CHANGELOG="$CHANGELOG## 🚨 Breaking Changes"$'\n'"$BREAKING"$'\n'
+          fi
+          
+          if [ -n "$FEATURES" ]; then
+            CHANGELOG="$CHANGELOG## ✨ New Features"$'\n'"$FEATURES"$'\n'
+          fi
+          
+          if [ -n "$FIXES" ]; then
+            CHANGELOG="$CHANGELOG## 🐛 Bug Fixes"$'\n'"$FIXES"$'\n'
+          fi
+          
+          if [ -n "$IMPROVEMENTS" ]; then
+            CHANGELOG="$CHANGELOG## 🚀 Improvements"$'\n'"$IMPROVEMENTS"$'\n'
+          fi
+          
+          if [ -n "$CHORES" ]; then
+            CHANGELOG="$CHANGELOG## 🔧 Maintenance"$'\n'"$CHORES"$'\n'
+          fi
+          
+          if [ -n "$OTHER" ]; then
+            CHANGELOG="$CHANGELOG## 📝 Other Changes"$'\n'"$OTHER"$'\n'
+          fi
+          
+          # If no categorized changes, show all commits
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="## 📝 Changes"$'\n'"$OTHER"$'\n'
+          fi
+          
+          # Save changelog to file for multiline output
+          echo "$CHANGELOG" > changelog.md
+          echo "changelog-file=changelog.md" >> $GITHUB_OUTPUT
+          
+          echo "Generated changelog:"
+          cat changelog.md
+
       - name: Check if release already exists
         id: check-release
         run: |
@@ -90,19 +191,26 @@ jobs:
           body: |
             ## Cloudly ${{ steps.find-jar.outputs.version }}
             
-            ### What's Changed
-            This release automaticly contains the latest build of Cloudly with version `${{ steps.find-jar.outputs.version }}` via GitHub Actions.
+            $(cat ${{ steps.generate-changelog.outputs.changelog-file }})
             
-            ### Installation
-            1. Download the `${{ steps.find-jar.outputs.jar-name }}` file
+            ---
+            
+            ### 📦 Installation
+            1. Download the `${{ steps.find-jar.outputs.jar-name }}` file below
             2. Place it in your server's `plugins` folder
             3. Restart your server
             
-            ### Requirements
-            - Minecraft Server 1.20.1+
-            - Java 17+
+            ### 📋 Requirements
+            - **Minecraft Server**: 1.20.1+
+            - **Java**: 17+
+            - **Server Software**: Paper, Spigot, or compatible
             
-            **Full Changelog**: https://github.com/${{ github.repository }}/commits/v${{ steps.find-jar.outputs.version }}
+            ### 🔗 Links
+            - **Documentation**: [Wiki](https://github.com/${{ github.repository }}/wiki)
+            - **Support**: [Issues](https://github.com/${{ github.repository }}/issues)
+            - **Source Code**: [Repository](https://github.com/${{ github.repository }})
+            
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.get-previous-tag.outputs.previous-tag }}...v${{ steps.find-jar.outputs.version }}
           files: |
             ${{ steps.find-jar.outputs.jar-file }}
           draft: false
