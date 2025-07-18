@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm") version "2.2.0"
-    id("com.gradleup.shadow") version "9.0.0-SNAPSHOT"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
     id("java")
     id("org.sonarqube") version "6.0.1.5171"
     id("org.owasp.dependencycheck") version "11.1.0"
