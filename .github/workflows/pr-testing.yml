@@ -5,6 +5,11 @@ on:
     branches: [ "master" ]
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   pr-validation:
     name: PR Validation
@@ -32,9 +37,11 @@ jobs:
           # Try to merge base branch into PR branch
           if git merge origin/${{ github.event.pull_request.base.ref }} --no-commit --no-ff; then
             echo "has-conflicts=false" >> $GITHUB_OUTPUT
+            echo "MERGE_CONFLICTS=false" >> $GITHUB_ENV
             git merge --abort
           else
             echo "has-conflicts=true" >> $GITHUB_OUTPUT
+            echo "MERGE_CONFLICTS=true" >> $GITHUB_ENV
             git merge --abort
           fi
           
@@ -134,65 +141,161 @@ jobs:
               });
             }
 
-  auto-conflict-resolution:
-    name: Auto Conflict Resolution
+  conflict-analysis:
+    name: Conflict Analysis
     runs-on: ubuntu-latest
     needs: pr-validation
     if: always()
     
     steps:
-      - name: Check if conflicts exist
-        id: check-conflicts
-        run: |
-          # This will be set by the PR validation job
-          echo "has-conflicts=false" >> $GITHUB_OUTPUT
-
       - name: Checkout PR code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Configure Git
+      - name: Analyze merge conflicts
+        id: analyze-conflicts
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-      - name: Attempt auto-merge resolution
-        id: auto-merge
-        run: |
+          # Fetch the base branch
           git fetch origin ${{ github.event.pull_request.base.ref }}
           
-          # Try to merge with auto-resolution strategies
-          if git merge origin/${{ github.event.pull_request.base.ref }} -X theirs --no-edit; then
-            echo "resolution=success" >> $GITHUB_OUTPUT
-            git push origin ${{ github.event.pull_request.head.ref }}
+          # Try to merge and capture conflict information
+          if git merge origin/${{ github.event.pull_request.base.ref }} --no-commit --no-ff; then
+            echo "has-conflicts=false" >> $GITHUB_OUTPUT
+            echo "conflict-files=" >> $GITHUB_OUTPUT
+            git merge --abort
           else
-            echo "resolution=failed" >> $GITHUB_OUTPUT
+            echo "has-conflicts=true" >> $GITHUB_OUTPUT
+            
+            # Get list of conflicted files
+            CONFLICT_FILES=$(git diff --name-only --diff-filter=U | tr '\n' ',' | sed 's/,$//')
+            echo "conflict-files=${CONFLICT_FILES}" >> $GITHUB_OUTPUT
+            
+            # Get conflict details
+            mkdir -p conflict-analysis
+            git status --porcelain | grep "^UU" > conflict-analysis/conflicts.txt || echo "No conflicts detected in status" > conflict-analysis/conflicts.txt
+            
+            git merge --abort
           fi
           
-      - name: Comment on resolution result
+      - name: Generate conflict resolution guide
+        if: steps.analyze-conflicts.outputs.has-conflicts == 'true'
+        run: |
+          mkdir -p conflict-analysis
+          
+          cat > conflict-analysis/resolution-guide.md << 'EOF'
+          # 🔧 Merge Conflict Resolution Guide
+          
+          This PR has merge conflicts that need to be resolved manually.
+          
+          ## Conflicted Files
+          ${{ steps.analyze-conflicts.outputs.conflict-files }}
+          
+          ## Resolution Steps
+          
+          ### Option 1: Using GitHub Web Interface
+          1. Click on the "Resolve conflicts" button in the PR
+          2. Edit the conflicted files directly in the browser
+          3. Mark conflicts as resolved
+          4. Commit the changes
+          
+          ### Option 2: Using Command Line
+          ```bash
+          # Clone the repository
+          git clone https://github.com/${{ github.repository }}.git
+          cd ${{ github.repository }}
+          
+          # Checkout the PR branch
+          git checkout ${{ github.event.pull_request.head.ref }}
+          
+          # Merge the base branch
+          git merge origin/${{ github.event.pull_request.base.ref }}
+          
+          # Resolve conflicts manually in your editor
+          # After resolving, add the files
+          git add .
+          
+          # Commit the resolution
+          git commit -m "Resolve merge conflicts"
+          
+          # Push the changes
+          git push origin ${{ github.event.pull_request.head.ref }}
+          ```
+          
+          ### Option 3: Using VS Code
+          1. Open the repository in VS Code
+          2. Checkout the PR branch
+          3. Use the built-in merge conflict resolver
+          4. Commit and push the changes
+          
+          ## Common Conflict Patterns
+          
+          - **Import conflicts**: Usually safe to accept both imports
+          - **Formatting conflicts**: Use consistent formatting
+          - **Functional conflicts**: Requires manual review and testing
+          
+          ## Need Help?
+          - Check the [Git documentation](https://git-scm.com/docs/git-merge)
+          - Ask for help in the PR comments
+          - Use `git status` to see which files need attention
+          EOF
+          
+      - name: Upload conflict analysis
+        if: steps.analyze-conflicts.outputs.has-conflicts == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: conflict-analysis-${{ github.event.number }}
+          path: conflict-analysis/
+          retention-days: 30
+          
+      - name: Comment with conflict analysis
+        if: steps.analyze-conflicts.outputs.has-conflicts == 'true'
         uses: actions/github-script@v7
         with:
           script: |
-            const resolution = '${{ steps.auto-merge.outputs.resolution }}';
-            let comment = `## 🔧 Auto-Merge Resolution Attempt\n\n`;
+            const conflictFiles = '${{ steps.analyze-conflicts.outputs.conflict-files }}';
+            const fileList = conflictFiles ? conflictFiles.split(',').map(f => `- \`${f}\``).join('\n') : 'Unable to determine conflicted files';
             
-            if (resolution === 'success') {
-              comment += `✅ **Resolution Successful!**\n`;
-              comment += `Conflicts have been automatically resolved using the base branch changes.\n`;
-              comment += `Please review the changes and ensure they are correct.\n`;
-            } else {
-              comment += `❌ **Resolution Failed**\n`;
-              comment += `Conflicts are too complex for automatic resolution.\n`;
-              comment += `Manual intervention is required.\n\n`;
-              comment += `### 📝 Next Steps:\n`;
-              comment += `1. Check out your PR branch locally\n`;
-              comment += `2. Run: \`git merge origin/${{ github.event.pull_request.base.ref }}\`\n`;
-              comment += `3. Resolve conflicts manually\n`;
-              comment += `4. Commit and push the resolution\n`;
-            }
+            const comment = `## ⚠️ Merge Conflicts Detected
+            
+            This PR has merge conflicts that need to be resolved before it can be merged.
+            
+            ### 📁 Conflicted Files:
+            ${fileList}
+            
+            ### 🔧 Resolution Options:
+            
+            **Option 1: GitHub Web Interface**
+            - Click the "Resolve conflicts" button above
+            - Edit files directly in the browser
+            
+            **Option 2: Command Line**
+            \`\`\`bash
+            git checkout ${{ github.event.pull_request.head.ref }}
+            git merge origin/${{ github.event.pull_request.base.ref }}
+            # Resolve conflicts manually
+            git add .
+            git commit -m "Resolve merge conflicts"
+            git push origin ${{ github.event.pull_request.head.ref }}
+            \`\`\`
+            
+            **Option 3: VS Code**
+            - Use the built-in merge conflict resolver
+            - Commit and push changes
+            
+            ### 📊 Conflict Analysis
+            A detailed resolution guide has been uploaded as an artifact in the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+            
+            ### 🆘 Need Help?
+            - Review the conflict analysis artifact
+            - Check the Git documentation
+            - Ask questions in the PR comments
+            
+            Once conflicts are resolved, the PR will be automatically re-validated.`;
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -200,3 +303,48 @@ jobs:
               issue_number: context.issue.number,
               body: comment
             });
+            
+      - name: Comment when no conflicts
+        if: steps.analyze-conflicts.outputs.has-conflicts == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## ✅ No Merge Conflicts
+            
+            This PR can be merged cleanly with the base branch.
+            
+            ### 📊 Merge Analysis
+            - **Status:** No conflicts detected
+            - **Base Branch:** ${{ github.event.pull_request.base.ref }}
+            - **PR Branch:** ${{ github.event.pull_request.head.ref }}
+            - **Mergeable:** Yes
+            
+            The PR is ready for review and can be merged when approved.`;
+            
+            // Find existing conflict comment and update it
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const existingComment = comments.find(comment => 
+              comment.user.login === 'github-actions[bot]' && 
+              (comment.body.includes('Merge Conflicts Detected') || comment.body.includes('No Merge Conflicts'))
+            );
+            
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
