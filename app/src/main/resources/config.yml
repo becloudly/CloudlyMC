@@ -14,4 +14,4 @@ release-radar:
   enabled: true
   
   # Release channel: "release" for stable releases only, "pre-release" for all releases including pre-releases
-  channel: "release"
+  channel: "pre-release"
