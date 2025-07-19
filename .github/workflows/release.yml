@@ -248,16 +248,6 @@ jobs:
             2. Place it in your server's `plugins` folder
             3. Restart your server
             
-            ### 📋 Requirements
-            - **Minecraft Server**: 1.20.1+
-            - **Java**: 17+
-            - **Server Software**: Paper, Spigot, or compatible
-            
-            ### 🔗 Links
-            - **Documentation**: [Wiki](https://github.com/${{ github.repository }}/wiki)
-            - **Support**: [Issues](https://github.com/${{ github.repository }}/issues)
-            - **Source Code**: [Repository](https://github.com/${{ github.repository }})
-            
             **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.get-previous-tag.outputs.previous-tag }}...v${{ steps.find-jar.outputs.version }}
           files: |
             ${{ steps.find-jar.outputs.jar-file }}
