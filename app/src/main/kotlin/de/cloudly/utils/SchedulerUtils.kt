@@ -17,6 +17,8 @@ object SchedulerUtils {
     private var foliaGlobalRegionSchedulerMethod: Method? = null
     private var foliaAsyncSchedulerMethod: Method? = null
     
+    const val TICKS_TO_MILLISECONDS = 50 // Replace 50 with the correct conversion value if needed
+    
     /**
      * Initialize the scheduler utility by detecting server type.
      */
