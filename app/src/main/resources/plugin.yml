@@ -2,9 +2,10 @@ name: Cloudly
 version: ${version}
 main: de.cloudly.CloudlyPaper
 author: Phantom
-description: A simple plugin to manage a Paper server.
+description: A simple plugin to manage a Paper server with Folia support.
 api-version: 1.20
 load: STARTUP
+folia-supported: true
 
 permissions:
   cloudly.admin:
