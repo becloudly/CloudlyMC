@@ -173,11 +173,11 @@ object SchedulerUtils {
                 null // Folia doesn't return BukkitTask
             } catch (e: Exception) {
                 // Fallback to Bukkit scheduler - explicitly cast to Runnable
-                org.bukkit.Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, task as Runnable, delay)
+                org.bukkit.Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, task, delay)
             }
         } else {
             // Use traditional Bukkit scheduler - explicitly cast to Runnable
-            org.bukkit.Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, task as Runnable, delay)
+            org.bukkit.Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, task, delay)
         }
     }
 }
