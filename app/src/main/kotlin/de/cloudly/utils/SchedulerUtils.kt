@@ -121,8 +121,8 @@ object SchedulerUtils {
                 )
                 
                 // Convert ticks to milliseconds (20 ticks = 1 second = 1000ms)
-                val delayMs = delay * 50L
-                val periodMs = period * 50L
+                val delayMs = delay * TICKS_TO_MILLISECONDS
+                val periodMs = period * TICKS_TO_MILLISECONDS
                 
                 runAtFixedRateMethod?.invoke(
                     foliaAsyncScheduler, 
