@@ -2,9 +2,11 @@
 
 # Plugin messages
 plugin:
-  enabled: "Cloudly Plugin v{version} auf Paper aktiviert!"
+  enabled: "Cloudly Plugin v{version} auf Paper/Folia aktiviert!"
   disabled: "Cloudly Plugin deaktiviert"
   debug_enabled: "Debug-Modus ist aktiviert"
+  folia_detected: "Folia-Server erkannt - verwende Folia-Scheduler"
+  paper_detected: "Paper/Spigot-Server erkannt - verwende Bukkit-Scheduler"
 
 # Configuration messages
 config:

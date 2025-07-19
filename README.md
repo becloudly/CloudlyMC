@@ -16,7 +16,7 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
     - Available: English, German
     - Planned: French, Spanish, Portuguese, Polish, Russian, Chinese and more!
 * 📋 **Highly Configurable:** Through config, language files and more
-* 🎮 **Newest-Platform:** Works on Paper-based servers (1.20+)
+* 🎮 **Platform Support:** Works on Paper and Folia servers (1.20+)
 * ☕ **Performance-Focused:** Fully written in Async Kotlin for high performance
 * 🛡️ **Modern Standards:** Security, stability, and best practices
 * 🔗 **Online Dashboard:** Web interface to manage your server
@@ -26,7 +26,7 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
 
 ## 📋 Requirements
 
-* 📄 Paper-based server (Version 1.20 or higher - PaperMC, Purpur, Pufferfish, CanvasMC etc.)
+* 📄 Paper-based server or Folia (Version 1.20 or higher - PaperMC, Purpur, Pufferfish, CanvasMC, Folia etc.)
 * ☕ Java 17 or higher (Java 21 recommended)
 
 ### 🔍 Code Quality & Security
@@ -40,6 +40,7 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
 ### 📁 Codebase Structure
 * **Platform Support:**
   * Paper/Bukkit server implementation
+  * Folia multi-threaded server support
 * **Template System:** Build-time constant generation
 * **Plugin Configuration:** YAML-based configuration
 
