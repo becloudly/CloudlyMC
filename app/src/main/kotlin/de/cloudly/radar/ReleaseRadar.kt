@@ -3,9 +3,9 @@ package de.cloudly.radar
 import de.cloudly.CloudlyPaper
 import de.cloudly.config.ConfigManager
 import de.cloudly.config.LanguageManager
+import de.cloudly.utils.SchedulerUtils
 import kotlinx.coroutines.*
 import okhttp3.*
-import org.bukkit.Bukkit
 import org.bukkit.scheduler.BukkitTask
 import org.json.JSONArray
 import java.io.File
@@ -28,6 +28,7 @@ class ReleaseRadar(
         .build()
     
     private var radarTask: BukkitTask? = null
+    private var periodicJob: Job? = null
     private var lastKnownRelease: GitHubRelease? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
@@ -67,6 +68,8 @@ class ReleaseRadar(
     fun shutdown() {
         radarTask?.cancel()
         radarTask = null
+        periodicJob?.cancel()
+        periodicJob = null
         coroutineScope.cancel()
         httpClient.dispatcher.executorService.shutdown()
     }
@@ -77,17 +80,40 @@ class ReleaseRadar(
     private fun startRadar() {
         // Cancel existing task if any
         radarTask?.cancel()
+        periodicJob?.cancel()
         
         // Check immediately on startup
         checkForUpdates()
         
-        // Schedule periodic task every 6 hours
-        radarTask = Bukkit.getScheduler().runTaskTimerAsynchronously(
-            plugin,
-            Runnable { checkForUpdates() },
-            CHECK_INTERVAL_TICKS, // Start after 6 hours
-            CHECK_INTERVAL_TICKS // Repeat every 6 hours
-        )
+        // Use a simpler approach that's compatible with all Paper forks
+        // Schedule periodic task every 6 hours using coroutines instead
+        startPeriodicCheck()
+    }
+    
+    /**
+     * Start periodic checking using coroutines for better compatibility.
+     */
+    private fun startPeriodicCheck() {
+        periodicJob = coroutineScope.launch {
+            while (coroutineScope.isActive) {
+                try {
+                    // Wait for the check interval (6 hours)
+                    delay(CHECK_INTERVAL_TICKS * 50L) // Convert ticks to milliseconds
+                    
+                    // Check for updates
+                    checkForUpdates()
+                } catch (e: Exception) {
+                    if (e !is kotlinx.coroutines.CancellationException) {
+                        plugin.logger.log(
+                            Level.WARNING,
+                            languageManager.getMessage("release_radar.check_failed", "error" to (e.message ?: "Unknown error")),
+                            e
+                        )
+                    }
+                    break
+                }
+            }
+        }
     }
 
     /**
@@ -101,10 +127,28 @@ class ReleaseRadar(
                 val latestRelease = findLatestRelease(releases, channel)
                 
                 if (latestRelease != null && latestRelease.isNewerThan(lastKnownRelease)) {
-                    // New release found - only notify if there's actually a new release
-                    notifyNewRelease(latestRelease)
-                    lastKnownRelease = latestRelease
-                    saveLastKnownRelease(latestRelease)
+                    // Check if this release matches the current plugin version
+                    val currentPluginVersion = plugin.description.version
+                    
+                    // Debug logging if enabled
+                    val debugMode = configManager.getBoolean("plugin.debug", false)
+                    if (debugMode) {
+                        plugin.logger.info("Version comparison: Plugin=${currentPluginVersion}, Release=${latestRelease.tagName}")
+                    }
+                    
+                    // Only notify if the release version is different from current plugin version
+                    if (!latestRelease.matchesVersion(currentPluginVersion)) {
+                        notifyNewRelease(latestRelease)
+                        lastKnownRelease = latestRelease
+                        saveLastKnownRelease(latestRelease)
+                    } else {
+                        // Update last known release silently if it matches current version
+                        if (debugMode) {
+                            plugin.logger.info("Release ${latestRelease.tagName} matches current plugin version, skipping notification")
+                        }
+                        lastKnownRelease = latestRelease
+                        saveLastKnownRelease(latestRelease)
+                    }
                 }
             } catch (e: Exception) {
                 plugin.logger.log(
@@ -175,7 +219,7 @@ class ReleaseRadar(
      */
     private fun notifyNewRelease(release: GitHubRelease) {
         // Schedule notification on main thread
-        Bukkit.getScheduler().runTask(plugin, Runnable {
+        SchedulerUtils.runTask(plugin, Runnable {
             val messageKey = if (release.prerelease) {
                 "release_radar.new_prerelease_available"
             } else {
