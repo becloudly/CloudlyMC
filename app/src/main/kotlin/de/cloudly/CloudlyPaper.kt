@@ -3,6 +3,7 @@ package de.cloudly
 import de.cloudly.config.ConfigManager
 import de.cloudly.config.LanguageManager
 import de.cloudly.radar.ReleaseRadar
+import de.cloudly.utils.SchedulerUtils
 import org.bukkit.plugin.java.JavaPlugin
 
 class CloudlyPaper : JavaPlugin() {
@@ -37,6 +38,10 @@ class CloudlyPaper : JavaPlugin() {
         
         // Log plugin information using translations
         logger.info(languageManager.getMessage("plugin.enabled", "version" to description.version))
+        
+        // Log server type detection
+        val serverType = if (SchedulerUtils.isFolia()) "Folia" else "Paper/Spigot"
+        logger.info("Detected server type: $serverType")
         
         // Log configuration status
         val debugMode = configManager.getBoolean("plugin.debug", false)
