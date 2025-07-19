@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "de.cloudly"
-version = "1.0.0-alpha_2"
+version = "1.0.0-alpha_3"
 
 repositories {
     mavenCentral()
@@ -34,6 +34,9 @@ dependencies {
     
     // JSON library for import/export functionality
     implementation("org.json:json:20250517")
+    
+    // HTTP client for GitHub API communication
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
 
 // Java version for Minecraft 1.18+ compatibility

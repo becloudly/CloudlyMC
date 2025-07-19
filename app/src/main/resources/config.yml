@@ -7,3 +7,11 @@ plugin:
   
   # Available languages: en (English), de (German)
   language: "en"
+
+# Release Radar Settings
+release-radar:
+  # Enable release radar functionality - Messages will be sent to the console when a new release or pre-release is available.
+  enabled: true
+  
+  # Release channel: "release" for stable releases only, "pre-release" for all releases including pre-releases
+  channel: "release"

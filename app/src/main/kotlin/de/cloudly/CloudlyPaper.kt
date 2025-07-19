@@ -2,12 +2,14 @@ package de.cloudly
 
 import de.cloudly.config.ConfigManager
 import de.cloudly.config.LanguageManager
+import de.cloudly.radar.ReleaseRadar
 import org.bukkit.plugin.java.JavaPlugin
 
 class CloudlyPaper : JavaPlugin() {
     
     private lateinit var configManager: ConfigManager
     private lateinit var languageManager: LanguageManager
+    private lateinit var releaseRadar: ReleaseRadar
     
     companion object {
         lateinit var instance: CloudlyPaper
@@ -29,6 +31,10 @@ class CloudlyPaper : JavaPlugin() {
         // Connect language manager to config manager for translated messages
         configManager.setLanguageManager(languageManager)
         
+        // Initialize release radar
+        releaseRadar = ReleaseRadar(this, configManager, languageManager)
+        releaseRadar.initialize()
+        
         // Log plugin information using translations
         logger.info(languageManager.getMessage("plugin.enabled", "version" to description.version))
         
@@ -40,6 +46,11 @@ class CloudlyPaper : JavaPlugin() {
     }
     
     override fun onDisable() {
+        // Shutdown release radar
+        if (::releaseRadar.isInitialized) {
+            releaseRadar.shutdown()
+        }
+        
         // Save configuration before shutdown
         if (::configManager.isInitialized) {
             configManager.saveConfig()
@@ -61,4 +72,9 @@ class CloudlyPaper : JavaPlugin() {
      * Get the language manager instance.
      */
     fun getLanguageManager(): LanguageManager = languageManager
+    
+    /**
+     * Get the release radar instance.
+     */
+    fun getReleaseRadar(): ReleaseRadar = releaseRadar
 }

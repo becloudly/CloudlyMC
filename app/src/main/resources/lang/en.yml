@@ -18,6 +18,14 @@ config:
   save_failed: "Could not save config file"
   reloaded: "Configuration reloaded"
 
+# Release Radar messages
+release_radar:
+  disabled: "Release radar is disabled"
+  new_release_available: "New release available: {version} - {url}"
+  new_prerelease_available: "New pre-release available: {version} - {url}"
+  check_failed: "Failed to check for updates: {error}"
+  stopped: "Release radar stopped"
+
 # Error messages
 error:
   unknown: "An unknown error occurred"

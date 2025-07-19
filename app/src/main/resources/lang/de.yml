@@ -18,6 +18,14 @@ config:
   save_failed: "Konfigurationsdatei konnte nicht gespeichert werden"
   reloaded: "Konfiguration neu geladen"
 
+# Release Radar messages
+release_radar:
+  disabled: "Release-Radar ist deaktiviert"
+  new_release_available: "Neue Version verfügbar: {version} - {url}"
+  new_prerelease_available: "Neue Vorabversion verfügbar: {version} - {url}"
+  check_failed: "Update-Prüfung fehlgeschlagen: {error}"
+  stopped: "Release-Radar gestoppt"
+
 # Error messages
 error:
   unknown: "Ein unbekannter Fehler ist aufgetreten"
