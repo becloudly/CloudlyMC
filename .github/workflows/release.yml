@@ -132,8 +132,21 @@ jobs:
             # Skip empty lines
             [ -z "$hash" ] && continue
             
+            # Map Git author names to GitHub usernames
+            case "$author" in
+              "Gerrit Schlinkmann")
+                github_user="gerrxt07"
+                ;;
+              "gerrit")
+                github_user="gerrxt07"
+                ;;
+              *)
+                github_user="$author"
+                ;;
+            esac
+            
             # Format commit line
-            COMMIT_LINE="- $subject ([${hash}](https://github.com/${{ github.repository }}/commit/${hash})) - @${author}"
+            COMMIT_LINE="- $subject ([${hash}](https://github.com/${{ github.repository }}/commit/${hash})) - @${github_user}"
             
             # Categorize based on commit message
             case "$subject" in
@@ -160,11 +173,6 @@ jobs:
           
           # Build changelog
           CHANGELOG=""
-          
-          # Add first release notice if applicable
-          if [ "$IS_FIRST_RELEASE" = "true" ]; then
-            CHANGELOG="$CHANGELOG## 🎉 First Release"$'\n'"This is the initial release of Cloudly!"$'\n\n'
-          fi
           
           if [ -n "$BREAKING" ]; then
             CHANGELOG="$CHANGELOG## 🚨 Breaking Changes"$'\n'"$BREAKING"$'\n'
@@ -250,7 +258,7 @@ jobs:
             - **Support**: [Issues](https://github.com/${{ github.repository }}/issues)
             - **Source Code**: [Repository](https://github.com/${{ github.repository }})
             
-            ${{ steps.get-previous-tag.outputs.first-release == 'true' && '**This is the first release!** 🎉' || format('**Full Changelog**: https://github.com/{0}/compare/{1}...v{2}', github.repository, steps.get-previous-tag.outputs.previous-tag, steps.find-jar.outputs.version) }}
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.get-previous-tag.outputs.previous-tag }}...v${{ steps.find-jar.outputs.version }}
           files: |
             ${{ steps.find-jar.outputs.jar-file }}
           draft: false
