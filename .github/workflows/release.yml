@@ -166,6 +166,13 @@ jobs:
           echo "$CHANGELOG" > changelog.md
           echo "changelog-file=changelog.md" >> $GITHUB_OUTPUT
           
+          # Save changelog content as GitHub Actions output variable using heredoc delimiter
+          {
+            echo 'changelog<<EOF'
+            echo "$CHANGELOG"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          
           echo "Generated changelog:"
           cat changelog.md
 
@@ -191,7 +198,7 @@ jobs:
           body: |
             ## Cloudly ${{ steps.find-jar.outputs.version }}
             
-            $(cat ${{ steps.generate-changelog.outputs.changelog-file }})
+            ${{ steps.generate-changelog.outputs.changelog }}
             
             ---
             
