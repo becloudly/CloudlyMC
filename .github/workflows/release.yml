@@ -71,25 +71,53 @@ jobs:
       - name: Get previous release tag
         id: get-previous-tag
         run: |
-          # Get the most recent tag (excluding the current one we're about to create)
-          PREVIOUS_TAG=$(git tag -l "v*" --sort=-version:refname | head -1)
+          # Get current commit SHA
+          CURRENT_SHA="${{ github.sha }}"
+          echo "Current commit: $CURRENT_SHA"
           
+          # Find all version tags that do NOT point to the current commit
+          PREVIOUS_TAG=""
+          for tag in $(git tag -l "v*" --sort=-version:refname); do
+            TAG_SHA=$(git rev-list -n 1 "$tag")
+            if [ "$TAG_SHA" != "$CURRENT_SHA" ]; then
+              PREVIOUS_TAG="$tag"
+              echo "Found previous tag: $tag (points to $TAG_SHA)"
+              break
+            else
+              echo "Skipping tag $tag (points to current commit $TAG_SHA)"
+            fi
+          done
+          
+          # If no previous tag found, this is the first release
           if [ -z "$PREVIOUS_TAG" ]; then
-            echo "No previous tag found, using initial commit"
+            echo "No previous release tag found - this appears to be the first release"
+            # Use the first commit for comparison, but mark it as first release
             PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+            echo "first-release=true" >> $GITHUB_OUTPUT
+          else
+            echo "first-release=false" >> $GITHUB_OUTPUT
           fi
           
           echo "previous-tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
-          echo "Previous tag: $PREVIOUS_TAG"
+          echo "Previous reference for comparison: $PREVIOUS_TAG"
 
       - name: Generate detailed changelog
         id: generate-changelog
         run: |
           PREVIOUS_TAG="${{ steps.get-previous-tag.outputs.previous-tag }}"
           CURRENT_SHA="${{ github.sha }}"
+          IS_FIRST_RELEASE="${{ steps.get-previous-tag.outputs.first-release }}"
+          
+          echo "Generating changelog from $PREVIOUS_TAG to $CURRENT_SHA"
+          echo "Is first release: $IS_FIRST_RELEASE"
           
           # Get commits since last release
-          COMMITS=$(git log --pretty=format:"%h|%s|%an|%ad" --date=short "$PREVIOUS_TAG..$CURRENT_SHA")
+          if [ "$IS_FIRST_RELEASE" = "true" ]; then
+            echo "This is the first release - including all commits"
+            COMMITS=$(git log --pretty=format:"%h|%s|%an|%ad" --date=short)
+          else
+            COMMITS=$(git log --pretty=format:"%h|%s|%an|%ad" --date=short "$PREVIOUS_TAG..$CURRENT_SHA")
+          fi
           
           # Initialize changelog sections
           FEATURES=""
@@ -133,6 +161,11 @@ jobs:
           # Build changelog
           CHANGELOG=""
           
+          # Add first release notice if applicable
+          if [ "$IS_FIRST_RELEASE" = "true" ]; then
+            CHANGELOG="$CHANGELOG## 🎉 First Release"$'\n'"This is the initial release of Cloudly!"$'\n\n'
+          fi
+          
           if [ -n "$BREAKING" ]; then
             CHANGELOG="$CHANGELOG## 🚨 Breaking Changes"$'\n'"$BREAKING"$'\n'
           fi
@@ -157,9 +190,9 @@ jobs:
             CHANGELOG="$CHANGELOG## 📝 Other Changes"$'\n'"$OTHER"$'\n'
           fi
           
-          # If no categorized changes, show all commits
-          if [ -z "$CHANGELOG" ]; then
-            CHANGELOG="## 📝 Changes"$'\n'"$OTHER"$'\n'
+          # If no categorized changes, show all commits under general changes
+          if [ -z "$BREAKING$FEATURES$FIXES$IMPROVEMENTS$CHORES$OTHER" ]; then
+            CHANGELOG="$CHANGELOG## 📝 Changes"$'\n'"No specific changes categorized."$'\n'
           fi
           
           # Save changelog to file for multiline output
@@ -217,7 +250,7 @@ jobs:
             - **Support**: [Issues](https://github.com/${{ github.repository }}/issues)
             - **Source Code**: [Repository](https://github.com/${{ github.repository }})
             
-            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.get-previous-tag.outputs.previous-tag }}...v${{ steps.find-jar.outputs.version }}
+            ${{ steps.get-previous-tag.outputs.first-release == 'true' && '**This is the first release!** 🎉' || format('**Full Changelog**: https://github.com/{0}/compare/{1}...v{2}', github.repository, steps.get-previous-tag.outputs.previous-tag, steps.find-jar.outputs.version) }}
           files: |
             ${{ steps.find-jar.outputs.jar-file }}
           draft: false
