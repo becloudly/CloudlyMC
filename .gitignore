@@ -7,3 +7,4 @@ build
 bin/*
 *.lnk
 deploy.bat
+Planned.md

@@ -10,6 +10,14 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
 
 </div>
 
+## 📊 Activity
+
+<div align="center">
+
+[![Contributors](https://img.shields.io/github/contributors/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/graphs/contributors) [![Last Commit](https://img.shields.io/github/last-commit/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/commits/master) [![Open Issues](https://img.shields.io/github/issues-raw/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/issues) [![Open PRs](https://img.shields.io/github/issues-pr-raw/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/pulls)
+
+</div>
+
 ## ✨ Features
 
 * 🌐 **Multi-language Support:**
@@ -31,11 +39,9 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
 
 ### 🔍 Code Quality & Security
 * **Static Analysis:** Protected by CodeQL security scanning
-* **Dependency Management:** Automated with Dependabot
-  * Weekly updates for Gradle dependencies
-  * Weekly updates for GitHub Actions
 * **Build Automation:** GitHub Actions CI/CD pipeline
   * Get the newest dev-version [Here](https://github.com/becloudly/CloudlyMC/actions/workflows/gradle-build.yml).
+* **Dependency Updates:** Weekly Dependabot PRs
 
 ### 📁 Codebase Structure
 * **Platform Support:**
@@ -43,11 +49,6 @@ _☁️ A high-performance Minecraft server plugin for paper-based servers built
   * Folia multi-threaded server support
 * **Template System:** Build-time constant generation
 * **Plugin Configuration:** YAML-based configuration
-
-### 🔄 Continuous Integration
-* **Automated Builds:** On push to master branch
-* **Security Scanning:** Weekly CodeQL analysis
-* **Dependency Updates:** Weekly Dependabot PRs
 
 ## 🚀 Installation
 
@@ -66,29 +67,6 @@ Contributions are welcome! Here's how you can help:
 4. **Make your changes** and commit them
 5. **Push** your changes to your fork
 6. Submit a **Pull Request**
-
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/becloudly/cloudlymc.git
-cd cloudlymc
-
-# Build the project
-./gradlew clean build
-```
-
-## 📊 Activity
-
-<div align="center">
-
-[![Contributors](https://img.shields.io/github/contributors/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/graphs/contributors) [![Last Commit](https://img.shields.io/github/last-commit/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/commits/master) [![Open Issues](https://img.shields.io/github/issues-raw/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/issues) [![Open PRs](https://img.shields.io/github/issues-pr-raw/becloudly/cloudlymc?style=for-the-badge)](https://github.com/becloudly/cloudlymc/pulls)
-
-</div>
-
-## ⚙️ Documentation
-
-Documentation is available at [docs.cloudly.de](https://docs.cloudly.de).
 
 ## 📜 License
 
