@@ -28,6 +28,54 @@ release_radar:
   check_failed: "Failed to check for updates: {error}"
   stopped: "Release radar stopped"
 
+# Commands
+commands:
+  no_permission: "§cYou don't have permission to use this command."
+  unknown_subcommand: "§cUnknown subcommand: §f{subcommand}§c. Use §f/cloudly help§c for available commands."
+  
+  # Reload command
+  reload:
+    starting_full: "§eStarting full hot-reload of all plugin components..."
+    starting_config: "§eStarting configuration reload..."
+    starting_languages: "§eStarting language files reload..."
+    reloading_config: "§7Reloading configuration files..."
+    reloading_languages: "§7Reloading language files..."
+    reloading_components: "§7Reloading plugin components..."
+    config_reloaded: "Configuration reloaded successfully"
+    languages_reloaded: "Language files reloaded successfully"
+    components_reloaded: "Plugin components reloaded successfully"
+    config_success: "§aConfiguration reloaded successfully!"
+    languages_success: "§aLanguage files reloaded successfully!"
+    success: "§aHot-reload completed successfully!"
+    success_log: "Hot-reload completed successfully"
+    config_failed: "§cFailed to reload configuration files! Check console for details."
+    languages_failed: "§cFailed to reload language files! Check console for details."
+    components_failed: "§cFailed to reload plugin components! Check console for details."
+    partial_failure: "§6Hot-reload completed with some errors. Check console for details."
+    partial_failure_log: "Hot-reload completed with some errors"
+    invalid_target: "§cInvalid reload target: §f{target}"
+    usage: "§eUsage: §f/cloudly reload [config|lang|all]"
+  
+  # Info command
+  info:
+    header: "§6=== Cloudly Plugin Information ==="
+    version: "§7Version: §f{version}"
+    language: "§7Language: §f{language}"
+    debug: "§7Debug Mode: §f{debug}"
+    server_type: "§7Server Type: §f{type}"
+  
+  # Version command
+  version:
+    info: "§6Cloudly §7v{version} §7by §f{author}"
+  
+  # Help command
+  help:
+    header: "§6=== Cloudly Commands ==="
+    reload: "§f/cloudly reload [config|lang|all] §7- Hot-reload plugin components"
+    info: "§f/cloudly info §7- Show plugin information"
+    version: "§f/cloudly version §7- Show plugin version"
+    help: "§f/cloudly help §7- Show this help menu"
+
 # Error messages
 error:
   unknown: "An unknown error occurred"
