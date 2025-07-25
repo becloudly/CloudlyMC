@@ -28,6 +28,54 @@ release_radar:
   check_failed: "Update-Prüfung fehlgeschlagen: {error}"
   stopped: "Release-Radar gestoppt"
 
+# Commands
+commands:
+  no_permission: "§cDu hast keine Berechtigung für diesen Befehl."
+  unknown_subcommand: "§cUnbekannter Unterbefehl: §f{subcommand}§c. Verwende §f/cloudly help§c für verfügbare Befehle."
+  
+  # Reload command
+  reload:
+    starting_full: "§eStarte vollständiges Hot-Reload aller Plugin-Komponenten..."
+    starting_config: "§eStarte Neuladen der Konfiguration..."
+    starting_languages: "§eStarte Neuladen der Sprachdateien..."
+    reloading_config: "§7Lade Konfigurationsdateien neu..."
+    reloading_languages: "§7Lade Sprachdateien neu..."
+    reloading_components: "§7Lade Plugin-Komponenten neu..."
+    config_reloaded: "Konfiguration erfolgreich neu geladen"
+    languages_reloaded: "Sprachdateien erfolgreich neu geladen"
+    components_reloaded: "Plugin-Komponenten erfolgreich neu geladen"
+    config_success: "§aKonfiguration erfolgreich neu geladen!"
+    languages_success: "§aSprachdateien erfolgreich neu geladen!"
+    success: "§aHot-Reload erfolgreich abgeschlossen!"
+    success_log: "Hot-Reload erfolgreich abgeschlossen"
+    config_failed: "§cFehler beim Neuladen der Konfigurationsdateien! Details in der Konsole."
+    languages_failed: "§cFehler beim Neuladen der Sprachdateien! Details in der Konsole."
+    components_failed: "§cFehler beim Neuladen der Plugin-Komponenten! Details in der Konsole."
+    partial_failure: "§6Hot-Reload mit einigen Fehlern abgeschlossen. Details in der Konsole."
+    partial_failure_log: "Hot-Reload mit einigen Fehlern abgeschlossen"
+    invalid_target: "§cUngültiges Reload-Ziel: §f{target}"
+    usage: "§eVerwendung: §f/cloudly reload [config|lang|all]"
+  
+  # Info command
+  info:
+    header: "§6=== Cloudly Plugin-Informationen ==="
+    version: "§7Version: §f{version}"
+    language: "§7Sprache: §f{language}"
+    debug: "§7Debug-Modus: §f{debug}"
+    server_type: "§7Server-Typ: §f{type}"
+  
+  # Version command
+  version:
+    info: "§6Cloudly §7v{version} §7von §f{author}"
+  
+  # Help command
+  help:
+    header: "§6=== Cloudly Befehle ==="
+    reload: "§f/cloudly reload [config|lang|all] §7- Plugin-Komponenten neu laden"
+    info: "§f/cloudly info §7- Plugin-Informationen anzeigen"
+    version: "§f/cloudly version §7- Plugin-Version anzeigen"
+    help: "§f/cloudly help §7- Dieses Hilfemenü anzeigen"
+
 # Error messages
 error:
   unknown: "Ein unbekannter Fehler ist aufgetreten"
