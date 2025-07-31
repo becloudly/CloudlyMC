@@ -7,7 +7,7 @@ The security of our code and our users has the highest priority. We are grateful
 ### ✉️ Process of Reporting
 
 1. **Reporting**:
-   * Send an email to: `report@phantomcommunity.de`
+   * Send an email to: `security@becloudly.eu`. Other email adresses you can find at https://becloudly.eu/contact
 2. **Required information**:
    * Detailed description of the vulnerability
    * Steps to reproduce
@@ -68,4 +68,4 @@ We follow the principle of responsible disclosure:
 
 ***
 
-Last update: 26/05/2025
+Last update (DD/MM/YYYY): 31/07/2025
