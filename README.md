@@ -8,6 +8,8 @@
 
 **Powerful server management • Multi-language support • Real-time configuration • Release automation**
 
+[![About](https://img.shields.io/badge/Learn%20More-About%20Us-blue?style=flat-square)](https://becloudly.eu/about) [![Pricing](https://img.shields.io/badge/View-Pricing-green?style=flat-square)](https://becloudly.eu/pricing)
+
 [![Build Status](https://img.shields.io/github/actions/workflow/status/becloudly/cloudlymc/gradle-build.yml?branch=master&style=for-the-badge&logo=github)](https://github.com/becloudly/cloudlymc/actions/workflows/gradle-build.yml) [![CodeQL](https://img.shields.io/github/actions/workflow/status/becloudly/cloudlymc/codeql.yml?branch=master&style=for-the-badge&logo=github&label=CodeQL)](https://github.com/becloudly/cloudlymc/actions/workflows/codeql.yml) [![Version](https://img.shields.io/badge/version-1.0.0--alpha__6-blue?style=for-the-badge)](https://github.com/becloudly/cloudlymc/releases) [![License](https://img.shields.io/github/license/becloudly/cloudlymc?style=for-the-badge)](LICENSE) 
 
 [![Java](https://img.shields.io/badge/Java-17%2B-orange?style=for-the-badge&logo=openjdk)](https://adoptium.net/) [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-purple?style=for-the-badge&logo=kotlin)](https://kotlinlang.org/) [![Paper](https://img.shields.io/badge/Paper-1.20%2B-brightgreen?style=for-the-badge)](https://papermc.io/) [![Folia](https://img.shields.io/badge/Folia-Supported-green?style=for-the-badge)](https://papermc.io/software/folia)
@@ -317,6 +319,7 @@ release-radar:
 - **Semantic Versioning**: Clear version numbering (Major.Minor.Patch)
 - **Backward Compatibility**: Configuration compatibility maintained across minor versions
 - **Security Patches**: Critical security updates released immediately
+- **Changelog**: View detailed release notes at [becloudly.eu/changelog](https://becloudly.eu/changelog)
 
 ### 🔄 Update Process
 1. **Automatic Detection**: Release Radar notifies of new versions
@@ -456,16 +459,23 @@ copies or substantial portions of the Software.
 ### 💬 Get Help & Connect
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289da?style=for-the-badge&logo=discord)](https://becloudly.eu/discord)
+[![Support](https://img.shields.io/badge/Support-Get%20Help-orange?style=for-the-badge&logo=lifebuoy)](https://becloudly.eu/support)
+[![Contact](https://img.shields.io/badge/Contact-Reach%20Us-green?style=for-the-badge&logo=mail)](https://becloudly.eu/contact)
+
 [![Trello](https://img.shields.io/badge/Trello-Roadmap-blue?style=for-the-badge&logo=trello)](https://trello.com/b/GMKCYKXv/cloudly)
 [![GitHub Issues](https://img.shields.io/badge/GitHub-Issues-red?style=for-the-badge&logo=github)](https://github.com/becloudly/cloudlymc/issues)
+[![Blog](https://img.shields.io/badge/Blog-Company%20News-purple?style=for-the-badge&logo=rss)](https://becloudly.eu/blog)
 
 </div>
 
 **🤝 Where to Get Help:**
 - **💬 Discord Server**: Real-time help and community discussions
+- **🆘 Support Center**: Professional support at [becloudly.eu/support](https://becloudly.eu/support)
+- **📞 Contact Us**: Direct contact at [becloudly.eu/contact](https://becloudly.eu/contact)
 - **📋 GitHub Issues**: Bug reports and feature requests
 - **📊 Trello Board**: Development roadmap and progress tracking
 - **📚 Wiki**: Comprehensive documentation and guides
+- **📝 Company Blog**: Updates and news at [becloudly.eu/blog](https://becloudly.eu/blog)
 
 **🗺️ Roadmap & Future Plans:**
 - **v1.1**: Web dashboard interface
@@ -508,7 +518,7 @@ Thank you to everyone who has:
 
 ### 🚀 Ready to enhance your Minecraft server?
 
-**[Download Cloudly](https://github.com/becloudly/cloudlymc/releases) • [Join Discord](https://becloudly.eu/discord) • [View Roadmap](https://trello.com/b/GMKCYKXv/cloudly)**
+**[Download Cloudly](https://github.com/becloudly/cloudlymc/releases) • [Join Discord](https://becloudly.eu/discord) • [View Roadmap](https://trello.com/b/GMKCYKXv/cloudly) • [About Us](https://becloudly.eu/about) • [Pricing](https://becloudly.eu/pricing)**
 
 *Built for the modern Minecraft server administrator*
 
