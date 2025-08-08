@@ -30,16 +30,16 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
     // SQLite JDBC driver
-    implementation("org.xerial:sqlite-jdbc:3.50.2.0")
+    implementation("org.xerial:sqlite-jdbc:3.50.3.0")
 
     // MySQL JDBC driver
-    implementation("com.mysql:mysql-connector-j:9.3.0")
+    implementation("com.mysql:mysql-connector-j:9.4.0")
     
     // JSON library for import/export functionality
     implementation("org.json:json:20250517")
     
     // HTTP client for GitHub API communication
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.1.0")
 }
 
 // Java version updated to 21 (LTS)
