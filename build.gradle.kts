@@ -1,11 +1,11 @@
 plugins {
     kotlin("jvm") version "2.2.0"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "8.3.8"
     id("java")
 }
 
 group = "de.cloudly"
-version = "1.0.0-alpha_6"
+version = "1.0.0-alpha_7"
 
 repositories {
     mavenCentral()
@@ -42,10 +42,10 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.1.0")
 }
 
-// Java version for Minecraft 1.18+ compatibility
+// Java version updated to 21 (LTS)
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
     }
     
     sourceSets {
@@ -58,7 +58,7 @@ java {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 tasks {
