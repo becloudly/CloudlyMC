@@ -1,0 +1,130 @@
+# GitHub PR Labeler Configuration for CloudlyMC
+# Automatically applies labels to pull requests based on changed files
+
+# Area-based labels for functional components
+'area: commands':
+  - 'app/src/main/kotlin/de/cloudly/commands/**'
+  - 'bin/main/de/cloudly/commands/**'
+  - 'build/classes/kotlin/main/de/cloudly/commands/**'
+
+'area: config':
+  - 'app/src/main/kotlin/de/cloudly/config/**'
+  - 'bin/main/de/cloudly/config/**'
+  - 'build/classes/kotlin/main/de/cloudly/config/**'
+  - 'app/src/main/resources/config.yml'
+  - 'bin/main/config.yml'
+  - 'build/resources/main/config.yml'
+
+'area: radar':
+  - 'app/src/main/kotlin/de/cloudly/radar/**'
+  - 'bin/main/de/cloudly/radar/**'
+  - 'build/classes/kotlin/main/de/cloudly/radar/**'
+
+'area: utils':
+  - 'app/src/main/kotlin/de/cloudly/utils/**'
+  - 'bin/main/de/cloudly/utils/**'
+  - 'build/classes/kotlin/main/de/cloudly/utils/**'
+
+'area: core':
+  - 'app/src/main/kotlin/de/cloudly/CloudlyPaper.kt'
+  - 'bin/main/de/cloudly/CloudlyPaper.kt'
+  - 'build/classes/kotlin/main/de/cloudly/CloudlyPaper.class'
+  - 'app/src/main/resources/plugin.yml'
+  - 'bin/main/plugin.yml'
+  - 'build/resources/main/plugin.yml'
+
+'area: lang':
+  - 'app/src/main/resources/lang/**'
+  - 'bin/main/lang/**'
+  - 'build/resources/main/lang/**'
+
+'area: templates':
+  - 'app/src/main/templates/**'
+  - 'build/generated/sources/templates/**'
+
+# File type labels
+'type: kotlin':
+  - '**/*.kt'
+  - '**/*.kts'
+
+'type: yaml':
+  - '**/*.yml'
+  - '**/*.yaml'
+
+'type: gradle':
+  - 'build.gradle.kts'
+  - 'settings.gradle.kts'
+  - 'gradle.properties'
+  - 'gradle/**'
+  - 'gradlew'
+  - 'gradlew.bat'
+
+'type: docs':
+  - '*.md'
+  - '**/*.md'
+  - 'docs/**'
+  - '.github/instructions/**'
+  - '.github/prompt-snippets/**'
+
+# Scope-based labels
+'scope: dependencies':
+  - 'gradle/libs.versions.toml'
+  - 'build.gradle.kts'
+
+'scope: build':
+  - 'build.gradle.kts'
+  - 'settings.gradle.kts'
+  - 'gradle.properties'
+  - 'gradle/**'
+  - 'gradlew'
+  - 'gradlew.bat'
+
+'scope: ci':
+  - '.github/workflows/**'
+  - '.github/actions/**'
+
+'scope: security':
+  - '.github/workflows/codeql.yml'
+  - 'SECURITY.md'
+  - '.github/dependabot.yml'
+
+'scope: deployment':
+  - 'deploy.bat'
+  - 'Dockerfile'
+  - 'docker-compose.yml'
+
+# Configuration and project files
+'config':
+  - '**/*.yml'
+  - '**/*.yaml'
+  - '**/*.properties'
+  - 'app/src/main/resources/config.yml'
+
+'documentation':
+  - 'README.md'
+  - 'CONTRIBUTING.md'
+  - 'CODE_OF_CONDUCT.md'
+  - 'SECURITY.md'
+  - 'LICENSE'
+  - 'Planned.md'
+  - 'docs/**'
+
+'github':
+  - '.github/**'
+
+# Size-based labels (based on number of files changed)
+'size: small':
+  - any: ['**']
+    count: 1..3
+
+'size: medium':
+  - any: ['**']
+    count: 4..10
+
+'size: large':
+  - any: ['**']
+    count: 11..50
+
+'size: xl':
+  - any: ['**']
+    count: 51..
