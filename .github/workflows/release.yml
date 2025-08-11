@@ -91,14 +91,13 @@ jobs:
           # If no previous tag found, this is the first release
           if [ -z "$PREVIOUS_TAG" ]; then
             echo "No previous release tag found - this appears to be the first release"
-            # Use the first commit for comparison, but mark it as first release
-            PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
             echo "first-release=true" >> $GITHUB_OUTPUT
+            echo "previous-tag=" >> $GITHUB_OUTPUT
           else
             echo "first-release=false" >> $GITHUB_OUTPUT
+            echo "previous-tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
           fi
           
-          echo "previous-tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
           echo "Previous reference for comparison: $PREVIOUS_TAG"
 
       - name: Generate detailed changelog
@@ -230,25 +229,58 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate release body
+        id: generate-release-body
+        run: |
+          IS_FIRST_RELEASE="${{ steps.get-previous-tag.outputs.first-release }}"
+          PREVIOUS_TAG="${{ steps.get-previous-tag.outputs.previous-tag }}"
+          CURRENT_VERSION="v${{ steps.find-jar.outputs.version }}"
+          
+          # Generate the release body
+          RELEASE_BODY="## Cloudly ${{ steps.find-jar.outputs.version }}
+          
+          ${{ steps.generate-changelog.outputs.changelog }}
+          
+          ---
+          
+          ### 📦 Installation
+          1. Download the \`${{ steps.find-jar.outputs.jar-name }}\` file below
+          2. Place it in your server's plugins folder
+          3. Restart your server
+          
+          ### 📋 Release Information"
+          
+          if [ "$IS_FIRST_RELEASE" = "true" ]; then
+            RELEASE_BODY="$RELEASE_BODY
+          - **Release Type**: 🎉 Initial release
+          - **View Changes**: [All commits in this release](https://github.com/${{ github.repository }}/commits/$CURRENT_VERSION)"
+          else
+            RELEASE_BODY="$RELEASE_BODY
+          - **Release Type**: 🔄 Update from $PREVIOUS_TAG
+          - **Full Changelog**: [Compare $PREVIOUS_TAG...$CURRENT_VERSION](https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_VERSION)"
+          fi
+          
+          # Save release body to file for multiline output
+          echo "$RELEASE_BODY" > release-body.md
+          echo "release-body-file=release-body.md" >> $GITHUB_OUTPUT
+          
+          # Save release body content as GitHub Actions output variable using heredoc delimiter
+          {
+            echo 'release-body<<EOF'
+            echo "$RELEASE_BODY"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          
+          echo "Generated release body:"
+          cat release-body.md
+
       - name: Create Release
         if: steps.check-release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ steps.find-jar.outputs.version }}"
           name: "${{ steps.find-jar.outputs.release-name }}"
-          body: |
-            ## Cloudly ${{ steps.find-jar.outputs.version }}
-            
-            ${{ steps.generate-changelog.outputs.changelog }}
-            
-            ---
-            
-            ### 📦 Installation
-            1. Download the `${{ steps.find-jar.outputs.jar-name }}` file below
-            2. Place it in your server's `plugins` folder
-            3. Restart your server
-            
-            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.get-previous-tag.outputs.previous-tag }}...v${{ steps.find-jar.outputs.version }}
+          body: ${{ steps.generate-release-body.outputs.release-body }}
           files: |
             ${{ steps.find-jar.outputs.jar-file }}
           draft: false
