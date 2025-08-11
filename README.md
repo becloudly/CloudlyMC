@@ -8,7 +8,7 @@
 
 **Powerful server management • Multi-language support • Real-time configuration • Release automation**
 
-[![About](https://img.shields.io/badge/Learn%20More-About%20Us-blue?style=flat-square)](https://becloudly.eu/about) [![Pricing](https://img.shields.io/badge/View-Pricing-green?style=flat-square)](https://becloudly.eu/pricing)
+[![About](https://img.shields.io/badge/Learn%20More-About%20Us-blue?style=flat-square)](https://becloudly.eu/about) [![Pricing](https://img.shields.io/badge/View-Pricing-green?style=flat-square)](https://becloudly.eu/pricing) [![CodeFactor](https://www.codefactor.io/repository/github/becloudly/cloudlymc/badge)](https://www.codefactor.io/repository/github/becloudly/cloudlymc)
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/becloudly/cloudlymc/gradle-build.yml?branch=master&style=for-the-badge&logo=github)](https://github.com/becloudly/cloudlymc/actions/workflows/gradle-build.yml) [![CodeQL](https://img.shields.io/github/actions/workflow/status/becloudly/cloudlymc/codeql.yml?branch=master&style=for-the-badge&logo=github&label=CodeQL)](https://github.com/becloudly/cloudlymc/actions/workflows/codeql.yml) [![Version](https://img.shields.io/badge/version-1.0.0--alpha__6-blue?style=for-the-badge)](https://github.com/becloudly/cloudlymc/releases) [![License](https://img.shields.io/github/license/becloudly/cloudlymc?style=for-the-badge)](LICENSE) 
 
