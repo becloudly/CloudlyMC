@@ -88,25 +88,32 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '21'
-        
+    
     - if: matrix.build-mode == 'manual'
-      name: Cache Gradle packages
-      uses: actions/cache@v4
+      name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
       with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-          
+        gradle-version: wrapper
+        
     - if: matrix.build-mode == 'manual'
       name: Make gradlew executable
       run: chmod +x ./gradlew
           
     - if: matrix.build-mode == 'manual'
+      name: Generate templates
+      run: ./gradlew generateTemplates --no-daemon --info
+          
+    - if: matrix.build-mode == 'manual'
       name: Build with Gradle
-      run: ./gradlew clean build --no-daemon --info
+      run: ./gradlew clean build --no-daemon --info --stacktrace
+      
+    - if: matrix.build-mode == 'manual'
+      name: Verify build output
+      run: |
+        echo "Checking build directory structure..."
+        ls -la build/ || echo "No build directory found"
+        find . -name "*.class" -type f | head -10 || echo "No .class files found"
+        find . -name "*.jar" -type f | head -10 || echo "No .jar files found"
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
