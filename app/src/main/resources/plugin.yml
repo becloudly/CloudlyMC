@@ -13,11 +13,6 @@ commands:
     usage: /cloudly <subcommand>
     permission: cloudly.admin
     aliases: [cl]
-  whitelist:
-    description: Manage the custom whitelist system
-    usage: /whitelist <add|remove|list|on|off|reload|info>
-    permission: cloudly.whitelist
-    aliases: [wl]
 
 permissions:
   cloudly.admin:

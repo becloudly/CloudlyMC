@@ -28,11 +28,12 @@ commands:
   # Whitelist command
   whitelist:
     usage: "§eWhitelist Commands:"
-    add_usage: "§cUsage: /whitelist add <player> [reason]"
-    remove_usage: "§cUsage: /whitelist remove <player>"
-    info_usage: "§cUsage: /whitelist info <player>"
+    add_usage: "§cUsage: /cloudly whitelist add <player> [reason]"
+    remove_usage: "§cUsage: /cloudly whitelist remove <player>"
+    info_usage: "§cUsage: /cloudly whitelist info <player>"
     player_never_played: "§cPlayer {player} has never played on this server before."
     player_added: "§aPlayer {player} has been added to the whitelist."
+    add_failed: "§cFailed to add player {player} to the whitelist."
     player_removed: "§aPlayer {player} has been removed from the whitelist."
     player_removed_and_kicked: "§aPlayer {player} has been removed from the whitelist and kicked from the server."
     player_removed_kick_message: "§cYou have been removed from the whitelist."
@@ -47,13 +48,13 @@ commands:
     info_added_by: "§7- Added by: §f{name}"
     info_added_on: "§7- Added on: §f{date}"
     info_reason: "§7- Reason: §f{reason}"
-    help_add: "§7/whitelist add <player> [reason] §f- Add a player to the whitelist"
-    help_remove: "§7/whitelist remove <player> §f- Remove a player from the whitelist"
-    help_list: "§7/whitelist list §f- List all whitelisted players"
-    help_on: "§7/whitelist on §f- Enable the whitelist"
-    help_off: "§7/whitelist off §f- Disable the whitelist"
-    help_reload: "§7/whitelist reload §f- Reload the whitelist"
-    help_info: "§7/whitelist info <player> §f- Show information about a whitelisted player"
+    help_add: "§7/cloudly whitelist add <player> [reason] §f- Add a player to the whitelist"
+    help_remove: "§7/cloudly whitelist remove <player> §f- Remove a player from the whitelist"
+    help_list: "§7/cloudly whitelist list §f- List all whitelisted players"
+    help_on: "§7/cloudly whitelist on §f- Enable the whitelist"
+    help_off: "§7/cloudly whitelist off §f- Disable the whitelist"
+    help_reload: "§7/cloudly whitelist reload §f- Reload the whitelist"
+    help_info: "§7/cloudly whitelist info <player> §f- Show information about a whitelisted player"
   
   # Reload command
   reload:
