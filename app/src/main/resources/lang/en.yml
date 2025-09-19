@@ -20,14 +20,6 @@ config:
   save_failed: "Could not save config file"
   reloaded: "Configuration reloaded"
 
-# Release Radar messages
-release_radar:
-  disabled: "Release radar is disabled"
-  new_release_available: "New release available: {version} - {url}"
-  new_prerelease_available: "New pre-release available: {version} - {url}"
-  check_failed: "Failed to check for updates: {error}"
-  stopped: "Release radar stopped"
-
 # Commands
 commands:
   no_permission: "§cYou don't have permission to use this command."
