@@ -33,7 +33,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         when (args.getOrNull(0)?.lowercase()) {
             "reload" -> handleReloadCommand(sender, args)
             "info" -> handleInfoCommand(sender)
-            "version" -> handleVersionCommand(sender)
             "help", null -> handleHelpCommand(sender)
             else -> {
                 sender.sendMessage(languageManager.getMessage("commands.unknown_subcommand", "subcommand" to args[0]))
@@ -80,6 +79,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         val languageManager = plugin.getLanguageManager()
         val configManager = plugin.getConfigManager()
         
+        sender.sendMessage("")
         sender.sendMessage(languageManager.getMessage("commands.info.header"))
         sender.sendMessage(languageManager.getMessage("commands.info.version", "version" to plugin.description.version))
         sender.sendMessage(languageManager.getMessage("commands.info.language", "language" to languageManager.getCurrentLanguage()))
@@ -88,19 +88,10 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         // Server type detection
         val serverType = if (de.cloudly.utils.SchedulerUtils.isFolia()) "Folia" else "Paper/Spigot"
         sender.sendMessage(languageManager.getMessage("commands.info.server_type", "type" to serverType))
+        sender.sendMessage(languageManager.getMessage("commands.info.author"))
     }
     
-    /**
-     * Handles the version subcommand.
-     * Displays plugin version information.
-     */
-    private fun handleVersionCommand(sender: CommandSender) {
-        val languageManager = plugin.getLanguageManager()
-        sender.sendMessage(languageManager.getMessage("commands.version.info", 
-            "version" to plugin.description.version,
-            "author" to plugin.description.authors.joinToString(", ")
-        ))
-    }
+
     
     /**
      * Handles the help subcommand.
@@ -109,10 +100,10 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
     private fun handleHelpCommand(sender: CommandSender) {
         val languageManager = plugin.getLanguageManager()
         
+        sender.sendMessage("")
         sender.sendMessage(languageManager.getMessage("commands.help.header"))
         sender.sendMessage(languageManager.getMessage("commands.help.reload"))
         sender.sendMessage(languageManager.getMessage("commands.help.info"))
-        sender.sendMessage(languageManager.getMessage("commands.help.version"))
         sender.sendMessage(languageManager.getMessage("commands.help.help"))
     }
     
@@ -130,7 +121,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         return when (args.size) {
             1 -> {
                 // Main subcommands
-                listOf("reload", "info", "version", "help")
+                listOf("reload", "info", "help")
                     .filter { it.startsWith(args[0].lowercase()) }
             }
             2 -> {

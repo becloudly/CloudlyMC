@@ -50,11 +50,12 @@ commands:
   
   # Info command
   info:
-    header: "§6=== Cloudly Plugin-Informationen ==="
+    header: "§6§lCloudly Plugin Informationen"
     version: "§7Version: §f{version}"
     language: "§7Sprache: §f{language}"
     debug: "§7Debug-Modus: §f{debug}"
     server_type: "§7Server-Typ: §f{type}"
+    author: "§7Autor: §fCloudly - §bhttps://becloudly.eu"
   
   # Version command
   version:
@@ -63,7 +64,7 @@ commands:
   # Help command
   help:
     header: "§6=== Cloudly Befehle ==="
-    reload: "§f/cloudly reload [config|lang|all] §7- Plugin-Komponenten neu laden"
+    reload: "§f/cloudly reload [ config | lang | all ] §7- Plugin-Komponenten neu laden"
     info: "§f/cloudly info §7- Plugin-Informationen anzeigen"
     version: "§f/cloudly version §7- Plugin-Version anzeigen"
     help: "§f/cloudly help §7- Dieses Hilfemenü anzeigen"
