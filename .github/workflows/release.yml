@@ -1,9 +1,8 @@
-name: Create Release
+name: 🚀 CloudlyMC Release Pipeline
 
 on:
   push:
-    branches: [ "master" ]
-    # Only run the workflow if changes happen in these files or directories:
+    branches: ["master"]
     paths:
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
@@ -12,21 +11,29 @@ on:
       - '*.gradle.kts'
 
 jobs:
-  release:
+  prepare-release:
+    name: 📦 Prepare Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+      jar-name: ${{ steps.extract-version.outputs.jar-name }}
+      release-name: ${{ steps.extract-version.outputs.release-name }}
+      
     steps:
-      - name: Check out code
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-      - name: Set up Java
+      - name: ☕ Setup Java Environment
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
           
-      - name: Cache Gradle packages
+      - name: 💾 Cache Gradle Dependencies
         uses: actions/cache@v4
         with:
           path: |
@@ -37,106 +44,103 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Grant execute permission for gradlew
+      - name: 🔧 Prepare Gradle
         run: chmod +x gradlew
 
-      - name: Build with Gradle
+      - name: 🔨 Build Plugin JAR
         run: ./gradlew clean shadowJar --no-daemon --build-cache
         env:
-          # Optimize Gradle performance
           GRADLE_OPTS: "-Dorg.gradle.caching=true -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs='-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError'"
 
-      - name: Find built JAR and extract version
-        id: find-jar
+      - name: 🏷️ Extract Version Information
+        id: extract-version
         run: |
+          echo "::group::Finding JAR and extracting version"
           JAR_FILE=$(ls -t build/libs/cloudly*.jar | head -1)
           if [ -z "$JAR_FILE" ]; then
-            echo "Error: No cloudly JAR file found in build/libs/"
+            echo "❌ Error: No CloudlyMC JAR file found in build/libs/"
             exit 1
           fi
           
           JAR_NAME=$(basename "$JAR_FILE")
-          # Extract version from JAR filename (e.g., cloudly-1.0.0-alpha.jar -> 1.0.0-alpha)
           VERSION=$(echo "$JAR_NAME" | sed 's/^cloudly-//' | sed 's/\.jar$//')
           
           echo "jar-file=$JAR_FILE" >> $GITHUB_OUTPUT
           echo "jar-name=$JAR_NAME" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "release-name=Cloudly $VERSION" >> $GITHUB_OUTPUT
+          echo "release-name=CloudlyMC $VERSION" >> $GITHUB_OUTPUT
           
-          echo "Found JAR file: $JAR_FILE"
-          echo "Version: $VERSION"
-          echo "Release name: Cloudly $VERSION"
+          echo "✅ Found JAR: $JAR_NAME"
+          echo "✅ Version: $VERSION"
+          echo "::endgroup::"
 
-      - name: Get previous release tag
-        id: get-previous-tag
+      - name: 📤 Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudly-plugin
+          path: build/libs/cloudly*.jar
+          retention-days: 7
+
+  generate-changelog:
+    name: 📝 Generate Changelog
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.format-changelog.outputs.changelog }}
+      
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Find Previous Release
+        id: find-previous-release
         run: |
-          # Get current commit SHA
-          CURRENT_SHA="${{ github.sha }}"
-          echo "Current commit: $CURRENT_SHA"
+          echo "::group::Finding previous release tag"
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           
-          # Find all version tags that do NOT point to the current commit
-          PREVIOUS_TAG=""
-          for tag in $(git tag -l "v*" --sort=-version:refname); do
-            TAG_SHA=$(git rev-list -n 1 "$tag")
-            if [ "$TAG_SHA" != "$CURRENT_SHA" ]; then
-              PREVIOUS_TAG="$tag"
-              echo "Found previous tag: $tag (points to $TAG_SHA)"
-              break
-            else
-              echo "Skipping tag $tag (points to current commit $TAG_SHA)"
-            fi
-          done
-          
-          # If no previous tag found, this is the first release
           if [ -z "$PREVIOUS_TAG" ]; then
-            echo "No previous release tag found - this appears to be the first release"
+            echo "ℹ️ No previous release found - this is the first release"
             echo "first-release=true" >> $GITHUB_OUTPUT
             echo "previous-tag=" >> $GITHUB_OUTPUT
           else
+            echo "✅ Previous release: $PREVIOUS_TAG"
             echo "first-release=false" >> $GITHUB_OUTPUT
             echo "previous-tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
           fi
-          
-          echo "Previous reference for comparison: $PREVIOUS_TAG"
+          echo "::endgroup::"
 
-      - name: Generate detailed changelog
+      - name: 📊 Generate Changelog Content
         id: generate-changelog
         run: |
-          PREVIOUS_TAG="${{ steps.get-previous-tag.outputs.previous-tag }}"
-          CURRENT_SHA="${{ github.sha }}"
-          IS_FIRST_RELEASE="${{ steps.get-previous-tag.outputs.first-release }}"
+          echo "::group::Generating changelog"
+          PREVIOUS_TAG="${{ steps.find-previous-release.outputs.previous-tag }}"
+          IS_FIRST_RELEASE="${{ steps.find-previous-release.outputs.first-release }}"
           
-          echo "Generating changelog from $PREVIOUS_TAG to $CURRENT_SHA"
-          echo "Is first release: $IS_FIRST_RELEASE"
-          
-          # Get commits since last release
           if [ "$IS_FIRST_RELEASE" = "true" ]; then
-            echo "This is the first release - including all commits"
+            echo "ℹ️ First release - including all commits"
             COMMITS=$(git log --pretty=format:"%h|%s|%an|%ad" --date=short)
           else
-            COMMITS=$(git log --pretty=format:"%h|%s|%an|%ad" --date=short "$PREVIOUS_TAG..$CURRENT_SHA")
+            echo "ℹ️ Generating changes since $PREVIOUS_TAG"
+            COMMITS=$(git log --pretty=format:"%h|%s|%an|%ad" --date=short "$PREVIOUS_TAG..HEAD")
           fi
           
           # Initialize changelog sections
           FEATURES=""
           FIXES=""
           IMPROVEMENTS=""
-          CHORES=""
+          DOCS=""
           BREAKING=""
           OTHER=""
           
           # Process each commit
           while IFS='|' read -r hash subject author date; do
-            # Skip empty lines
             [ -z "$hash" ] && continue
             
-            # Map Git author names to GitHub usernames
+            # Map author to GitHub username if known
             case "$author" in
-              "Gerrit Schlinkmann")
-                github_user="gerrxt07"
-                ;;
-              "gerrit")
+              "Gerrit Schlinkmann"|"gerrit")
                 github_user="gerrxt07"
                 ;;
               *)
@@ -144,151 +148,123 @@ jobs:
                 ;;
             esac
             
-            # Format commit line
-            COMMIT_LINE="- $subject ([${hash}](https://github.com/${{ github.repository }}/commit/${hash})) - @${github_user}"
+            COMMIT_LINE="- $subject ([${hash}](https://github.com/${{ github.repository }}/commit/${hash})) - @${github_user} | ${date}"
             
-            # Categorize based on commit message
-            case "$subject" in
-              feat:*|feature:*|add:*|new:*)
-                FEATURES="$FEATURES$COMMIT_LINE"$'\n'
-                ;;
-              fix:*|bugfix:*|patch:*)
-                FIXES="$FIXES$COMMIT_LINE"$'\n'
-                ;;
-              improve:*|enhancement:*|optimize:*|perf:*)
-                IMPROVEMENTS="$IMPROVEMENTS$COMMIT_LINE"$'\n'
-                ;;
-              chore:*|build:*|ci:*|docs:*|style:*|refactor:*)
-                CHORES="$CHORES$COMMIT_LINE"$'\n'
-                ;;
-              breaking:*|"BREAKING CHANGE"*|break:*)
-                BREAKING="$BREAKING$COMMIT_LINE"$'\n'
-                ;;
-              *)
-                OTHER="$OTHER$COMMIT_LINE"$'\n'
-                ;;
-            esac
+            # Categorize commits
+            if [[ "$subject" =~ ^(feat|feature|add|new): ]]; then
+              FEATURES="$FEATURES$COMMIT_LINE"$'\n'
+            elif [[ "$subject" =~ ^(fix|bugfix|patch): ]]; then
+              FIXES="$FIXES$COMMIT_LINE"$'\n'
+            elif [[ "$subject" =~ ^(improve|enhancement|optimize|perf): ]]; then
+              IMPROVEMENTS="$IMPROVEMENTS$COMMIT_LINE"$'\n'
+            elif [[ "$subject" =~ ^(docs): ]]; then
+              DOCS="$DOCS$COMMIT_LINE"$'\n'
+            elif [[ "$subject" =~ ^(breaking|BREAKING CHANGE|break): ]]; then
+              BREAKING="$BREAKING$COMMIT_LINE"$'\n'
+            else
+              OTHER="$OTHER$COMMIT_LINE"$'\n'
+            fi
           done <<< "$COMMITS"
           
-          # Build changelog
+          # Save sections to files for the next step
+          echo "$BREAKING" > breaking.txt
+          echo "$FEATURES" > features.txt
+          echo "$FIXES" > fixes.txt
+          echo "$IMPROVEMENTS" > improvements.txt
+          echo "$DOCS" > docs.txt
+          echo "$OTHER" > other.txt
+          echo "::endgroup::"
+
+      - name: 🎨 Format Changelog
+        id: format-changelog
+        run: |
+          echo "::group::Formatting changelog"
+          VERSION="${{ needs.prepare-release.outputs.version }}"
           CHANGELOG=""
           
-          if [ -n "$BREAKING" ]; then
-            CHANGELOG="$CHANGELOG## 🚨 Breaking Changes"$'\n'"$BREAKING"$'\n'
+          # Add header
+          CHANGELOG="# CloudlyMC $VERSION Release"$'\n\n'
+          
+          # Add release date
+          RELEASE_DATE=$(date +"%Y-%m-%d")
+          CHANGELOG="$CHANGELOG**Release Date:** $RELEASE_DATE"$'\n\n'
+          
+          # Add download information
+          CHANGELOG="$CHANGELOG## 📥 Installation"$'\n\n'
+          CHANGELOG="$CHANGELOG- Download the plugin JAR from the assets below"$'\n'
+          CHANGELOG="$CHANGELOG- Place it in your server's plugins folder"$'\n'
+          CHANGELOG="$CHANGELOG- Restart your server"$'\n\n'
+          
+          # Add changelog sections
+          if [ -s breaking.txt ]; then
+            CHANGELOG="$CHANGELOG## 🚨 Breaking Changes"$'\n\n'
+            CHANGELOG="$CHANGELOG$(cat breaking.txt)"$'\n\n'
           fi
           
-          if [ -n "$FEATURES" ]; then
-            CHANGELOG="$CHANGELOG## ✨ New Features"$'\n'"$FEATURES"$'\n'
+          if [ -s features.txt ]; then
+            CHANGELOG="$CHANGELOG## ✨ New Features"$'\n\n'
+            CHANGELOG="$CHANGELOG$(cat features.txt)"$'\n\n'
           fi
           
-          if [ -n "$FIXES" ]; then
-            CHANGELOG="$CHANGELOG## 🐛 Bug Fixes"$'\n'"$FIXES"$'\n'
+          if [ -s fixes.txt ]; then
+            CHANGELOG="$CHANGELOG## 🐛 Bug Fixes"$'\n\n'
+            CHANGELOG="$CHANGELOG$(cat fixes.txt)"$'\n\n'
           fi
           
-          if [ -n "$IMPROVEMENTS" ]; then
-            CHANGELOG="$CHANGELOG## 🚀 Improvements"$'\n'"$IMPROVEMENTS"$'\n'
+          if [ -s improvements.txt ]; then
+            CHANGELOG="$CHANGELOG## 🚀 Improvements"$'\n\n'
+            CHANGELOG="$CHANGELOG$(cat improvements.txt)"$'\n\n'
           fi
           
-          if [ -n "$CHORES" ]; then
-            CHANGELOG="$CHANGELOG## 🔧 Maintenance"$'\n'"$CHORES"$'\n'
+          if [ -s docs.txt ]; then
+            CHANGELOG="$CHANGELOG## 📚 Documentation"$'\n\n'
+            CHANGELOG="$CHANGELOG$(cat docs.txt)"$'\n\n'
           fi
           
-          if [ -n "$OTHER" ]; then
-            CHANGELOG="$CHANGELOG## 📝 Other Changes"$'\n'"$OTHER"$'\n'
+          if [ -s other.txt ]; then
+            CHANGELOG="$CHANGELOG## 🔄 Other Changes"$'\n\n'
+            CHANGELOG="$CHANGELOG$(cat other.txt)"$'\n\n'
           fi
           
-          # If no categorized changes, show all commits under general changes
-          if [ -z "$BREAKING$FEATURES$FIXES$IMPROVEMENTS$CHORES$OTHER" ]; then
-            CHANGELOG="$CHANGELOG## 📝 Changes"$'\n'"No specific changes categorized."$'\n'
-          fi
+          # Add footer
+          CHANGELOG="$CHANGELOG## 💖 Thank You"$'\n\n'
+          CHANGELOG="$CHANGELOG**Thank you for using CloudlyMC!** If you encounter any issues or have suggestions, please open an issue on GitHub."
           
-          # Save changelog to file for multiline output
+          # Save changelog to file and output
           echo "$CHANGELOG" > changelog.md
-          echo "changelog-file=changelog.md" >> $GITHUB_OUTPUT
-          
-          # Save changelog content as GitHub Actions output variable using heredoc delimiter
-          {
-            echo 'changelog<<EOF'
-            echo "$CHANGELOG"
-            echo 'EOF'
-          } >> $GITHUB_OUTPUT
-          
-          echo "Generated changelog:"
-          cat changelog.md
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
 
-      - name: Check if release already exists
-        id: check-release
-        run: |
-          if gh release view "v${{ steps.find-jar.outputs.version }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Release v${{ steps.find-jar.outputs.version }} already exists"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Release v${{ steps.find-jar.outputs.version }} does not exist"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate release body
-        id: generate-release-body
-        run: |
-          IS_FIRST_RELEASE="${{ steps.get-previous-tag.outputs.first-release }}"
-          PREVIOUS_TAG="${{ steps.get-previous-tag.outputs.previous-tag }}"
-          CURRENT_VERSION="v${{ steps.find-jar.outputs.version }}"
-          
-          # Generate the release body
-          RELEASE_BODY="## Cloudly ${{ steps.find-jar.outputs.version }}
-          
-          ${{ steps.generate-changelog.outputs.changelog }}
-          
-          ---
-          
-          ### 📦 Installation
-          1. Download the \`${{ steps.find-jar.outputs.jar-name }}\` file below
-          2. Place it in your server's plugins folder
-          3. Restart your server
-          
-          ### 📋 Release Information"
-          
-          if [ "$IS_FIRST_RELEASE" = "true" ]; then
-            RELEASE_BODY="$RELEASE_BODY
-          - **Release Type**: 🎉 Initial release
-          - **View Changes**: [All commits in this release](https://github.com/${{ github.repository }}/commits/$CURRENT_VERSION)"
-          else
-            RELEASE_BODY="$RELEASE_BODY
-          - **Release Type**: 🔄 Update from $PREVIOUS_TAG
-          - **Full Changelog**: [Compare $PREVIOUS_TAG...$CURRENT_VERSION](https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_VERSION)"
-          fi
-          
-          # Save release body to file for multiline output
-          echo "$RELEASE_BODY" > release-body.md
-          echo "release-body-file=release-body.md" >> $GITHUB_OUTPUT
-          
-          # Save release body content as GitHub Actions output variable using heredoc delimiter
-          {
-            echo 'release-body<<EOF'
-            echo "$RELEASE_BODY"
-            echo 'EOF'
-          } >> $GITHUB_OUTPUT
-          
-          echo "Generated release body:"
-          cat release-body.md
-
-      - name: Create Release
-        if: steps.check-release.outputs.exists == 'false'
+  publish-release:
+    name: 🌟 Publish Release
+    needs: [prepare-release, generate-changelog]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: 📥 Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cloudly-plugin
+          path: ./artifacts
+      
+      - name: 📦 Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ steps.find-jar.outputs.version }}"
-          name: "${{ steps.find-jar.outputs.release-name }}"
-          body: ${{ steps.generate-release-body.outputs.release-body }}
-          files: |
-            ${{ steps.find-jar.outputs.jar-file }}
+          name: ${{ needs.prepare-release.outputs.release-name }}
+          tag_name: v${{ needs.prepare-release.outputs.version }}
+          body: ${{ needs.generate-changelog.outputs.changelog }}
+          files: ./artifacts/cloudly*.jar
           draft: false
-          prerelease: ${{ contains(steps.find-jar.outputs.version, 'alpha') || contains(steps.find-jar.outputs.version, 'beta') || contains(steps.find-jar.outputs.version, 'rc') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Release already exists
-        if: steps.check-release.outputs.exists == 'true'
+          prerelease: ${{ contains(needs.prepare-release.outputs.version, 'alpha') || contains(needs.prepare-release.outputs.version, 'beta') || contains(needs.prepare-release.outputs.version, 'rc') }}
+          generate_release_notes: false
+          
+      - name: 📢 Post-Release Notification
         run: |
-          echo "::notice::Release v${{ steps.find-jar.outputs.version }} already exists. Skipping release creation."
+          echo "::group::Release Published"
+          echo "✅ Release v${{ needs.prepare-release.outputs.version }} published successfully!"
+          echo "✅ JAR: ${{ needs.prepare-release.outputs.jar-name }}"
+          echo "::endgroup::"
