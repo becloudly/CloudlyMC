@@ -1,7 +1,6 @@
 package de.cloudly
 
 import de.cloudly.commands.CloudlyCommand
-import de.cloudly.commands.WhitelistCommand
 import de.cloudly.config.ConfigManager
 import de.cloudly.config.HotReloadManager
 import de.cloudly.config.LanguageManager
@@ -95,11 +94,6 @@ class CloudlyPaper : JavaPlugin() {
             val cloudlyCommand = CloudlyCommand(this)
             command.setExecutor(cloudlyCommand)
             command.tabCompleter = cloudlyCommand
-        }
-        getCommand("whitelist")?.let { command ->
-            val whitelistCommand = WhitelistCommand(this)
-            command.setExecutor(whitelistCommand)
-            command.tabCompleter = whitelistCommand
         }
     }
     
