@@ -1,7 +1,6 @@
 package de.cloudly.config
 
 import de.cloudly.CloudlyPaper
-import de.cloudly.radar.ReleaseRadar
 import org.bukkit.command.CommandSender
 import java.util.logging.Level
 
@@ -46,17 +45,7 @@ class HotReloadManager(private val plugin: CloudlyPaper) {
             success = false
         }
         
-        try {
-            // Reload ReleaseRadar settings (if it needs to be reloaded)
-            sender?.sendMessage(languageManager.getMessage("commands.reload.reloading_components"))
-            reloadReleaseRadar()
-            plugin.logger.info(languageManager.getMessage("commands.reload.components_reloaded"))
-            
-        } catch (e: Exception) {
-            plugin.logger.log(Level.SEVERE, "Failed to reload plugin components", e)
-            sender?.sendMessage(languageManager.getMessage("commands.reload.components_failed"))
-            success = false
-        }
+        // Component reload section removed
         
         // Send completion message
         if (success) {
@@ -70,21 +59,7 @@ class HotReloadManager(private val plugin: CloudlyPaper) {
         return success
     }
     
-    /**
-     * Reloads configuration-dependent components.
-     * This method handles components that need to be updated when configuration changes.
-     */
-    private fun reloadReleaseRadar() {
-        try {
-            val releaseRadar = plugin.getReleaseRadar()
-            // If ReleaseRadar has configuration-dependent settings, reload them here
-            // For now, we'll just log that the component was checked
-            plugin.logger.info("ReleaseRadar component checked for configuration changes")
-        } catch (e: Exception) {
-            plugin.logger.log(Level.WARNING, "Failed to reload ReleaseRadar component", e)
-            throw e
-        }
-    }
+    // ReleaseRadar functionality removed
     
     /**
      * Performs a reload of only the configuration files (config.yml).

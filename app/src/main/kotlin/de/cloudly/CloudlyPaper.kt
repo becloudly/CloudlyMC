@@ -4,7 +4,6 @@ import de.cloudly.commands.CloudlyCommand
 import de.cloudly.config.ConfigManager
 import de.cloudly.config.HotReloadManager
 import de.cloudly.config.LanguageManager
-import de.cloudly.radar.ReleaseRadar
 import de.cloudly.utils.SchedulerUtils
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -12,7 +11,6 @@ class CloudlyPaper : JavaPlugin() {
     
     private lateinit var configManager: ConfigManager
     private lateinit var languageManager: LanguageManager
-    private lateinit var releaseRadar: ReleaseRadar
     private lateinit var hotReloadManager: HotReloadManager
     
     companion object {
@@ -38,10 +36,6 @@ class CloudlyPaper : JavaPlugin() {
         // Initialize hot-reload manager
         hotReloadManager = HotReloadManager(this)
         
-        // Initialize release radar
-        releaseRadar = ReleaseRadar(this, configManager, languageManager)
-        releaseRadar.initialize()
-        
         // Register commands
         registerCommands()
         
@@ -60,11 +54,6 @@ class CloudlyPaper : JavaPlugin() {
     }
     
     override fun onDisable() {
-        // Shutdown release radar
-        if (::releaseRadar.isInitialized) {
-            releaseRadar.shutdown()
-        }
-        
         // Save configuration before shutdown
         if (::configManager.isInitialized) {
             configManager.saveConfig()
@@ -97,11 +86,6 @@ class CloudlyPaper : JavaPlugin() {
      * Get the language manager instance.
      */
     fun getLanguageManager(): LanguageManager = languageManager
-    
-    /**
-     * Get the release radar instance.
-     */
-    fun getReleaseRadar(): ReleaseRadar = releaseRadar
     
     /**
      * Get the hot-reload manager instance.
