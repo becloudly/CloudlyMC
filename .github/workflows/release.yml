@@ -195,36 +195,36 @@ jobs:
           CHANGELOG="$CHANGELOG- Place it in your server's plugins folder"$'\n'
           CHANGELOG="$CHANGELOG- Restart your server"$'\n\n'
           
-          # Add changelog sections
-          if [ -s breaking.txt ]; then
-            CHANGELOG="$CHANGELOG## 🚨 Breaking Changes"$'\n\n'
-            CHANGELOG="$CHANGELOG$(cat breaking.txt)"$'\n\n'
-          fi
-          
-          if [ -s features.txt ]; then
-            CHANGELOG="$CHANGELOG## ✨ New Features"$'\n\n'
-            CHANGELOG="$CHANGELOG$(cat features.txt)"$'\n\n'
-          fi
-          
-          if [ -s fixes.txt ]; then
-            CHANGELOG="$CHANGELOG## 🐛 Bug Fixes"$'\n\n'
-            CHANGELOG="$CHANGELOG$(cat fixes.txt)"$'\n\n'
-          fi
-          
-          if [ -s improvements.txt ]; then
-            CHANGELOG="$CHANGELOG## 🚀 Improvements"$'\n\n'
-            CHANGELOG="$CHANGELOG$(cat improvements.txt)"$'\n\n'
-          fi
-          
-          if [ -s docs.txt ]; then
-            CHANGELOG="$CHANGELOG## 📚 Documentation"$'\n\n'
-            CHANGELOG="$CHANGELOG$(cat docs.txt)"$'\n\n'
-          fi
-          
-          if [ -s other.txt ]; then
-            CHANGELOG="$CHANGELOG## 🔄 Other Changes"$'\n\n'
-            CHANGELOG="$CHANGELOG$(cat other.txt)"$'\n\n'
-          fi
+          # Add changelog sections - only include non-empty sections
+           if [ -s breaking.txt ] && [ "$(cat breaking.txt | tr -d '\n\r\t ')" != "" ]; then
+             CHANGELOG="$CHANGELOG## 🚨 Breaking Changes"$'\n\n'
+             CHANGELOG="$CHANGELOG$(cat breaking.txt)"$'\n\n'
+           fi
+           
+           if [ -s features.txt ] && [ "$(cat features.txt | tr -d '\n\r\t ')" != "" ]; then
+             CHANGELOG="$CHANGELOG## ✨ New Features"$'\n\n'
+             CHANGELOG="$CHANGELOG$(cat features.txt)"$'\n\n'
+           fi
+           
+           if [ -s fixes.txt ] && [ "$(cat fixes.txt | tr -d '\n\r\t ')" != "" ]; then
+             CHANGELOG="$CHANGELOG## 🐛 Bug Fixes"$'\n\n'
+             CHANGELOG="$CHANGELOG$(cat fixes.txt)"$'\n\n'
+           fi
+           
+           if [ -s improvements.txt ] && [ "$(cat improvements.txt | tr -d '\n\r\t ')" != "" ]; then
+             CHANGELOG="$CHANGELOG## 🚀 Improvements"$'\n\n'
+             CHANGELOG="$CHANGELOG$(cat improvements.txt)"$'\n\n'
+           fi
+           
+           if [ -s docs.txt ] && [ "$(cat docs.txt | tr -d '\n\r\t ')" != "" ]; then
+             CHANGELOG="$CHANGELOG## 📚 Documentation"$'\n\n'
+             CHANGELOG="$CHANGELOG$(cat docs.txt)"$'\n\n'
+           fi
+           
+           if [ -s other.txt ] && [ "$(cat other.txt | tr -d '\n\r\t ')" != "" ]; then
+             CHANGELOG="$CHANGELOG## 🔄 Other Changes"$'\n\n'
+             CHANGELOG="$CHANGELOG$(cat other.txt)"$'\n\n'
+           fi
           
           # Add footer
           CHANGELOG="$CHANGELOG## 💖 Thank You"$'\n\n'
