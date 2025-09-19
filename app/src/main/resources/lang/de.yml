@@ -22,8 +22,38 @@ config:
 
 # Commands
 commands:
-  no_permission: "§cDu hast keine Berechtigung für diesen Befehl."
+  no_permission: "§cDu hast keine Berechtigung, diesen Befehl zu verwenden."
   unknown_subcommand: "§cUnbekannter Unterbefehl: §f{subcommand}§c. Verwende §f/cloudly help§c für verfügbare Befehle."
+  
+  # Whitelist command
+  whitelist:
+    usage: "§eWhitelist Befehle:"
+    add_usage: "§cVerwendung: /whitelist add <spieler> [grund]"
+    remove_usage: "§cVerwendung: /whitelist remove <spieler>"
+    info_usage: "§cVerwendung: /whitelist info <spieler>"
+    player_never_played: "§cSpieler {player} hat noch nie auf diesem Server gespielt."
+    player_added: "§aSpieler {player} wurde zur Whitelist hinzugefügt."
+    player_removed: "§aSpieler {player} wurde von der Whitelist entfernt."
+    player_removed_and_kicked: "§aSpieler {player} wurde von der Whitelist entfernt und vom Server gekickt."
+    player_removed_kick_message: "§cDu wurdest von der Whitelist entfernt."
+    player_not_whitelisted: "§cSpieler {player} ist nicht auf der Whitelist."
+    list_empty: "§eDie Whitelist ist leer."
+    list_header: "§eWhitelist-Spieler ({count}):"
+    list_entry: "§7- §f{username} §7(Hinzugefügt: {date})"
+    enabled: "§aWhitelist wurde aktiviert."
+    disabled: "§aWhitelist wurde deaktiviert."
+    reloaded: "§aWhitelist wurde neu geladen."
+    info_header: "§eWhitelist-Info für §f{player}§e:"
+    info_added_by: "§7- Hinzugefügt von: §f{name}"
+    info_added_on: "§7- Hinzugefügt am: §f{date}"
+    info_reason: "§7- Grund: §f{reason}"
+    help_add: "§7/whitelist add <spieler> [grund] §f- Fügt einen Spieler zur Whitelist hinzu"
+    help_remove: "§7/whitelist remove <spieler> §f- Entfernt einen Spieler von der Whitelist"
+    help_list: "§7/whitelist list §f- Listet alle Spieler auf der Whitelist auf"
+    help_on: "§7/whitelist on §f- Aktiviert die Whitelist"
+    help_off: "§7/whitelist off §f- Deaktiviert die Whitelist"
+    help_reload: "§7/whitelist reload §f- Lädt die Whitelist neu"
+    help_info: "§7/whitelist info <spieler> §f- Zeigt Informationen über einen Spieler auf der Whitelist"
   
   # Reload command
   reload:

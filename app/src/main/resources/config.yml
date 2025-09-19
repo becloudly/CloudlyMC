@@ -7,3 +7,33 @@ plugin:
   
   # Available languages: en (English), de (German)
   language: "en"
+
+# ======================================================================================
+
+# Whitelist Settings
+whitelist:
+  # Enable custom whitelist (overrides Minecraft's built-in whitelist)
+  enabled: true
+  
+  # Storage type for whitelist data
+  # Available options: json, sqlite, mysql
+  storage_type: "json"
+  
+  # JSON Storage Settings (used when storage_type is "json")
+  json:
+    # File path for the whitelist JSON file (relative to plugin folder)
+    file_path: "whitelist.json"
+  
+  # SQLite Storage Settings (used when storage_type is "sqlite")
+  sqlite:
+    # File path for the SQLite database (relative to plugin folder)
+    file_path: "whitelist.db"
+    
+  # MySQL Storage Settings (used when storage_type is "mysql")
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "minecraft_whitelist"
+    username: "root"
+    password: ""
+    table_prefix: "cloudly_"

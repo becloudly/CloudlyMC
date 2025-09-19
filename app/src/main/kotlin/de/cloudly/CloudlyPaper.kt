@@ -1,10 +1,12 @@
 package de.cloudly
 
 import de.cloudly.commands.CloudlyCommand
+import de.cloudly.commands.WhitelistCommand
 import de.cloudly.config.ConfigManager
 import de.cloudly.config.HotReloadManager
 import de.cloudly.config.LanguageManager
 import de.cloudly.utils.SchedulerUtils
+import de.cloudly.whitelist.WhitelistService
 import org.bukkit.plugin.java.JavaPlugin
 
 class CloudlyPaper : JavaPlugin() {
@@ -12,12 +14,22 @@ class CloudlyPaper : JavaPlugin() {
     private lateinit var configManager: ConfigManager
     private lateinit var languageManager: LanguageManager
     private lateinit var hotReloadManager: HotReloadManager
+    private lateinit var whitelistService: WhitelistService
     
     companion object {
         lateinit var instance: CloudlyPaper
             private set
     }
+    
+    /**
+     * Get the whitelist service instance
+     */
+    fun getWhitelistService(): WhitelistService {
+        return whitelistService
+    }
 
+
+    
     override fun onEnable() {
         // Set plugin instance
         instance = this
@@ -48,12 +60,21 @@ class CloudlyPaper : JavaPlugin() {
         
         // Log configuration status
         val debugMode = configManager.getBoolean("plugin.debug", false)
+        
+        // Initialize whitelist service
+        whitelistService = WhitelistService(this)
+        whitelistService.initialize()
         if (debugMode) {
             logger.info(languageManager.getMessage("plugin.debug_enabled"))
         }
     }
     
     override fun onDisable() {
+        // Close whitelist service resources
+        if (::whitelistService.isInitialized) {
+            whitelistService.shutdown()
+        }
+        
         // Save configuration before shutdown
         if (::configManager.isInitialized) {
             configManager.saveConfig()
@@ -74,6 +95,11 @@ class CloudlyPaper : JavaPlugin() {
             val cloudlyCommand = CloudlyCommand(this)
             command.setExecutor(cloudlyCommand)
             command.tabCompleter = cloudlyCommand
+        }
+        getCommand("whitelist")?.let { command ->
+            val whitelistCommand = WhitelistCommand(this)
+            command.setExecutor(whitelistCommand)
+            command.tabCompleter = whitelistCommand
         }
     }
     
