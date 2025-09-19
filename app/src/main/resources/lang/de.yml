@@ -28,7 +28,7 @@ commands:
   # Whitelist command
   whitelist:
     usage: "§eWhitelist Befehle:"
-    add_usage: "§cVerwendung: /cloudly whitelist add <spieler> [grund]"
+    add_usage: "§cVerwendung: /cloudly whitelist add <spieler>"
     remove_usage: "§cVerwendung: /cloudly whitelist remove <spieler>"
     info_usage: "§cVerwendung: /cloudly whitelist info <spieler>"
     player_never_played: "§cSpieler {player} hat noch nie auf diesem Server gespielt."
@@ -48,7 +48,7 @@ commands:
     info_added_by: "§7- Hinzugefügt von: §f{name}"
     info_added_on: "§7- Hinzugefügt am: §f{date}"
     info_reason: "§7- Grund: §f{reason}"
-    help_add: "§7/cloudly whitelist add <spieler> [grund] §f- Fügt einen Spieler zur Whitelist hinzu"
+    help_add: "§7/cloudly whitelist add <spieler> §f- Fügt einen Spieler zur Whitelist hinzu"
     help_remove: "§7/cloudly whitelist remove <spieler> §f- Entfernt einen Spieler von der Whitelist"
     help_list: "§7/cloudly whitelist list §f- Listet alle Spieler auf der Whitelist auf"
     help_on: "§7/cloudly whitelist on §f- Aktiviert die Whitelist"

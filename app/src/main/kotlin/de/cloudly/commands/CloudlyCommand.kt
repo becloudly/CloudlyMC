@@ -135,7 +135,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 }
                 
                 val playerName = args[2]
-                val reason = if (args.size > 3) args.drop(3).joinToString(" ") else "Added by admin"
                 
                 // Try to get UUID from online player first
                 val targetPlayer = Bukkit.getPlayer(playerName)
@@ -152,7 +151,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 
                 val addedBy = if (sender is Player) sender.uniqueId else UUID.fromString("00000000-0000-0000-0000-000000000000")
                 
-                if (whitelistService.addPlayer(uuid, playerName, addedBy, reason)) {
+                if (whitelistService.addPlayer(uuid, playerName, addedBy)) {
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.player_added", "player" to playerName))
                 } else {
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.add_failed", "player" to playerName))
