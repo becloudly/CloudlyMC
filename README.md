@@ -42,7 +42,7 @@
 
 ### 🎮 **Core Server Management**
 - **🔄 Hot-Reload System**: Real-time configuration and language file reloading without server restart
-- **📋 Advanced Command System**: Comprehensive `/cloudly` command with reload, info, version, and help subcommands
+- **📋 Advanced Command System**: Comprehensive `/cloudly` command with reload, info, and help subcommands
 - **🌐 Multi-Language Support**: Full internationalization with English and German (more languages planned)
 - **⚡ Dual Server Compatibility**: Automatic detection and optimization for both Paper/Spigot and Folia servers
 
@@ -135,14 +135,6 @@ plugin:
   
   # Available languages: en (English), de (German)
   language: "en"
-
-# Release Radar Settings
-release-radar:
-  # Enable automatic update notifications
-  enabled: true
-  
-  # Channel: "release" for stable, "pre-release" for all
-  channel: "pre-release"
 ```
 
 ### 🎮 Command Usage
@@ -151,7 +143,6 @@ release-radar:
 |---------|-------------|------------|---------|
 | `/cloudly help` | Show available commands | `cloudly.admin` | Display command help |
 | `/cloudly info` | Display plugin information | `cloudly.admin` | Version, language, debug status |
-| `/cloudly version` | Show plugin version | `cloudly.admin` | Current version info |
 | `/cloudly reload [target]` | Hot-reload components | `cloudly.admin` | `config`, `lang`, or `all` |
 
 **Hot-Reload Examples:**
@@ -204,30 +195,6 @@ Cloudly automatically detects Folia and uses region-specific schedulers for opti
 ```yaml
 plugin:
   debug: false  # Disable in production
-  
-release-radar:
-  enabled: true  # Enable for security updates
-  channel: "release"  # Use stable releases in production
-```
-
-</details>
-
-<details>
-<summary><strong>🔔 Release Radar Setup</strong></summary>
-
-The Release Radar automatically monitors for new versions:
-
-**Configuration Options:**
-```yaml
-release-radar:
-  enabled: true
-  channel: "pre-release"  # Options: "release" or "pre-release"
-```
-
-**Notification Examples:**
-```
-[INFO] New release available: v1.0.1 - https://github.com/becloudly/cloudlymc/releases/tag/v1.0.1
-[INFO] New pre-release available: v1.0.1-beta.1 - https://github.com/becloudly/cloudlymc/releases/tag/v1.0.1-beta.1
 ```
 
 </details>
@@ -315,14 +282,12 @@ release-radar:
 - **Input Validation**: Comprehensive validation of configuration and command inputs
 
 ### 📋 Update Policy
-- **Release Radar**: Automatic notification of new versions
 - **Semantic Versioning**: Clear version numbering (Major.Minor.Patch)
 - **Backward Compatibility**: Configuration compatibility maintained across minor versions
 - **Security Patches**: Critical security updates released immediately
 - **Changelog**: View detailed release notes at [becloudly.eu/changelog](https://becloudly.eu/changelog)
 
 ### 🔄 Update Process
-1. **Automatic Detection**: Release Radar notifies of new versions
 2. **Download**: Get latest version from [Releases](https://github.com/becloudly/cloudlymc/releases)
 3. **Hot-Reload**: Use `/cloudly reload` for configuration updates
 4. **Full Update**: Replace JAR and restart for major updates
@@ -363,7 +328,6 @@ app/
 │   ├── CloudlyPaper.kt          # Main plugin class
 │   ├── commands/                # Command handlers
 │   ├── config/                  # Configuration management
-│   ├── radar/                   # Release monitoring
 │   └── utils/                   # Utility classes
 ├── src/main/resources/
 │   ├── config.yml               # Default configuration
@@ -418,7 +382,7 @@ app/
 
 **Manual Testing:**
 1. Build the plugin: `./gradlew shadowJar`
-2. Copy `build/libs/cloudly-1.0.0-alpha_6.jar` to test server
+2. Copy `build/libs/cloudly.jar` to test server
 3. Test in Paper/Folia environment
 4. Verify all commands and features work
 
