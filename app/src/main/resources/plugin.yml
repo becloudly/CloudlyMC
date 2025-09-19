@@ -13,6 +13,10 @@ commands:
     usage: /cloudly <subcommand>
     permission: cloudly.admin
     aliases: [cl]
+  whitelist:
+    description: Disabled vanilla whitelist command - redirects to Cloudly whitelist
+    usage: /cloudly whitelist <subcommand>
+    permission: cloudly.whitelist
 
 permissions:
   cloudly.admin:

@@ -207,6 +207,16 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 }
             }
             
+            "gui" -> {
+                // Open GUI for players only
+                if (sender !is Player) {
+                    sender.sendMessage("§cThis command can only be used by players.")
+                    return
+                }
+                
+                plugin.getWhitelistGuiManager().openWhitelistGui(sender)
+            }
+            
             "on" -> {
                 whitelistService.enable(true)
                 sender.sendMessage(languageManager.getMessage("commands.whitelist.enabled"))
@@ -273,6 +283,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         sender.sendMessage(languageManager.getMessage("commands.whitelist.help_add"))
         sender.sendMessage(languageManager.getMessage("commands.whitelist.help_remove"))
         sender.sendMessage(languageManager.getMessage("commands.whitelist.help_list"))
+        sender.sendMessage(languageManager.getMessage("commands.whitelist.help_gui"))
         sender.sendMessage(languageManager.getMessage("commands.whitelist.help_on"))
         sender.sendMessage(languageManager.getMessage("commands.whitelist.help_off"))
         sender.sendMessage(languageManager.getMessage("commands.whitelist.help_reload"))
@@ -299,7 +310,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         
         // Show whitelist commands if user has whitelist permission
         if (sender.hasPermission("cloudly.whitelist")) {
-            sender.sendMessage("§f/cloudly whitelist <add|remove|list|on|off|reload|info> §7- Manage whitelist")
+            sender.sendMessage("§f/cloudly whitelist <add|remove|list|gui|on|off|reload|info> §7- Manage whitelist")
         }
         
         sender.sendMessage(languageManager.getMessage("commands.help.help"))
@@ -342,7 +353,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     }
                     "whitelist" -> {
                         if (sender.hasPermission("cloudly.whitelist")) {
-                            listOf("add", "remove", "list", "on", "off", "reload", "info")
+                            listOf("add", "remove", "list", "gui", "on", "off", "reload", "info")
                                 .filter { it.startsWith(args[1].lowercase()) }
                         } else emptyList()
                     }

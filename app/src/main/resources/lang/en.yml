@@ -25,6 +25,12 @@ commands:
   no_permission: "§cYou don't have permission to use this command."
   unknown_subcommand: "§cUnknown subcommand: §f{subcommand}§c. Use §f/cloudly help§c for available commands."
   
+  # Vanilla whitelist command blocking
+  vanilla_whitelist:
+    disabled: "§cThe vanilla whitelist command has been disabled."
+    use_cloudly: "§ePlease use §f/cloudly whitelist§e instead."
+    help_message: "§7Use §f/cloudly whitelist help§7 for available commands."
+
   # Whitelist command
   whitelist:
     usage: "§eWhitelist Commands:"
@@ -51,10 +57,20 @@ commands:
     help_add: "§7/cloudly whitelist add <player> §f- Add a player to the whitelist"
     help_remove: "§7/cloudly whitelist remove <player> §f- Remove a player from the whitelist"
     help_list: "§7/cloudly whitelist list §f- List all whitelisted players"
+    help_gui: "§7/cloudly whitelist gui §f- Open a beautiful GUI to view whitelisted players"
     help_on: "§7/cloudly whitelist on §f- Enable the whitelist"
     help_off: "§7/cloudly whitelist off §f- Disable the whitelist"
     help_reload: "§7/cloudly whitelist reload §f- Reload the whitelist"
     help_info: "§7/cloudly whitelist info <player> §f- Show information about a whitelisted player"
+
+# GUI Messages
+gui:
+  whitelist:
+    title: "§6§lCloudly Whitelist §8- §7{count} Players"
+    refreshed: "§aWhitelist GUI has been refreshed!"
+    player_details: "§eShowing details for §f{player}§e:"
+    player_removed: "§aPlayer §f{player}§a has been removed from the whitelist!"
+    remove_failed: "§cFailed to remove player §f{player}§c from the whitelist!"
   
   # Reload command
   reload:

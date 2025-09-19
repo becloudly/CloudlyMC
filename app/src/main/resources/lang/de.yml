@@ -25,6 +25,12 @@ commands:
   no_permission: "§cDu hast keine Berechtigung, diesen Befehl zu verwenden."
   unknown_subcommand: "§cUnbekannter Unterbefehl: §f{subcommand}§c. Verwende §f/cloudly help§c für verfügbare Befehle."
   
+  # Vanilla whitelist command blocking
+  vanilla_whitelist:
+    disabled: "§cDer Standard-Whitelist-Befehl wurde deaktiviert."
+    use_cloudly: "§eBitte verwende stattdessen §f/cloudly whitelist§e."
+    help_message: "§7Verwende §f/cloudly whitelist help§7 für verfügbare Befehle."
+
   # Whitelist command
   whitelist:
     usage: "§eWhitelist Befehle:"
@@ -51,10 +57,20 @@ commands:
     help_add: "§7/cloudly whitelist add <spieler> §f- Fügt einen Spieler zur Whitelist hinzu"
     help_remove: "§7/cloudly whitelist remove <spieler> §f- Entfernt einen Spieler von der Whitelist"
     help_list: "§7/cloudly whitelist list §f- Listet alle Spieler auf der Whitelist auf"
+    help_gui: "§7/cloudly whitelist gui §f- Öffnet eine schöne GUI zur Anzeige der Whitelist-Spieler"
     help_on: "§7/cloudly whitelist on §f- Aktiviert die Whitelist"
     help_off: "§7/cloudly whitelist off §f- Deaktiviert die Whitelist"
     help_reload: "§7/cloudly whitelist reload §f- Lädt die Whitelist neu"
     help_info: "§7/cloudly whitelist info <spieler> §f- Zeigt Informationen über einen Spieler auf der Whitelist"
+
+# GUI Nachrichten
+gui:
+  whitelist:
+    title: "§6§lCloudly Whitelist §8- §7{count} Spieler"
+    refreshed: "§aWhitelist GUI wurde aktualisiert!"
+    player_details: "§eZeige Details für §f{player}§e:"
+    player_removed: "§aSpieler §f{player}§a wurde von der Whitelist entfernt!"
+    remove_failed: "§cFehler beim Entfernen von Spieler §f{player}§c von der Whitelist!"
   
   # Reload command
   reload:

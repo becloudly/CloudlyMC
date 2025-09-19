@@ -1,9 +1,11 @@
 package de.cloudly
 
 import de.cloudly.commands.CloudlyCommand
+import de.cloudly.commands.VanillaWhitelistCommand
 import de.cloudly.config.ConfigManager
 import de.cloudly.config.HotReloadManager
 import de.cloudly.config.LanguageManager
+import de.cloudly.gui.WhitelistGuiManager
 import de.cloudly.utils.SchedulerUtils
 import de.cloudly.whitelist.WhitelistService
 import org.bukkit.plugin.java.JavaPlugin
@@ -14,6 +16,7 @@ class CloudlyPaper : JavaPlugin() {
     private lateinit var languageManager: LanguageManager
     private lateinit var hotReloadManager: HotReloadManager
     private lateinit var whitelistService: WhitelistService
+    private lateinit var whitelistGuiManager: WhitelistGuiManager
     
     companion object {
         lateinit var instance: CloudlyPaper
@@ -25,6 +28,13 @@ class CloudlyPaper : JavaPlugin() {
      */
     fun getWhitelistService(): WhitelistService {
         return whitelistService
+    }
+
+    /**
+     * Get the whitelist GUI manager instance
+     */
+    fun getWhitelistGuiManager(): WhitelistGuiManager {
+        return whitelistGuiManager
     }
 
 
@@ -63,12 +73,21 @@ class CloudlyPaper : JavaPlugin() {
         // Initialize whitelist service
         whitelistService = WhitelistService(this)
         whitelistService.initialize()
+        
+        // Initialize GUI manager
+        whitelistGuiManager = WhitelistGuiManager(this)
+        
         if (debugMode) {
             logger.info(languageManager.getMessage("plugin.debug_enabled"))
         }
     }
     
     override fun onDisable() {
+        // Close all open GUIs
+        if (::whitelistGuiManager.isInitialized) {
+            whitelistGuiManager.closeAllGuis()
+        }
+        
         // Close whitelist service resources
         if (::whitelistService.isInitialized) {
             whitelistService.shutdown()
@@ -90,10 +109,17 @@ class CloudlyPaper : JavaPlugin() {
      * Register all plugin commands.
      */
     private fun registerCommands() {
+        // Register main Cloudly command
         getCommand("cloudly")?.let { command ->
             val cloudlyCommand = CloudlyCommand(this)
             command.setExecutor(cloudlyCommand)
             command.tabCompleter = cloudlyCommand
+        }
+        
+        // Register vanilla whitelist command override to disable it
+        getCommand("whitelist")?.let { command ->
+            val vanillaWhitelistCommand = VanillaWhitelistCommand(this)
+            command.setExecutor(vanillaWhitelistCommand)
         }
     }
     
