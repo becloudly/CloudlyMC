@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "de.cloudly"
-version = "0.0.1-alpha_v5"
+version = "0.0.1-alpha_v6"
 
 repositories {
     mavenCentral()
@@ -65,10 +65,18 @@ tasks {
     shadowJar {
         // Relocate Kotlin stdlib to avoid conflicts
         relocate("kotlin", "de.cloudly.libs.kotlin")
+        relocate("kotlinx", "de.cloudly.libs.kotlinx")
         
         // Relocate database drivers to avoid conflicts
         relocate("org.sqlite", "de.cloudly.libs.sqlite")
         relocate("com.mysql", "de.cloudly.libs.mysql")
+        
+        // Relocate HTTP client to avoid conflicts
+        relocate("okhttp3", "de.cloudly.libs.okhttp3")
+        relocate("okio", "de.cloudly.libs.okio")
+        
+        // Relocate JSON library to avoid conflicts
+        relocate("org.json", "de.cloudly.libs.json")
 
         // Minimize the JAR to only include used classes
         minimize()
