@@ -1,6 +1,7 @@
 package de.cloudly.whitelist
 
 import de.cloudly.whitelist.config.WhitelistConfig
+import de.cloudly.whitelist.model.DiscordConnection
 import de.cloudly.whitelist.model.WhitelistPlayer
 import de.cloudly.whitelist.storage.WhitelistStorage
 import de.cloudly.whitelist.storage.WhitelistStorageFactory
@@ -134,6 +135,18 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
         if (!enabled || storage == null) return emptyList()
         
         return storage?.getAllPlayers() ?: emptyList()
+    }
+    
+    /**
+     * Update a player's Discord connection information.
+     * @param uuid The UUID of the player to update
+     * @param discordConnection The Discord connection information
+     * @return true if the update was successful, false otherwise
+     */
+    fun updatePlayerDiscord(uuid: UUID, discordConnection: DiscordConnection): Boolean {
+        if (!enabled || storage == null) return false
+        
+        return storage?.updatePlayerDiscord(uuid, discordConnection) ?: false
     }
     
     /**
