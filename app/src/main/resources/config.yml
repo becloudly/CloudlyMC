@@ -10,10 +10,31 @@ plugin:
 
 # ======================================================================================
 
+# Discord Settings
+discord:
+  # Enable Discord integration
+  enabled: false
+  
+  # Discord bot token (required for Discord integration)
+  # Get this from https://discord.com/developers/applications
+  bot_token: "YOUR_BOT_TOKEN_HERE"
+  
+  # Discord server (guild) ID where the bot should verify users
+  # Enable Developer Mode in Discord, right-click your server, and copy ID
+  server_id: "YOUR_SERVER_ID_HERE"
+  
+  # How long to wait for Discord API response (in seconds)
+  api_timeout: 10
+  
+  # Cache Discord verification results for this many minutes
+  cache_duration: 30
+
+# ======================================================================================
+
 # Whitelist Settings
 whitelist:
   # Enable custom whitelist (overrides Minecraft's built-in whitelist)
-  enabled: true
+  enabled: false
   
   # Storage type for whitelist data
   # Available options: json, sqlite, mysql
