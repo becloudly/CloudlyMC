@@ -5,6 +5,7 @@ import de.cloudly.commands.VanillaWhitelistCommand
 import de.cloudly.config.ConfigManager
 import de.cloudly.config.HotReloadManager
 import de.cloudly.config.LanguageManager
+import de.cloudly.discord.DiscordService
 import de.cloudly.gui.WhitelistGuiManager
 import de.cloudly.utils.SchedulerUtils
 import de.cloudly.whitelist.WhitelistService
@@ -17,6 +18,7 @@ class CloudlyPaper : JavaPlugin() {
     private lateinit var hotReloadManager: HotReloadManager
     private lateinit var whitelistService: WhitelistService
     private lateinit var whitelistGuiManager: WhitelistGuiManager
+    private lateinit var discordService: DiscordService
     
     companion object {
         lateinit var instance: CloudlyPaper
@@ -35,6 +37,13 @@ class CloudlyPaper : JavaPlugin() {
      */
     fun getWhitelistGuiManager(): WhitelistGuiManager {
         return whitelistGuiManager
+    }
+
+    /**
+     * Get the Discord service instance
+     */
+    fun getDiscordService(): DiscordService {
+        return discordService
     }
 
 
@@ -77,6 +86,10 @@ class CloudlyPaper : JavaPlugin() {
         // Initialize GUI manager
         whitelistGuiManager = WhitelistGuiManager(this)
         
+        // Initialize Discord service
+        discordService = DiscordService(this)
+        discordService.initialize()
+        
         if (debugMode) {
             logger.info(languageManager.getMessage("plugin.debug_enabled"))
         }
@@ -91,6 +104,11 @@ class CloudlyPaper : JavaPlugin() {
         // Close whitelist service resources
         if (::whitelistService.isInitialized) {
             whitelistService.shutdown()
+        }
+        
+        // Close Discord service resources
+        if (::discordService.isInitialized) {
+            discordService.shutdown()
         }
         
         // Save configuration before shutdown
