@@ -2,7 +2,10 @@ package de.cloudly.commands
 
 import de.cloudly.CloudlyPaper
 import de.cloudly.config.HotReloadManager
+import de.cloudly.discord.DiscordVerificationResult
+import de.cloudly.utils.SchedulerUtils
 import de.cloudly.whitelist.model.WhitelistPlayer
+import kotlinx.coroutines.*
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -21,6 +24,9 @@ import java.util.UUID
 class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCompleter {
     
     private val hotReloadManager = HotReloadManager(plugin)
+    
+    // Coroutine scope for async Discord operations
+    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     override fun onCommand(
         sender: CommandSender,
@@ -48,6 +54,10 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 }
                 handleInfoCommand(sender)
             }
+            "version" -> {
+                // Version command - available to all users
+                handleVersionCommand(sender)
+            }
             "whitelist" -> {
                 // Check whitelist permission for whitelist commands
                 if (!sender.hasPermission("cloudly.whitelist")) {
@@ -55,6 +65,14 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     return true
                 }
                 handleWhitelistCommand(sender, args)
+            }
+            "connect" -> {
+                // Discord connect command - available to all users
+                if (sender !is Player) {
+                    sender.sendMessage(languageManager.getMessage("commands.discord.players_only"))
+                    return true
+                }
+                handleDiscordConnectCommand(sender, args)
             }
             "help", null -> handleHelpCommand(sender)
             else -> {
@@ -113,6 +131,17 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         sender.sendMessage(languageManager.getMessage("commands.info.server_type", "type" to serverType))
         sender.sendMessage(languageManager.getMessage("commands.info.author"))
     }
+
+    /**
+     * Handles the version subcommand.
+     * Usage: /cloudly version
+     */
+    private fun handleVersionCommand(sender: CommandSender) {
+        val languageManager = plugin.getLanguageManager()
+        sender.sendMessage(languageManager.getMessage("commands.version.info", 
+            "version" to plugin.description.version,
+            "author" to plugin.description.authors.joinToString(", ")))
+    }
     
     /**
      * Handles the whitelist subcommand and its nested subcommands.
@@ -139,14 +168,9 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 // Try to get UUID from online player first
                 val targetPlayer = Bukkit.getPlayer(playerName)
                 val uuid = targetPlayer?.uniqueId ?: run {
-                    // For offline players, try to get UUID from Bukkit's offline player
+                    // For offline players, get UUID from Bukkit's offline player (works even if they never played)
                     val offlinePlayer = Bukkit.getOfflinePlayer(playerName)
-                    if (offlinePlayer.hasPlayedBefore()) {
-                        offlinePlayer.uniqueId
-                    } else {
-                        sender.sendMessage(languageManager.getMessage("commands.whitelist.player_never_played", "player" to playerName))
-                        return
-                    }
+                    offlinePlayer.uniqueId
                 }
                 
                 val addedBy = if (sender is Player) sender.uniqueId else UUID.fromString("00000000-0000-0000-0000-000000000000")
@@ -167,13 +191,9 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 val playerName = args[2]
                 val targetPlayer = Bukkit.getPlayer(playerName)
                 val uuid = targetPlayer?.uniqueId ?: run {
+                    // For offline players, get UUID from Bukkit's offline player (works even if they never played)
                     val offlinePlayer = Bukkit.getOfflinePlayer(playerName)
-                    if (offlinePlayer.hasPlayedBefore()) {
-                        offlinePlayer.uniqueId
-                    } else {
-                        sender.sendMessage(languageManager.getMessage("commands.whitelist.player_never_played", "player" to playerName))
-                        return
-                    }
+                    offlinePlayer.uniqueId
                 }
                 
                 if (whitelistService.removePlayer(uuid)) {
@@ -210,7 +230,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
             "gui" -> {
                 // Open GUI for players only
                 if (sender !is Player) {
-                    sender.sendMessage("§cThis command can only be used by players.")
+                    sender.sendMessage(languageManager.getMessage("gui.whitelist.only_players"))
                     return
                 }
                 
@@ -241,13 +261,9 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 val playerName = args[2]
                 val targetPlayer = Bukkit.getPlayer(playerName)
                 val uuid = targetPlayer?.uniqueId ?: run {
+                    // For offline players, get UUID from Bukkit's offline player (works even if they never played)
                     val offlinePlayer = Bukkit.getOfflinePlayer(playerName)
-                    if (offlinePlayer.hasPlayedBefore()) {
-                        offlinePlayer.uniqueId
-                    } else {
-                        sender.sendMessage(languageManager.getMessage("commands.whitelist.player_never_played", "player" to playerName))
-                        return
-                    }
+                    offlinePlayer.uniqueId
                 }
                 
                 val whitelistPlayer = whitelistService.getPlayer(uuid)
@@ -265,6 +281,19 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_by", "name" to addedByName))
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_on", "date" to date.toString()))
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_reason", "reason" to (whitelistPlayer.reason ?: "Not specified")))
+                    
+                    // Show Discord connection info if available
+                    if (whitelistPlayer.discordConnection != null) {
+                        val discord = whitelistPlayer.discordConnection
+                        val status = if (discord.verified) "§aVerified" else "§cNot verified"
+                        sender.sendMessage("§7- Discord: §f${discord.discordUsername} §7($status§7)")
+                        sender.sendMessage("§7- Connected: §f${Date.from(discord.connectedAt)}")
+                        if (discord.verifiedAt != null) {
+                            sender.sendMessage("§7- Verified: §f${Date.from(discord.verifiedAt)}")
+                        }
+                    } else {
+                        sender.sendMessage("§7- Discord: §cNot connected")
+                    }
                 } else {
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.player_not_whitelisted", "player" to playerName))
                 }
@@ -290,6 +319,147 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         sender.sendMessage(languageManager.getMessage("commands.whitelist.help_info"))
     }
     
+    /**
+     * Handles the Discord connect command.
+     * Usage: /cloudly connect <discord_username>
+     */
+    private fun handleDiscordConnectCommand(sender: Player, args: Array<out String>) {
+        val languageManager = plugin.getLanguageManager()
+        val discordService = plugin.getDiscordService()
+        val whitelistService = plugin.getWhitelistService()
+        
+        // Check if Discord service is enabled
+        if (!discordService.isEnabled()) {
+            sender.sendMessage(languageManager.getMessage("commands.discord.disabled"))
+            return
+        }
+        
+        // Check if player is whitelisted
+        val whitelistPlayer = whitelistService.getPlayer(sender.uniqueId)
+        if (whitelistPlayer == null) {
+            sender.sendMessage(languageManager.getMessage("commands.discord.not_whitelisted"))
+            return
+        }
+        
+        // Check if player already has Discord connected
+        if (whitelistPlayer.discordConnection != null && whitelistPlayer.discordConnection.verified) {
+            sender.sendMessage(languageManager.getMessage("commands.discord.already_connected", 
+                "discord_username" to whitelistPlayer.discordConnection.discordUsername))
+            return
+        }
+        
+        // Check command arguments
+        if (args.size < 2) {
+            sender.sendMessage(languageManager.getMessage("commands.discord.connect_usage"))
+            return
+        }
+        
+        val discordUsername = args[1]
+        
+        // Validate Discord username format (basic validation)
+        if (discordUsername.length < 2 || discordUsername.length > 32) {
+            sender.sendMessage(languageManager.getMessage("commands.discord.invalid_username"))
+            return
+        }
+        
+        sender.sendMessage(languageManager.getMessage("commands.discord.verifying", "discord_username" to discordUsername))
+        
+        // Check if Discord service is available
+        if (!discordService.isEnabled()) {
+            sender.sendMessage(languageManager.getMessage("commands.discord.disabled"))
+            return
+        }
+        
+        // Perform Discord verification using pure coroutines instead of mixing with schedulers
+        coroutineScope.launch {
+            try {
+                val verificationResult = discordService.verifyDiscordUser(discordUsername)
+                
+                // Switch back to main thread for player interaction
+                // Use a simple approach that works on both Paper and Folia
+                if (SchedulerUtils.isFolia()) {
+                    // On Folia, try to run the task directly
+                    try {
+                        handleDiscordVerificationResult(sender, verificationResult, discordUsername)
+                    } catch (e: Exception) {
+                        plugin.logger.severe("Error handling Discord verification result on Folia: ${e.message}")
+                        e.printStackTrace()
+                    }
+                } else {
+                    // On Paper, use scheduler
+                    SchedulerUtils.runTask(plugin, Runnable {
+                        handleDiscordVerificationResult(sender, verificationResult, discordUsername)
+                    })
+                }
+            } catch (e: Exception) {
+                plugin.logger.severe("Error during Discord verification: ${e.message}")
+                e.printStackTrace()
+                
+                // Send error message to player - handle threading safely
+                if (SchedulerUtils.isFolia()) {
+                    try {
+                        sender.sendMessage(languageManager.getMessage("commands.discord.verification_error"))
+                    } catch (ex: Exception) {
+                        plugin.logger.severe("Error sending error message on Folia: ${ex.message}")
+                    }
+                } else {
+                    SchedulerUtils.runTask(plugin, Runnable {
+                        sender.sendMessage(languageManager.getMessage("commands.discord.verification_error"))
+                    })
+                }
+            }
+        }
+    }
+    
+    /**
+     * Handle the result of Discord verification.
+     */
+    private fun handleDiscordVerificationResult(
+        sender: Player, 
+        result: DiscordVerificationResult, 
+        inputUsername: String
+    ) {
+        val languageManager = plugin.getLanguageManager()
+        val whitelistService = plugin.getWhitelistService()
+        
+        when (result) {
+            is DiscordVerificationResult.Success -> {
+                // Create Discord connection
+                val discordConnection = plugin.getDiscordService().createDiscordConnection(result)
+                
+                // Update whitelist player with Discord connection
+                val currentPlayer = whitelistService.getPlayer(sender.uniqueId)
+                if (currentPlayer != null) {
+                    val updatedPlayer = currentPlayer.copy(discordConnection = discordConnection)
+                    
+                    if (whitelistService.updatePlayerDiscord(sender.uniqueId, discordConnection)) {
+                        sender.sendMessage(languageManager.getMessage("commands.discord.connected_successfully", 
+                            "discord_username" to result.username))
+                    } else {
+                        sender.sendMessage(languageManager.getMessage("commands.discord.connection_failed"))
+                    }
+                } else {
+                    sender.sendMessage(languageManager.getMessage("commands.discord.not_whitelisted"))
+                }
+            }
+            is DiscordVerificationResult.UserNotFound -> {
+                sender.sendMessage(languageManager.getMessage("commands.discord.user_not_found", 
+                    "discord_username" to inputUsername))
+            }
+            is DiscordVerificationResult.NotServerMember -> {
+                sender.sendMessage(languageManager.getMessage("commands.discord.not_server_member", 
+                    "discord_username" to inputUsername))
+            }
+            is DiscordVerificationResult.ServiceDisabled -> {
+                sender.sendMessage(languageManager.getMessage("commands.discord.disabled"))
+            }
+            is DiscordVerificationResult.ApiError -> {
+                sender.sendMessage(languageManager.getMessage("commands.discord.api_error"))
+                plugin.logger.warning("Discord API error: ${result.message}")
+            }
+        }
+    }
+    
 
     
     /**
@@ -312,6 +482,12 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         if (sender.hasPermission("cloudly.whitelist")) {
             sender.sendMessage("§f/cloudly whitelist <add|remove|list|gui|on|off|reload|info> §7- Manage whitelist")
         }
+        
+        // Show Discord connect command (available to all players)
+        sender.sendMessage("§f/cloudly connect <discord_username> §7- Connect your Discord account")
+        
+        // Show version command (available to all players)
+        sender.sendMessage(languageManager.getMessage("commands.help.version"))
         
         sender.sendMessage(languageManager.getMessage("commands.help.help"))
     }
@@ -336,6 +512,12 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 if (sender.hasPermission("cloudly.whitelist")) {
                     subcommands.add("whitelist")
                 }
+                
+                // Discord connect is available to all players
+                subcommands.add("connect")
+                
+                // Version is available to all players
+                subcommands.add("version")
                 
                 // Help is always available
                 subcommands.add("help")
