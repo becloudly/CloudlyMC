@@ -39,16 +39,21 @@ object SchedulerUtils {
             foliaAsyncScheduler = foliaAsyncSchedulerMethod?.invoke(null)
             
             isFolia = true
-            // Log successful Folia detection (optional, for debugging)
+            // Log successful Folia detection
+            println("[Cloudly] Detected Folia/Canvas server - using Folia schedulers")
         } catch (e: ClassNotFoundException) {
             // Folia classes not found, we're on Paper/Spigot
             isFolia = false
+            println("[Cloudly] Detected Paper/Spigot server - using Bukkit schedulers")
         } catch (e: NoSuchMethodException) {
             // Method not found, assume Paper/Spigot
             isFolia = false
+            println("[Cloudly] Method not found, assuming Paper/Spigot server")
         } catch (e: Exception) {
             // Any other error, assume Paper/Spigot
             isFolia = false
+            println("[Cloudly] Error detecting server type: ${e.message}, assuming Paper/Spigot")
+            e.printStackTrace()
         }
     }
     
@@ -73,12 +78,25 @@ object SchedulerUtils {
                 runMethod?.invoke(foliaGlobalRegionScheduler, plugin, task)
                 null // Folia doesn't return BukkitTask
             } catch (e: Exception) {
-                // Fallback to Bukkit scheduler - explicitly cast to Runnable
-                org.bukkit.Bukkit.getScheduler().runTask(plugin, task)
+                plugin.logger.warning("Failed to use Folia scheduler, falling back to Bukkit: ${e.message}")
+                // Fallback to Bukkit scheduler
+                try {
+                    org.bukkit.Bukkit.getScheduler().runTask(plugin, task)
+                } catch (ex: Exception) {
+                    plugin.logger.severe("Both Folia and Bukkit schedulers failed: ${ex.message}")
+                    ex.printStackTrace()
+                    null
+                }
             }
         } else {
-            // Use traditional Bukkit scheduler - explicitly cast to Runnable
-            org.bukkit.Bukkit.getScheduler().runTask(plugin, task)
+            // Use traditional Bukkit scheduler
+            try {
+                org.bukkit.Bukkit.getScheduler().runTask(plugin, task)
+            } catch (e: Exception) {
+                plugin.logger.severe("Bukkit scheduler failed: ${e.message}")
+                e.printStackTrace()
+                null
+            }
         }
     }
     
@@ -95,12 +113,20 @@ object SchedulerUtils {
                 runNowMethod?.invoke(foliaAsyncScheduler, plugin, task)
                 null // Folia doesn't return BukkitTask
             } catch (e: Exception) {
-                // Fallback to Bukkit scheduler - explicitly cast to Runnable
-                org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, task)
+                plugin.logger.severe("Failed to use Folia async scheduler: ${e.message}")
+                e.printStackTrace()
+                // Do NOT fallback to Bukkit scheduler on Folia - it's not supported
+                null
             }
         } else {
-            // Use traditional Bukkit scheduler - explicitly cast to Runnable
-            org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, task)
+            // Use traditional Bukkit scheduler
+            try {
+                org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, task)
+            } catch (e: Exception) {
+                plugin.logger.severe("Bukkit async scheduler failed: ${e.message}")
+                e.printStackTrace()
+                null
+            }
         }
     }
     
@@ -136,12 +162,20 @@ object SchedulerUtils {
                 )
                 null // Folia doesn't return BukkitTask
             } catch (e: Exception) {
-                // Fallback to Bukkit scheduler - explicitly cast to Runnable
-                org.bukkit.Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, task, delay, period)
+                plugin.logger.severe("Failed to use Folia async timer: ${e.message}")
+                e.printStackTrace()
+                // Do NOT fallback to Bukkit scheduler on Folia - it's not supported
+                null
             }
         } else {
-            // Use traditional Bukkit scheduler - explicitly cast to Runnable
-            org.bukkit.Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, task, delay, period)
+            // Use traditional Bukkit scheduler
+            try {
+                org.bukkit.Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, task, delay, period)
+            } catch (e: Exception) {
+                plugin.logger.severe("Bukkit async timer failed: ${e.message}")
+                e.printStackTrace()
+                null
+            }
         }
     }
     
@@ -174,12 +208,20 @@ object SchedulerUtils {
                 )
                 null // Folia doesn't return BukkitTask
             } catch (e: Exception) {
-                // Fallback to Bukkit scheduler - explicitly cast to Runnable
-                org.bukkit.Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, task, delay)
+                plugin.logger.severe("Failed to use Folia async delayed task: ${e.message}")
+                e.printStackTrace()
+                // Do NOT fallback to Bukkit scheduler on Folia - it's not supported
+                null
             }
         } else {
-            // Use traditional Bukkit scheduler - explicitly cast to Runnable
-            org.bukkit.Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, task, delay)
+            // Use traditional Bukkit scheduler
+            try {
+                org.bukkit.Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, task, delay)
+            } catch (e: Exception) {
+                plugin.logger.severe("Bukkit async delayed task failed: ${e.message}")
+                e.printStackTrace()
+                null
+            }
         }
     }
 }
