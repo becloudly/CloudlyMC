@@ -1,5 +1,6 @@
 package de.cloudly.whitelist.storage
 
+import de.cloudly.whitelist.model.DiscordConnection
 import de.cloudly.whitelist.model.WhitelistPlayer
 import java.util.UUID
 
@@ -47,6 +48,14 @@ interface WhitelistStorage {
      * @return A list of all whitelisted players
      */
     fun getAllPlayers(): List<WhitelistPlayer>
+    
+    /**
+     * Update a player's Discord connection information.
+     * @param uuid The UUID of the player to update
+     * @param discordConnection The Discord connection information
+     * @return true if the update was successful, false otherwise
+     */
+    fun updatePlayerDiscord(uuid: UUID, discordConnection: DiscordConnection): Boolean
     
     /**
      * Close the storage connection.
