@@ -1,0 +1,290 @@
+package de.cloudly.discord
+
+import de.cloudly.CloudlyPaper
+import de.cloudly.whitelist.model.DiscordConnection
+import kotlinx.coroutines.*
+import okhttp3.*
+import org.json.JSONObject
+import java.io.IOException
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import java.util.logging.Level
+
+/**
+ * Service for Discord API integration and user verification.
+ * Handles Discord bot authentication and server membership verification.
+ */
+class DiscordService(private val plugin: CloudlyPaper) {
+    
+    private val configManager = plugin.getConfigManager()
+    private val languageManager = plugin.getLanguageManager()
+    
+    private var httpClient: OkHttpClient? = null
+    private var botToken: String? = null
+    private var serverId: String? = null
+    private var apiTimeout: Long = 10
+    private var cacheDuration: Long = 30
+    
+    // Cache for Discord user lookups to reduce API calls
+    private val userCache = ConcurrentHashMap<String, CachedDiscordUser>()
+    
+    // Coroutine scope for async operations
+    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    /**
+     * Initialize the Discord service with configuration.
+     */
+    fun initialize(): Boolean {
+        return try {
+            plugin.logger.info("Initializing Discord service...")
+            
+            // Load Discord configuration
+            val discordEnabled = configManager.getBoolean("discord.enabled", false)
+            plugin.logger.info("Discord enabled in config: $discordEnabled")
+            
+            if (!discordEnabled) {
+                plugin.logger.info("Discord integration is disabled in configuration")
+                return true
+            }
+            
+            botToken = configManager.getString("discord.bot_token", "")
+            serverId = configManager.getString("discord.server_id", "")
+            apiTimeout = configManager.getInt("discord.api_timeout", 10).toLong()
+            cacheDuration = configManager.getInt("discord.cache_duration", 30).toLong()
+            
+            plugin.logger.info("Discord config loaded - Token length: ${botToken?.length ?: 0}, Server ID: $serverId")
+            
+            if (botToken.isNullOrBlank() || botToken == "YOUR_BOT_TOKEN_HERE") {
+                plugin.logger.warning("Discord bot token is not configured. Discord features will be disabled.")
+                return false
+            }
+            
+            if (serverId.isNullOrBlank() || serverId == "YOUR_SERVER_ID_HERE") {
+                plugin.logger.warning("Discord server ID is not configured. Discord features will be disabled.")
+                return false
+            }
+            
+            // Initialize HTTP client
+            plugin.logger.info("Creating OkHttp client...")
+            httpClient = OkHttpClient.Builder()
+                .connectTimeout(apiTimeout, TimeUnit.SECONDS)
+                .readTimeout(apiTimeout, TimeUnit.SECONDS)
+                .writeTimeout(apiTimeout, TimeUnit.SECONDS)
+                .build()
+            
+            plugin.logger.info("Discord service initialized successfully")
+            true
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "Failed to initialize Discord service", e)
+            false
+        }
+    }
+    
+    /**
+     * Check if Discord integration is properly configured and enabled.
+     */
+    fun isEnabled(): Boolean {
+        return configManager.getBoolean("discord.enabled", false) && 
+               !botToken.isNullOrBlank() && 
+               !serverId.isNullOrBlank() &&
+               httpClient != null
+    }
+    
+    /**
+     * Verify if a Discord user exists and is a member of the configured server.
+     * This method is async and should be called from a coroutine or background thread.
+     */
+    suspend fun verifyDiscordUser(discordUsername: String): DiscordVerificationResult {
+        if (!isEnabled()) {
+            plugin.logger.info("Discord verification failed: Service not enabled")
+            return DiscordVerificationResult.ServiceDisabled
+        }
+        
+        return withContext(Dispatchers.IO) {
+            try {
+                plugin.logger.info("Starting Discord verification for user: $discordUsername")
+                
+                // Check cache first
+                val cached = userCache[discordUsername.lowercase()]
+                if (cached != null && !cached.isExpired(cacheDuration)) {
+                    plugin.logger.info("Using cached result for user: $discordUsername")
+                    return@withContext if (cached.isValid) {
+                        DiscordVerificationResult.Success(cached.discordId, cached.actualUsername)
+                    } else {
+                        DiscordVerificationResult.UserNotFound
+                    }
+                }
+                
+                // Search for user by username
+                plugin.logger.info("Searching Discord user: $discordUsername")
+                val discordUser = searchUserByUsername(discordUsername)
+                if (discordUser == null) {
+                    plugin.logger.info("Discord user not found: $discordUsername")
+                    return@withContext DiscordVerificationResult.UserNotFound
+                }
+                
+                plugin.logger.info("Found Discord user: ${discordUser.username} (${discordUser.id})")
+                
+                // Check if user is member of the server
+                plugin.logger.info("Checking server membership for user: ${discordUser.id}")
+                val isMember = checkServerMembership(discordUser.id)
+                if (!isMember) {
+                    plugin.logger.info("Discord user is not a member of the server: ${discordUser.username}")
+                    return@withContext DiscordVerificationResult.NotServerMember
+                }
+                
+                plugin.logger.info("Discord verification successful for user: ${discordUser.username}")
+                
+                // Cache the result
+                userCache[discordUsername.lowercase()] = CachedDiscordUser(
+                    discordId = discordUser.id,
+                    actualUsername = discordUser.username,
+                    isValid = true,
+                    cacheTime = Instant.now()
+                )
+                
+                DiscordVerificationResult.Success(discordUser.id, discordUser.username)
+            } catch (e: IOException) {
+                plugin.logger.log(Level.WARNING, "Discord API connection failed for user: $discordUsername", e)
+                DiscordVerificationResult.ApiError("Connection failed: ${e.message}")
+            } catch (e: Exception) {
+                plugin.logger.log(Level.WARNING, "Discord verification failed for user: $discordUsername", e)
+                DiscordVerificationResult.ApiError("Verification failed: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Search for a Discord user by username using the Discord API.
+     */
+    private suspend fun searchUserByUsername(username: String): DiscordUser? {
+        val client = httpClient ?: return null
+        val token = botToken ?: return null
+        val guildId = serverId ?: return null
+        
+        // Use the search guild members endpoint to find users by username
+        val url = "https://discord.com/api/v10/guilds/$guildId/members/search?query=${username}&limit=1"
+        
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bot $token")
+            .header("User-Agent", "CloudlyMC/1.0")
+            .build()
+        
+        return withContext(Dispatchers.IO) {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    plugin.logger.warning("Discord API error: ${response.code} ${response.message}")
+                    return@withContext null
+                }
+                
+                val responseBody = response.body?.string() ?: return@withContext null
+                val jsonArray = org.json.JSONArray(responseBody)
+                
+                if (jsonArray.length() == 0) {
+                    return@withContext null
+                }
+                
+                val member = jsonArray.getJSONObject(0)
+                val user = member.getJSONObject("user")
+                
+                DiscordUser(
+                    id = user.getString("id"),
+                    username = user.getString("username"),
+                    discriminator = user.optString("discriminator", "0")
+                )
+            }
+        }
+    }
+    
+    /**
+     * Check if a Discord user is a member of the configured server.
+     */
+    private suspend fun checkServerMembership(userId: String): Boolean {
+        val client = httpClient ?: return false
+        val token = botToken ?: return false
+        val guildId = serverId ?: return false
+        
+        val url = "https://discord.com/api/v10/guilds/$guildId/members/$userId"
+        
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bot $token")
+            .header("User-Agent", "CloudlyMC/1.0")
+            .build()
+        
+        return withContext(Dispatchers.IO) {
+            client.newCall(request).execute().use { response ->
+                response.isSuccessful
+            }
+        }
+    }
+    
+    /**
+     * Create a Discord connection object from verification result.
+     */
+    fun createDiscordConnection(result: DiscordVerificationResult.Success): DiscordConnection {
+        return DiscordConnection(
+            discordId = result.discordId,
+            discordUsername = result.username,
+            verified = true,
+            connectedAt = Instant.now(),
+            verifiedAt = Instant.now()
+        )
+    }
+    
+    /**
+     * Shutdown the Discord service and clean up resources.
+     */
+    fun shutdown() {
+        try {
+            coroutineScope.cancel()
+            httpClient?.dispatcher?.executorService?.shutdown()
+            userCache.clear()
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "Error shutting down Discord service", e)
+        }
+    }
+    
+    /**
+     * Clear the user cache (useful for testing or manual refresh).
+     */
+    fun clearCache() {
+        userCache.clear()
+    }
+}
+
+/**
+ * Result of Discord user verification.
+ */
+sealed class DiscordVerificationResult {
+    object ServiceDisabled : DiscordVerificationResult()
+    object UserNotFound : DiscordVerificationResult()
+    object NotServerMember : DiscordVerificationResult()
+    data class Success(val discordId: String, val username: String) : DiscordVerificationResult()
+    data class ApiError(val message: String) : DiscordVerificationResult()
+}
+
+/**
+ * Internal representation of a Discord user.
+ */
+private data class DiscordUser(
+    val id: String,
+    val username: String,
+    val discriminator: String
+)
+
+/**
+ * Cached Discord user information.
+ */
+private data class CachedDiscordUser(
+    val discordId: String,
+    val actualUsername: String,
+    val isValid: Boolean,
+    val cacheTime: Instant
+) {
+    fun isExpired(cacheDurationMinutes: Long): Boolean {
+        return Instant.now().isAfter(cacheTime.plusSeconds(cacheDurationMinutes * 60))
+    }
+}
