@@ -1,5 +1,6 @@
 package de.cloudly.whitelist.storage.impl
 
+import de.cloudly.whitelist.model.DiscordConnection
 import de.cloudly.whitelist.model.WhitelistPlayer
 import de.cloudly.whitelist.storage.WhitelistStorage
 import org.bukkit.plugin.java.JavaPlugin
@@ -38,6 +39,9 @@ class SqliteWhitelistStorage(
             // Create the whitelist table if it doesn't exist
             createTable()
             
+            // Migrate existing tables to include Discord fields
+            migrateTableForDiscord()
+            
             return true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to initialize SQLite whitelist storage", e)
@@ -47,8 +51,8 @@ class SqliteWhitelistStorage(
     
     override fun addPlayer(player: WhitelistPlayer): Boolean {
         val sql = """
-            INSERT OR REPLACE INTO whitelist (uuid, username, added_by, added_at, reason)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO whitelist (uuid, username, added_by, added_at, reason, discord_id, discord_username, discord_verified, discord_connected_at, discord_verified_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
         
         try {
@@ -58,6 +62,13 @@ class SqliteWhitelistStorage(
                 statement.setString(3, player.addedBy?.toString())
                 statement.setTimestamp(4, Timestamp.from(player.addedAt))
                 statement.setString(5, player.reason)
+                
+                // Discord connection fields
+                statement.setString(6, player.discordConnection?.discordId)
+                statement.setString(7, player.discordConnection?.discordUsername)
+                statement.setBoolean(8, player.discordConnection?.verified ?: false)
+                statement.setTimestamp(9, player.discordConnection?.connectedAt?.let { Timestamp.from(it) })
+                statement.setTimestamp(10, player.discordConnection?.verifiedAt?.let { Timestamp.from(it) })
                 
                 statement.executeUpdate()
                 return true
@@ -112,12 +123,15 @@ class SqliteWhitelistStorage(
                 
                 val resultSet = statement.executeQuery()
                 if (resultSet.next()) {
+                    val discordConnection = createDiscordConnectionFromResultSet(resultSet)
+                    
                     return WhitelistPlayer(
                         uuid = UUID.fromString(resultSet.getString("uuid")),
                         username = resultSet.getString("username"),
                         addedBy = resultSet.getString("added_by")?.let { UUID.fromString(it) },
                         addedAt = resultSet.getTimestamp("added_at").toInstant(),
-                        reason = resultSet.getString("reason")
+                        reason = resultSet.getString("reason"),
+                        discordConnection = discordConnection
                     )
                 }
             }
@@ -137,12 +151,15 @@ class SqliteWhitelistStorage(
                 val resultSet = statement.executeQuery()
                 
                 while (resultSet.next()) {
+                    val discordConnection = createDiscordConnectionFromResultSet(resultSet)
+                    
                     val player = WhitelistPlayer(
                         uuid = UUID.fromString(resultSet.getString("uuid")),
                         username = resultSet.getString("username"),
                         addedBy = resultSet.getString("added_by")?.let { UUID.fromString(it) },
                         addedAt = resultSet.getTimestamp("added_at").toInstant(),
-                        reason = resultSet.getString("reason")
+                        reason = resultSet.getString("reason"),
+                        discordConnection = discordConnection
                     )
                     
                     players.add(player)
@@ -153,6 +170,32 @@ class SqliteWhitelistStorage(
         }
         
         return players
+    }
+    
+    override fun updatePlayerDiscord(uuid: UUID, discordConnection: DiscordConnection): Boolean {
+        val sql = """
+            UPDATE whitelist 
+            SET discord_id = ?, discord_username = ?, discord_verified = ?, discord_connected_at = ?, discord_verified_at = ?
+            WHERE uuid = ?
+        """.trimIndent()
+        
+        try {
+            connection?.prepareStatement(sql)?.use { statement ->
+                statement.setString(1, discordConnection.discordId)
+                statement.setString(2, discordConnection.discordUsername)
+                statement.setBoolean(3, discordConnection.verified)
+                statement.setTimestamp(4, Timestamp.from(discordConnection.connectedAt))
+                statement.setTimestamp(5, discordConnection.verifiedAt?.let { Timestamp.from(it) })
+                statement.setString(6, uuid.toString())
+                
+                val rowsAffected = statement.executeUpdate()
+                return rowsAffected > 0
+            }
+        } catch (e: SQLException) {
+            plugin.logger.log(Level.SEVERE, "Failed to update player Discord connection", e)
+        }
+        
+        return false
     }
     
     override fun close() {
@@ -173,7 +216,12 @@ class SqliteWhitelistStorage(
                 username TEXT NOT NULL,
                 added_by TEXT,
                 added_at TIMESTAMP NOT NULL,
-                reason TEXT
+                reason TEXT,
+                discord_id TEXT,
+                discord_username TEXT,
+                discord_verified BOOLEAN DEFAULT FALSE,
+                discord_connected_at TIMESTAMP,
+                discord_verified_at TIMESTAMP
             )
         """.trimIndent()
         
@@ -183,6 +231,59 @@ class SqliteWhitelistStorage(
             }
         } catch (e: SQLException) {
             plugin.logger.log(Level.SEVERE, "Failed to create whitelist table", e)
+        }
+    }
+    
+    /**
+     * Migrate existing table to include Discord fields.
+     */
+    private fun migrateTableForDiscord() {
+        val columns = listOf(
+            "discord_id TEXT",
+            "discord_username TEXT", 
+            "discord_verified BOOLEAN DEFAULT FALSE",
+            "discord_connected_at TIMESTAMP",
+            "discord_verified_at TIMESTAMP"
+        )
+        
+        columns.forEach { column ->
+            try {
+                val sql = "ALTER TABLE whitelist ADD COLUMN $column"
+                connection?.createStatement()?.use { statement ->
+                    statement.execute(sql)
+                }
+            } catch (e: SQLException) {
+                // Column probably already exists, ignore
+            }
+        }
+    }
+    
+    /**
+     * Create a DiscordConnection from database result set.
+     */
+    private fun createDiscordConnectionFromResultSet(resultSet: java.sql.ResultSet): DiscordConnection? {
+        return try {
+            val discordId = resultSet.getString("discord_id")
+            val discordUsername = resultSet.getString("discord_username")
+            
+            if (discordId.isNullOrBlank() || discordUsername.isNullOrBlank()) {
+                return null
+            }
+            
+            val verified = resultSet.getBoolean("discord_verified")
+            val connectedAt = resultSet.getTimestamp("discord_connected_at")?.toInstant() ?: Instant.now()
+            val verifiedAt = resultSet.getTimestamp("discord_verified_at")?.toInstant()
+            
+            DiscordConnection(
+                discordId = discordId,
+                discordUsername = discordUsername,
+                verified = verified,
+                connectedAt = connectedAt,
+                verifiedAt = verifiedAt
+            )
+        } catch (e: SQLException) {
+            plugin.logger.log(Level.WARNING, "Failed to parse Discord connection from database", e)
+            null
         }
     }
 }
