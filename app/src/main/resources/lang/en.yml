@@ -37,7 +37,6 @@ commands:
     add_usage: "§cUsage: /cloudly whitelist add <player>"
     remove_usage: "§cUsage: /cloudly whitelist remove <player>"
     info_usage: "§cUsage: /cloudly whitelist info <player>"
-    player_never_played: "§cPlayer {player} has never played on this server before."
     player_added: "§aPlayer {player} has been added to the whitelist."
     add_failed: "§cFailed to add player {player} to the whitelist."
     player_removed: "§aPlayer {player} has been removed from the whitelist."
@@ -63,15 +62,22 @@ commands:
     help_reload: "§7/cloudly whitelist reload §f- Reload the whitelist"
     help_info: "§7/cloudly whitelist info <player> §f- Show information about a whitelisted player"
 
-# GUI Messages
-gui:
-  whitelist:
-    title: "§6§lCloudly Whitelist §8- §7{count} Players"
-    refreshed: "§aWhitelist GUI has been refreshed!"
-    player_details: "§eShowing details for §f{player}§e:"
-    player_removed: "§aPlayer §f{player}§a has been removed from the whitelist!"
-    remove_failed: "§cFailed to remove player §f{player}§c from the whitelist!"
-  
+  # Discord Commands
+  discord:
+    disabled: "§cDiscord integration is disabled or not configured properly."
+    players_only: "§cThis command can only be used by players."
+    not_whitelisted: "§cYou must be whitelisted to connect your Discord account."
+    already_connected: "§cYou already have Discord account §f{discord_username}§c connected."
+    connect_usage: "§cUsage: /cloudly connect <discord_username>"
+    invalid_username: "§cInvalid Discord username. Must be 2-32 characters long."
+    verifying: "§eVerifying Discord account §f{discord_username}§e..."
+    verification_error: "§cAn error occurred while verifying your Discord account. Please try again."
+    connected_successfully: "§aSuccessfully connected Discord account §f{discord_username}§a!"
+    connection_failed: "§cFailed to save Discord connection. Please try again."
+    user_not_found: "§cDiscord user §f{discord_username}§c not found or not accessible by the bot."
+    not_server_member: "§cDiscord user §f{discord_username}§c is not a member of the configured server."
+    api_error: "§cDiscord API error. Please try again later."
+
   # Reload command
   reload:
     starting_full: "§eStarting full hot-reload of all plugin components..."
@@ -94,7 +100,7 @@ gui:
     partial_failure_log: "Hot-reload completed with some errors"
     invalid_target: "§cInvalid reload target: §f{target}"
     usage: "§eUsage: §f/cloudly reload [config|lang|all]"
-  
+
   # Info command
   info:
     header: "§6§lCloudly Plugin Information"
@@ -103,11 +109,11 @@ gui:
     debug: "§7Debug Mode: §f{debug}"
     server_type: "§7Server Type: §f{type}"
     author: "§7Author: §fCloudly - §bhttps://becloudly.eu"
-  
+
   # Version command
   version:
     info: "§6Cloudly §7v{version} §7by §f{author}"
-  
+
   # Help command
   help:
     header: "§6=== Cloudly Commands ==="
@@ -115,6 +121,52 @@ gui:
     info: "§f/cloudly info §7- Show plugin information"
     version: "§f/cloudly version §7- Show plugin version"
     help: "§f/cloudly help §7- Show this help menu"
+
+# GUI Messages
+gui:
+  whitelist:
+    title: "§6§lCloudly Whitelist §8- §7{count} Players"
+    refreshed: "§aWhitelist GUI has been refreshed!"
+    player_details: "§eShowing details for §f{player}§e:"
+    player_removed: "§aPlayer §f{player}§a has been removed from the whitelist!"
+    remove_failed: "§cFailed to remove player §f{player}§c from the whitelist!"
+    
+    # Navigation elements
+    previous_page: "§a§lPrevious Page"
+    next_page: "§a§lNext Page"
+    previous_page_lore: "§7Click to go to page {page}"
+    next_page_lore: "§7Click to go to page {page}"
+    
+    # Info panel
+    info_title: "§6§lWhitelist Information"
+    info_total_players: "§7Total Players: §f{count}"
+    info_current_page: "§7Current Page: §f{current}§7/§f{total}"
+    info_players_per_page: "§7Players per Page: §f{count}"
+    info_add_command: "§eUse §f/cloudly whitelist add <player>§e to add players"
+    info_remove_command: "§eUse §f/cloudly whitelist remove <player>§e to remove players"
+    
+    # Player item details
+    player_added_by: "§7Added by: §f{name}"
+    player_added_on: "§7Added on: §f{date}"
+    player_reason: "§7Reason: §f{reason}"
+    player_discord_verified: "§7Discord: §f{username} §7(§aVerified§7)"
+    player_discord_connected: "§7Discord: §f{username} §7(§eConnected§7)"
+    player_discord_not_connected: "§7Discord: §cNot connected"
+    player_op_status: "§6⭐ Server Operator"
+    player_admin_status: "§c⚡ Administrator"
+    
+    # Action hints
+    actions_title: "§e§lActions:"
+    action_left_click: "§7• §fLeft-click: View details"
+    action_right_click: "§7• §cRight-click: Remove from whitelist"
+    
+    # Messages
+    only_players: "§cThis command can only be used by players."
+    no_permission_remove: "§cYou don't have permission to remove players from the whitelist."
+    refresh_button: "§e§lRefresh"
+    refresh_lore: "§7Click to refresh the whitelist"
+    console: "Console"
+    unknown: "Unknown"
 
 # Error messages
 error:
