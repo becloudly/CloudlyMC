@@ -35,7 +35,9 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
         enabled = plugin.config.getBoolean("whitelist.enabled", false)
         
         if (!enabled) {
-            plugin.logger.info("Custom whitelist is disabled in config")
+            if (plugin.config.getBoolean("plugin.debug", false)) {
+                plugin.logger.info("Custom whitelist is disabled in config")
+            }
             return
         }
         

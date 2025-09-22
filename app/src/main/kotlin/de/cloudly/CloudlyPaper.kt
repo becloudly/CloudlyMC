@@ -75,11 +75,11 @@ class CloudlyPaper : JavaPlugin() {
         logger.info(languageManager.getMessage("plugin.enabled", "version" to description.version))
         
         // Log server type detection
-        val serverType = if (SchedulerUtils.isFolia()) "Folia" else "Paper/Spigot"
-        logger.info("Detected server type: $serverType")
-        
-        // Log configuration status
         val debugMode = configManager.getBoolean("plugin.debug", false)
+        val serverType = if (SchedulerUtils.isFolia(debugMode)) "Folia" else "Paper/Spigot"
+        if (debugMode) {
+            logger.info("Detected server type: $serverType")
+        }
         
         // Initialize whitelist service
         whitelistService = WhitelistService(this)

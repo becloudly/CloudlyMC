@@ -22,7 +22,7 @@ object SchedulerUtils {
     /**
      * Initialize the scheduler utility by detecting server type.
      */
-    private fun initialize() {
+    private fun initialize(debug: Boolean = false) {
         if (isFolia != null) return
         
         try {
@@ -39,29 +39,37 @@ object SchedulerUtils {
             foliaAsyncScheduler = foliaAsyncSchedulerMethod?.invoke(null)
             
             isFolia = true
-            // Log successful Folia detection
-            println("[Cloudly] Detected Folia/Canvas server - using Folia schedulers")
+            // Log successful Folia detection only if debug is enabled
+            if (debug) {
+                println("[Cloudly] Detected Folia/Canvas server - using Folia schedulers")
+            }
         } catch (e: ClassNotFoundException) {
             // Folia classes not found, we're on Paper/Spigot
             isFolia = false
-            println("[Cloudly] Detected Paper/Spigot server - using Bukkit schedulers")
+            if (debug) {
+                println("[Cloudly] Detected Paper/Spigot server - using Bukkit schedulers")
+            }
         } catch (e: NoSuchMethodException) {
             // Method not found, assume Paper/Spigot
             isFolia = false
-            println("[Cloudly] Method not found, assuming Paper/Spigot server")
+            if (debug) {
+                println("[Cloudly] Method not found, assuming Paper/Spigot server")
+            }
         } catch (e: Exception) {
             // Any other error, assume Paper/Spigot
             isFolia = false
-            println("[Cloudly] Error detecting server type: ${e.message}, assuming Paper/Spigot")
-            e.printStackTrace()
+            if (debug) {
+                println("[Cloudly] Error detecting server type: ${e.message}, assuming Paper/Spigot")
+                e.printStackTrace()
+            }
         }
     }
     
     /**
      * Check if the server is running Folia.
      */
-    fun isFolia(): Boolean {
-        initialize()
+    fun isFolia(debug: Boolean = false): Boolean {
+        initialize(debug)
         return isFolia ?: false
     }
     

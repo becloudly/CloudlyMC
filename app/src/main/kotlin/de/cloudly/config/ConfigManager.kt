@@ -51,7 +51,9 @@ class ConfigManager(private val plugin: JavaPlugin) {
         val pluginFolder = File(plugin.dataFolder.parentFile, "Cloudly")
         if (!pluginFolder.exists()) {
             pluginFolder.mkdirs()
-            plugin.logger.info(getMessage("config.directory_created"))
+            if (getBoolean("plugin.debug", false)) {
+                plugin.logger.info(getMessage("config.directory_created"))
+            }
         }
         
         // Set up config file path
@@ -73,7 +75,9 @@ class ConfigManager(private val plugin: JavaPlugin) {
             }
             
             config = YamlConfiguration.loadConfiguration(file)
-            plugin.logger.info(getMessage("config.loaded_successfully"))
+            if (getBoolean("plugin.debug", false)) {
+                plugin.logger.info(getMessage("config.loaded_successfully"))
+            }
         }
     }
     
@@ -87,7 +91,9 @@ class ConfigManager(private val plugin: JavaPlugin) {
                 targetFile.outputStream().use { output ->
                     resourceStream.copyTo(output)
                 }
-                plugin.logger.info(getMessage("config.default_created"))
+                if (getBoolean("plugin.debug", false)) {
+                    plugin.logger.info(getMessage("config.default_created"))
+                }
             } else {
                 // Fallback if resource is not found
                 createDefaultConfig(targetFile)

@@ -54,7 +54,9 @@ class LanguageManager(private val plugin: JavaPlugin, private val configManager:
                     targetFile.outputStream().use { output ->
                         resourceStream.copyTo(output)
                     }
-                    plugin.logger.info("Created language file: $fileName")
+                    if (configManager.getBoolean("plugin.debug", false)) {
+                        plugin.logger.info("Created language file: $fileName")
+                    }
                 }
             } catch (e: Exception) {
                 plugin.logger.log(Level.WARNING, "Could not copy language file: $fileName", e)

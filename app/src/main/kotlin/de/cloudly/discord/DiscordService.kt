@@ -37,14 +37,21 @@ class DiscordService(private val plugin: CloudlyPaper) {
      */
     fun initialize(): Boolean {
         return try {
-            plugin.logger.info("Initializing Discord service...")
+            val debugMode = configManager.getBoolean("plugin.debug", false)
+            if (debugMode) {
+                plugin.logger.info("Initializing Discord service...")
+            }
             
             // Load Discord configuration
             val discordEnabled = configManager.getBoolean("discord.enabled", false)
-            plugin.logger.info("Discord enabled in config: $discordEnabled")
+            if (debugMode) {
+                plugin.logger.info("Discord enabled in config: $discordEnabled")
+            }
             
             if (!discordEnabled) {
-                plugin.logger.info("Discord integration is disabled in configuration")
+                if (debugMode) {
+                    plugin.logger.info("Discord integration is disabled in configuration")
+                }
                 return true
             }
             
