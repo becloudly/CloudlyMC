@@ -148,17 +148,14 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
     private fun createPlayerItem(player: WhitelistPlayer, languageManager: de.cloudly.config.LanguageManager): ItemStack {
         val playerItem = ItemStack(Material.PLAYER_HEAD)
         
-        // Check for special status (OP/Admin) before setting item meta
+        // Check for special status (OP) before setting item meta
         val offlinePlayer = Bukkit.getOfflinePlayer(player.uuid)
         val onlinePlayer = Bukkit.getPlayer(player.uuid)
         
         // Check if player is OP
         val isOp = offlinePlayer.isOp
         
-        // Check if online player has admin permission
-        val isAdmin = onlinePlayer != null && onlinePlayer.hasPermission("cloudly.admin")
-        
-        val hasSpecialStatus = isOp || isAdmin
+        val hasSpecialStatus = isOp
         
         playerItem.itemMeta = (playerItem.itemMeta as SkullMeta).apply {
             // Set player skull
@@ -175,10 +172,6 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
             // Add special status indicators
             if (isOp) {
                 lore.add(languageManager.getMessage("gui.whitelist.player_op_status"))
-            }
-            
-            if (isAdmin) {
-                lore.add(languageManager.getMessage("gui.whitelist.player_admin_status"))
             }
             
             // Add separator if special status was shown
