@@ -161,3 +161,13 @@ error:
   unknown: "Ein unbekannter Fehler ist aufgetreten"
   file_not_found: "Datei nicht gefunden"
   permission_denied: "Zugriff verweigert"
+
+# Player Connection Messages
+player_connection:
+  join:
+    chat: "§8[§a+§8] §f{player_name} §7ist dem Spiel beigetreten"
+    console: "Spieler {player_name} ist dem Spiel beigetreten"
+  
+  leave:
+    chat: "§8[§c-§8] §f{player_name} §7hat das Spiel verlassen"
+    console: "Spieler {player_name} hat das Spiel verlassen"

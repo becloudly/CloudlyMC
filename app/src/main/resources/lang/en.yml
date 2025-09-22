@@ -161,3 +161,13 @@ error:
   unknown: "An unknown error occurred"
   file_not_found: "File not found"
   permission_denied: "Permission denied"
+
+# Player Connection Messages
+player_connection:
+  join:
+    chat: "§8[§a+§8] §f{player_name} §7joined the game"
+    console: "Player {player_name} joined the game"
+  
+  leave:
+    chat: "§8[§c-§8] §f{player_name} §7left the game"
+    console: "Player {player_name} left the game"
