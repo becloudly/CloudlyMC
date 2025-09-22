@@ -55,30 +55,52 @@ player_connection:
 
 # ======================================================================================
 
+# Global Storage Configuration
+# This storage system is used by all parts of the plugin (whitelist, player data, etc.)
+storage:
+  # Default storage type for new repositories
+  # Available options: json, sqlite, mysql
+  default_type: "json"
+  
+  # JSON Storage Settings
+  json:
+    # Base directory for JSON files (relative to plugin folder)
+    base_path: "data"
+    # File extension for JSON files
+    file_extension: ".json"
+    # Whether to format JSON files with indentation for readability
+    pretty_print: true
+  
+  # SQLite Storage Settings
+  sqlite:
+    # Base directory for SQLite databases (relative to plugin folder)
+    base_path: "data"
+    # File extension for SQLite databases
+    file_extension: ".db"
+    # Journal mode for SQLite (WAL, DELETE, TRUNCATE, PERSIST, MEMORY, OFF)
+    journal_mode: "WAL"
+    # Synchronous mode for SQLite (OFF, NORMAL, FULL, EXTRA)
+    synchronous: "NORMAL"
+  
+  # MySQL Storage Settings
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "cloudly_plugin"
+    username: "root"
+    password: ""
+    # Prefix for all tables created by the storage system
+    table_prefix: "cloudly_"
+    # Connection timeout in milliseconds
+    connection_timeout: 30000
+    # Whether to use SSL for the connection
+    use_ssl: false
+    # Connection pool size
+    pool_size: 10
+
+# ======================================================================================
+
 # Whitelist Settings
 whitelist:
   # Enable custom whitelist (overrides Minecraft's built-in whitelist)
   enabled: false
-  
-  # Storage type for whitelist data
-  # Available options: json, sqlite, mysql
-  storage_type: "json"
-  
-  # JSON Storage Settings (used when storage_type is "json")
-  json:
-    # File path for the whitelist JSON file (relative to plugin folder)
-    file_path: "whitelist.json"
-  
-  # SQLite Storage Settings (used when storage_type is "sqlite")
-  sqlite:
-    # File path for the SQLite database (relative to plugin folder)
-    file_path: "whitelist.db"
-    
-  # MySQL Storage Settings (used when storage_type is "mysql")
-  mysql:
-    host: "localhost"
-    port: 3306
-    database: "minecraft_whitelist"
-    username: "root"
-    password: ""
-    table_prefix: "cloudly_"

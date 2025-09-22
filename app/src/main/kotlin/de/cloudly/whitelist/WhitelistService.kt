@@ -1,10 +1,10 @@
 package de.cloudly.whitelist
 
-import de.cloudly.whitelist.config.WhitelistConfig
+import de.cloudly.storage.config.StorageConfig
+import de.cloudly.storage.core.DataRepository
+import de.cloudly.storage.factory.StorageFactory
 import de.cloudly.whitelist.model.DiscordConnection
 import de.cloudly.whitelist.model.WhitelistPlayer
-import de.cloudly.whitelist.storage.WhitelistStorage
-import de.cloudly.whitelist.storage.WhitelistStorageFactory
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -15,13 +15,14 @@ import java.util.UUID
 import java.util.logging.Level
 
 /**
- * Service for managing the custom whitelist system.
+ * Service for managing the custom whitelist system using the new generic storage.
  * Handles player whitelist operations and login events.
  */
 class WhitelistService(private val plugin: JavaPlugin) : Listener {
     
-    private val config = WhitelistConfig(plugin)
-    private var storage: WhitelistStorage? = null
+    private val storageConfig = StorageConfig(plugin) // Use global storage config
+    private val storageFactory = StorageFactory(plugin)
+    private var repository: DataRepository<WhitelistPlayer>? = null
     private var enabled = false
     
     /**
@@ -30,25 +31,28 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      */
     fun initialize() {
         // Load configuration
-        config.load()
-        enabled = config.enabled
+        storageConfig.load()
+        enabled = plugin.config.getBoolean("whitelist.enabled", false)
         
         if (!enabled) {
             plugin.logger.info("Custom whitelist is disabled in config")
             return
         }
         
-        // Create and initialize storage
-        val storageFactory = WhitelistStorageFactory(plugin)
-        storage = storageFactory.createStorage(config)
+        // Create and initialize repository using new generic storage
+        val deserializer: (String, String) -> WhitelistPlayer? = { data, _ ->
+            WhitelistPlayer.deserialize(data)
+        }
         
-        if (storage?.initialize() == true) {
-            plugin.logger.info("Whitelist storage initialized successfully")
+        repository = storageFactory.createRepository("whitelist", storageConfig, deserializer)
+        
+        if (repository?.initialize() == true) {
+            plugin.logger.info("Whitelist repository initialized successfully using new storage system")
             
             // Register event listener
             plugin.server.pluginManager.registerEvents(this, plugin)
         } else {
-            plugin.logger.severe("Failed to initialize whitelist storage")
+            plugin.logger.severe("Failed to initialize whitelist repository")
             enabled = false
         }
     }
@@ -61,7 +65,7 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * @return true if the player was added successfully, false otherwise
      */
     fun addPlayer(player: Player, addedBy: UUID? = null, reason: String? = null): Boolean {
-        if (!enabled || storage == null) return false
+        if (!enabled || repository == null) return false
         
         val whitelistPlayer = WhitelistPlayer(
             uuid = player.uniqueId,
@@ -70,7 +74,7 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
             reason = reason
         )
         
-        return storage?.addPlayer(whitelistPlayer) ?: false
+        return repository?.store(player.uniqueId.toString(), whitelistPlayer) ?: false
     }
     
     /**
@@ -82,7 +86,7 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * @return true if the player was added successfully, false otherwise
      */
     fun addPlayer(uuid: UUID, username: String, addedBy: UUID? = null, reason: String? = null): Boolean {
-        if (!enabled || storage == null) return false
+        if (!enabled || repository == null) return false
         
         val whitelistPlayer = WhitelistPlayer(
             uuid = uuid,
@@ -91,7 +95,7 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
             reason = reason
         )
         
-        return storage?.addPlayer(whitelistPlayer) ?: false
+        return repository?.store(uuid.toString(), whitelistPlayer) ?: false
     }
     
     /**
@@ -100,9 +104,9 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * @return true if the player was removed successfully, false otherwise
      */
     fun removePlayer(uuid: UUID): Boolean {
-        if (!enabled || storage == null) return false
+        if (!enabled || repository == null) return false
         
-        return storage?.removePlayer(uuid) ?: false
+        return repository?.remove(uuid.toString()) ?: false
     }
     
     /**
@@ -111,9 +115,9 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * @return true if the player is whitelisted, false otherwise
      */
     fun isWhitelisted(uuid: UUID): Boolean {
-        if (!enabled || storage == null) return true // If disabled, allow all players
+        if (!enabled || repository == null) return true // If disabled, allow all players
         
-        return storage?.isWhitelisted(uuid) ?: true
+        return repository?.exists(uuid.toString()) ?: true
     }
     
     /**
@@ -122,9 +126,9 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * @return The WhitelistPlayer if found, null otherwise
      */
     fun getPlayer(uuid: UUID): WhitelistPlayer? {
-        if (!enabled || storage == null) return null
+        if (!enabled || repository == null) return null
         
-        return storage?.getPlayer(uuid)
+        return repository?.retrieve(uuid.toString())
     }
     
     /**
@@ -132,9 +136,9 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * @return A list of all whitelisted players
      */
     fun getAllPlayers(): List<WhitelistPlayer> {
-        if (!enabled || storage == null) return emptyList()
+        if (!enabled || repository == null) return emptyList()
         
-        return storage?.getAllPlayers() ?: emptyList()
+        return repository?.getAll()?.values?.toList() ?: emptyList()
     }
     
     /**
@@ -144,9 +148,12 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * @return true if the update was successful, false otherwise
      */
     fun updatePlayerDiscord(uuid: UUID, discordConnection: DiscordConnection): Boolean {
-        if (!enabled || storage == null) return false
+        if (!enabled || repository == null) return false
         
-        return storage?.updatePlayerDiscord(uuid, discordConnection) ?: false
+        val existingPlayer = repository?.retrieve(uuid.toString()) ?: return false
+        val updatedPlayer = existingPlayer.copy(discordConnection = discordConnection)
+        
+        return repository?.store(uuid.toString(), updatedPlayer) ?: false
     }
     
     /**
@@ -155,14 +162,17 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      */
     fun enable(enable: Boolean) {
         this.enabled = enable
-        config.enabled = enable
-        config.save()
+        plugin.config.set("whitelist.enabled", enable)
+        plugin.saveConfig()
         
-        if (enable && storage == null) {
-            // Re-initialize storage if enabling and storage doesn't exist
-            val storageFactory = WhitelistStorageFactory(plugin)
-            storage = storageFactory.createStorage(config)
-            storage?.initialize()
+        if (enable && repository == null) {
+            // Re-initialize repository if enabling and repository doesn't exist
+            val deserializer: (String, String) -> WhitelistPlayer? = { data, _ ->
+                WhitelistPlayer.deserialize(data)
+            }
+            
+            repository = storageFactory.createRepository("whitelist", storageConfig, deserializer)
+            repository?.initialize()
             
             // Register event listener if not already registered
             try {
@@ -179,8 +189,8 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * Reload the whitelist configuration and storage.
      */
     fun reload() {
-        // Close existing storage
-        storage?.close()
+        // Close existing repository
+        repository?.close()
         
         // Reinitialize
         initialize()
@@ -188,11 +198,11 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
     
     /**
      * Shutdown the whitelist service.
-     * Closes the storage connection.
+     * Closes the repository connection.
      */
     fun shutdown() {
-        storage?.close()
-        storage = null
+        repository?.close()
+        repository = null
         enabled = false
     }
     
@@ -201,7 +211,7 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     fun onPlayerLogin(event: PlayerLoginEvent) {
-        if (!enabled || storage == null) return
+        if (!enabled || repository == null) return
         
         // If the player is already denied for another reason, don't override
         if (event.result != PlayerLoginEvent.Result.ALLOWED) {

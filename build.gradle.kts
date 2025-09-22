@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "de.cloudly"
-version = "0.0.1-alpha_v8"
+version = "0.0.1-alpha_9"
 
 repositories {
     mavenCentral()
