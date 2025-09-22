@@ -109,6 +109,7 @@ commands:
     info: "§f  /cloudly info §7- Plugin-Informationen anzeigen"
     help: "§f  /cloudly help §7- Dieses Hilfemenü anzeigen"
     whitelist: "§f  /cloudly whitelist <add|remove|list|gui|on|off|reload|info> §7- Whitelist verwalten"
+    perms: "§f  /cloudly perms <group|user|style|help|info|reload> §7- Berechtigungen verwalten"
     discord.connect: "§f  /cloudly connect <discord_username> §7- Verbinde dein Discord-Konto"
 
 # GUI Nachrichten
@@ -171,3 +172,92 @@ player_connection:
   leave:
     chat: "§8[§c-§8] §f{player_name} §7hat das Spiel verlassen"
     console: "Spieler {player_name} hat das Spiel verlassen"
+
+# Berechtigungssystem Nachrichten
+permissions:
+  # Allgemeine Nachrichten
+  player_not_found: "§c✗ Spieler §f{player}§c nicht gefunden"
+  group_not_found: "§c✗ Gruppe §f{group}§c nicht gefunden"
+  permission_not_found: "§c✗ Berechtigung §f{permission}§c nicht gefunden"
+  invalid_duration: "§c✗ Ungültiges Dauerformat. Verwende Format wie: 1d, 2h, 30m, permanent"
+  database_error: "§c✗ Datenbankfehler aufgetreten. Details in der Konsole"
+  
+  # Gruppenverwaltung
+  groups:
+    created: "§a✓ Gruppe §f{group}§a erfolgreich erstellt mit Gewichtung §f{weight}"
+  
+  group:
+    created: "§a✓ Gruppe §f{group}§a erfolgreich erstellt"
+    deleted: "§a✓ Gruppe §f{group}§a erfolgreich gelöscht"
+    already_exists: "§c✗ Gruppe §f{group}§c existiert bereits"
+    weight_set: "§a✓ Gewichtung der Gruppe §f{group}§a auf §f{weight}§a gesetzt"
+    prefix_set: "§a✓ Präfix der Gruppe §f{group}§a auf §f{prefix}§a gesetzt"
+    suffix_set: "§a✓ Suffix der Gruppe §f{group}§a auf §f{suffix}§a gesetzt"
+    permission_added: "§a✓ Berechtigung §f{permission}§a zur Gruppe §f{group}§a hinzugefügt"
+    permission_removed: "§a✓ Berechtigung §f{permission}§a von Gruppe §f{group}§a entfernt"
+    permission_already_exists: "§c✗ Gruppe §f{group}§c hat bereits die Berechtigung §f{permission}"
+    permission_not_exists: "§c✗ Gruppe §f{group}§c hat nicht die Berechtigung §f{permission}"
+    
+    list_header: "§6§lGruppen §7({count} insgesamt)§6:"
+    list_entry: "§f  • {group} §7(Gewichtung: {weight})"
+    
+    info_header: "§6§lGruppeninformationen §7- §f{group}§6:"
+    info_weight: "§f  • Gewichtung: §7{weight}"
+    info_prefix: "§f  • Präfix: {prefix}"
+    info_suffix: "§f  • Suffix: {suffix}"
+    info_permissions: "§f  • Berechtigungen ({count}):"
+    info_permission_entry: "§7    - {permission}"
+    info_no_permissions: "§7    Keine Berechtigungen zugewiesen"
+  
+  # Benutzerverwaltung
+  users:
+    group_added: "§a✓ Benutzer §f{user}§a wurde zur Gruppe §f{group}§a hinzugefügt"
+  
+  user:
+    group_added: "§a✓ Gruppe §f{group}§a zu Benutzer §f{user}§a hinzugefügt"
+    group_removed: "§a✓ Gruppe §f{group}§a von Benutzer §f{user}§a entfernt"
+    group_added_temp: "§a✓ Temporäre Gruppe §f{group}§a zu Benutzer §f{user}§a für §f{duration}§a hinzugefügt"
+    group_already_exists: "§c✗ Benutzer §f{user}§c hat bereits die Gruppe §f{group}"
+    group_not_exists: "§c✗ Benutzer §f{user}§c hat nicht die Gruppe §f{group}"
+    permission_added: "§a✓ Berechtigung §f{permission}§a zu Benutzer §f{user}§a hinzugefügt"
+    permission_removed: "§a✓ Berechtigung §f{permission}§a von Benutzer §f{user}§a entfernt"
+    permission_added_temp: "§a✓ Temporäre Berechtigung §f{permission}§a zu Benutzer §f{user}§a für §f{duration}§a hinzugefügt"
+    permission_already_exists: "§c✗ Benutzer §f{user}§c hat bereits die Berechtigung §f{permission}"
+    permission_not_exists: "§c✗ Benutzer §f{user}§c hat nicht die Berechtigung §f{permission}"
+    cleaned_up: "§a✓ {count} abgelaufene Berechtigungen für Benutzer §f{user}§a bereinigt"
+    
+    info_header: "§6§lBenutzerinformationen §7- §f{user}§6:"
+    info_uuid: "§f  • UUID: §7{uuid}"
+    info_groups: "§f  • Gruppen ({count}):"
+    info_group_entry: "§7    - {group}"
+    info_group_entry_temp: "§7    - {group} §c(läuft ab {expiry})"
+    info_permissions: "§f  • Direkte Berechtigungen ({count}):"
+    info_permission_entry: "§7    - {permission}"
+    info_permission_entry_temp: "§7    - {permission} §c(läuft ab {expiry})"
+    info_effective_permissions: "§f  • Effektive Berechtigungen ({count}):"
+    info_no_groups: "§7    Keine Gruppen zugewiesen"
+    info_no_permissions: "§7    Keine direkten Berechtigungen zugewiesen"
+    info_effective_prefix: "§f  • Effektiver Präfix: {prefix}"
+    info_effective_suffix: "§f  • Effektiver Suffix: {suffix}"
+  
+  # Berechtigungssystem-Verwaltung
+  system:
+    reloaded: "§a✓ Berechtigungssystem erfolgreich neu geladen"
+    reload_failed: "§c✗ Fehler beim Neuladen des Berechtigungssystems. Details in der Konsole"
+    check_has_permission: "§a✓ Benutzer §f{user}§a hat die Berechtigung §f{permission}"
+    check_no_permission: "§c✗ Benutzer §f{user}§c hat nicht die Berechtigung §f{permission}"
+    cleanup_completed: "§a✓ {count} abgelaufene Berechtigungen bei allen Benutzern bereinigt"
+    
+    stats_header: "§6§lBerechtigungssystem Statistiken§6:"
+    stats_groups: "§f  • Gruppen insgesamt: §7{groups}"
+    stats_users: "§f  • Benutzer insgesamt: §7{users}"
+    stats_permissions: "§f  • Berechtigungen insgesamt: §7{permissions}"
+    stats_temp_permissions: "§f  • Temporäre Berechtigungen: §7{temp_permissions}"
+    stats_discovered_permissions: "§f  • Entdeckte Berechtigungen: §7{discovered}"
+    
+    info_header: "§6§lBerechtigungssystem Informationen§6:"
+    info_version: "§f  • Version: §7CloudlyMC Berechtigungssystem v1.0"
+    info_storage: "§f  • Speicher-Backend: §7{storage}"
+    info_groups_count: "§f  • Gruppen: §7{groups}"
+    info_users_count: "§f  • Benutzer: §7{users}"
+    info_cache_status: "§f  • Cache-Status: §7Aktiv"
