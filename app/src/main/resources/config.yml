@@ -100,6 +100,18 @@ storage:
 
 # ======================================================================================
 
+# Permission System Settings
+permissions:
+  # Enable the CloudlyMC permission system
+  enabled: true
+  
+  # Default group settings
+  default_group:
+    name: "base"
+    weight: 1
+
+# ======================================================================================
+
 # Whitelist Settings
 whitelist:
   # Enable custom whitelist (overrides Minecraft's built-in whitelist)
