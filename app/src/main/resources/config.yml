@@ -31,6 +31,30 @@ discord:
 
 # ======================================================================================
 
+# Player Connection Settings
+player_connection:
+  # Remove default join/leave messages from chat and console
+  # This allows for custom join/leave messages to be implemented later
+  remove_default_messages: true
+  
+  # Custom Join/Leave Messages
+  custom_messages:
+    # Enable custom join messages
+    join:
+      enabled: true
+      # Available placeholders: {player_name}, {player_display_name}, {server_name}
+      broadcast_to_chat: true
+      broadcast_to_console: true
+    
+    # Enable custom leave messages  
+    leave:
+      enabled: true
+      # Available placeholders: {player_name}, {player_display_name}, {server_name}
+      broadcast_to_chat: true
+      broadcast_to_console: true
+
+# ======================================================================================
+
 # Whitelist Settings
 whitelist:
   # Enable custom whitelist (overrides Minecraft's built-in whitelist)
