@@ -7,6 +7,7 @@ import de.cloudly.config.HotReloadManager
 import de.cloudly.config.LanguageManager
 import de.cloudly.discord.DiscordService
 import de.cloudly.gui.WhitelistGuiManager
+import de.cloudly.listeners.PlayerConnectionListener
 import de.cloudly.utils.SchedulerUtils
 import de.cloudly.whitelist.WhitelistService
 import org.bukkit.plugin.java.JavaPlugin
@@ -19,6 +20,7 @@ class CloudlyPaper : JavaPlugin() {
     private lateinit var whitelistService: WhitelistService
     private lateinit var whitelistGuiManager: WhitelistGuiManager
     private lateinit var discordService: DiscordService
+    private lateinit var playerConnectionListener: PlayerConnectionListener
     
     companion object {
         lateinit var instance: CloudlyPaper
@@ -89,6 +91,10 @@ class CloudlyPaper : JavaPlugin() {
         // Initialize Discord service
         discordService = DiscordService(this)
         discordService.initialize()
+        
+        // Initialize player connection listener
+        playerConnectionListener = PlayerConnectionListener(this)
+        server.pluginManager.registerEvents(playerConnectionListener, this)
         
         if (debugMode) {
             logger.info(languageManager.getMessage("plugin.debug_enabled"))
