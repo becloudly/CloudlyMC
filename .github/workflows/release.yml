@@ -246,7 +246,7 @@ jobs:
       
     steps:
       - name: 📥 Download Build Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: cloudly-plugin
           path: ./artifacts
