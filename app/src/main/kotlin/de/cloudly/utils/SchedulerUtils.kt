@@ -81,20 +81,23 @@ object SchedulerUtils {
         
         return if (isFolia == true) {
             try {
-                // Use Folia's global region scheduler
-                val runMethod = foliaGlobalRegionScheduler?.javaClass?.getMethod("run", JavaPlugin::class.java, Runnable::class.java)
-                runMethod?.invoke(foliaGlobalRegionScheduler, plugin, task)
+                // Use Folia's global region scheduler - convert Runnable to Consumer<ScheduledTask>
+                val runMethod = foliaGlobalRegionScheduler?.javaClass?.getMethod(
+                    "run", 
+                    org.bukkit.plugin.Plugin::class.java, 
+                    java.util.function.Consumer::class.java
+                )
+                
+                // Convert Runnable to Consumer<ScheduledTask>
+                val taskConsumer = java.util.function.Consumer<Any> { _ -> task.run() }
+                
+                runMethod?.invoke(foliaGlobalRegionScheduler, plugin, taskConsumer)
                 null // Folia doesn't return BukkitTask
             } catch (e: Exception) {
-                plugin.logger.warning("Failed to use Folia scheduler, falling back to Bukkit: ${e.message}")
-                // Fallback to Bukkit scheduler
-                try {
-                    org.bukkit.Bukkit.getScheduler().runTask(plugin, task)
-                } catch (ex: Exception) {
-                    plugin.logger.severe("Both Folia and Bukkit schedulers failed: ${ex.message}")
-                    ex.printStackTrace()
-                    null
-                }
+                plugin.logger.severe("Failed to use Folia global region scheduler: ${e.message}")
+                e.printStackTrace()
+                // Do NOT fallback to Bukkit scheduler on Folia - it's intentionally disabled
+                null
             }
         } else {
             // Use traditional Bukkit scheduler
@@ -116,9 +119,17 @@ object SchedulerUtils {
         
         return if (isFolia == true) {
             try {
-                // Use Folia's async scheduler
-                val runNowMethod = foliaAsyncScheduler?.javaClass?.getMethod("runNow", JavaPlugin::class.java, Runnable::class.java)
-                runNowMethod?.invoke(foliaAsyncScheduler, plugin, task)
+                // Use Folia's async scheduler - convert Runnable to Consumer<ScheduledTask>
+                val runNowMethod = foliaAsyncScheduler?.javaClass?.getMethod(
+                    "runNow", 
+                    org.bukkit.plugin.Plugin::class.java, 
+                    java.util.function.Consumer::class.java
+                )
+                
+                // Convert Runnable to Consumer<ScheduledTask>
+                val taskConsumer = java.util.function.Consumer<Any> { _ -> task.run() }
+                
+                runNowMethod?.invoke(foliaAsyncScheduler, plugin, taskConsumer)
                 null // Folia doesn't return BukkitTask
             } catch (e: Exception) {
                 plugin.logger.severe("Failed to use Folia async scheduler: ${e.message}")
@@ -146,15 +157,18 @@ object SchedulerUtils {
         
         return if (isFolia == true) {
             try {
-                // Use Folia's async scheduler with repeating
+                // Use Folia's async scheduler with repeating - convert Runnable to Consumer<ScheduledTask>
                 val runAtFixedRateMethod = foliaAsyncScheduler?.javaClass?.getMethod(
                     "runAtFixedRate", 
-                    JavaPlugin::class.java, 
-                    Runnable::class.java, 
+                    org.bukkit.plugin.Plugin::class.java, 
+                    java.util.function.Consumer::class.java,
                     Long::class.javaPrimitiveType, 
                     Long::class.javaPrimitiveType, 
                     TimeUnit::class.java
                 )
+                
+                // Convert Runnable to Consumer<ScheduledTask>
+                val taskConsumer = java.util.function.Consumer<Any> { _ -> task.run() }
                 
                 // Convert ticks to milliseconds (20 ticks = 1 second = 1000ms)
                 val delayMs = delay * TICKS_TO_MILLISECONDS
@@ -163,7 +177,7 @@ object SchedulerUtils {
                 runAtFixedRateMethod?.invoke(
                     foliaAsyncScheduler, 
                     plugin, 
-                    task, 
+                    taskConsumer, 
                     delayMs, 
                     periodMs, 
                     TimeUnit.MILLISECONDS
@@ -195,14 +209,17 @@ object SchedulerUtils {
         
         return if (isFolia == true) {
             try {
-                // Use Folia's async scheduler with delay
+                // Use Folia's async scheduler with delay - convert Runnable to Consumer<ScheduledTask>
                 val runDelayedMethod = foliaAsyncScheduler?.javaClass?.getMethod(
                     "runDelayed", 
-                    JavaPlugin::class.java, 
-                    Runnable::class.java, 
+                    org.bukkit.plugin.Plugin::class.java, 
+                    java.util.function.Consumer::class.java,
                     Long::class.javaPrimitiveType, 
                     TimeUnit::class.java
                 )
+                
+                // Convert Runnable to Consumer<ScheduledTask>
+                val taskConsumer = java.util.function.Consumer<Any> { _ -> task.run() }
                 
                 // Convert ticks to milliseconds (20 ticks = 1 second = 1000ms)
                 val delayMs = delay * TICKS_TO_MILLISECONDS
@@ -210,7 +227,7 @@ object SchedulerUtils {
                 runDelayedMethod?.invoke(
                     foliaAsyncScheduler, 
                     plugin, 
-                    task, 
+                    taskConsumer, 
                     delayMs, 
                     TimeUnit.MILLISECONDS
                 )
