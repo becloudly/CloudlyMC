@@ -12,16 +12,86 @@ commands:
     description: Main command for Cloudly plugin
     usage: /cloudly <subcommand>
     permission: cloudly.admin
-    aliases: [cl]
   whitelist:
     description: Disabled vanilla whitelist command - redirects to Cloudly whitelist
     usage: /cloudly whitelist <subcommand>
     permission: cloudly.whitelist
 
 permissions:
+  cloudly.*:
+    description: All Cloudly permissions
+    default: false
+    children:
+      cloudly.admin: true
+      cloudly.whitelist: true
+      cloudly.permissions.*: true
+  
   cloudly.admin:
     description: Allows the player to manage the server.
     default: op
+  
   cloudly.whitelist:
     description: Allows the player to manage the whitelist.
+    default: op
+  
+  cloudly.permissions.*:
+    description: All permission system permissions
+    default: false
+    children:
+      cloudly.permissions.admin: true
+      cloudly.permissions.info: true
+      cloudly.permissions.reload: true
+      cloudly.permissions.group.*: true
+      cloudly.permissions.user.*: true
+  
+  cloudly.permissions.admin:
+    description: Full permission system administration
+    default: op
+  
+  cloudly.permissions.info:
+    description: View permission information
+    default: op
+  
+  cloudly.permissions.reload:
+    description: Reload the permission system
+    default: op
+  
+  cloudly.permissions.group.*:
+    description: All group management permissions
+    default: false
+    children:
+      cloudly.permissions.group.create: true
+      cloudly.permissions.group.delete: true
+      cloudly.permissions.group.edit: true
+      cloudly.permissions.group.list: true
+  
+  cloudly.permissions.group.create:
+    description: Create new permission groups
+    default: op
+  
+  cloudly.permissions.group.delete:
+    description: Delete permission groups
+    default: op
+  
+  cloudly.permissions.group.edit:
+    description: Edit permission groups
+    default: op
+  
+  cloudly.permissions.group.list:
+    description: List permission groups
+    default: op
+  
+  cloudly.permissions.user.*:
+    description: All user management permissions
+    default: false
+    children:
+      cloudly.permissions.user.edit: true
+      cloudly.permissions.user.view: true
+  
+  cloudly.permissions.user.edit:
+    description: Edit user permissions and groups
+    default: op
+  
+  cloudly.permissions.user.view:
+    description: View user permissions and groups
     default: op
