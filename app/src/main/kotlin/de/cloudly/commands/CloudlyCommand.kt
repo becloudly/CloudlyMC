@@ -54,10 +54,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 }
                 handleInfoCommand(sender)
             }
-            "version" -> {
-                // Version command - available to all users
-                handleVersionCommand(sender)
-            }
             "whitelist" -> {
                 // Check whitelist permission for whitelist commands
                 if (!sender.hasPermission("cloudly.whitelist")) {
@@ -133,17 +129,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
     }
 
     /**
-     * Handles the version subcommand.
-     * Usage: /cloudly version
-     */
-    private fun handleVersionCommand(sender: CommandSender) {
-        val languageManager = plugin.getLanguageManager()
-        sender.sendMessage(languageManager.getMessage("commands.version.info", 
-            "version" to plugin.description.version,
-            "author" to plugin.description.authors.joinToString(", ")))
-    }
-    
-    /**
      * Handles the whitelist subcommand and its nested subcommands.
      * Usage: /cloudly whitelist <add|remove|list|on|off|reload|info>
      */
@@ -152,7 +137,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         val whitelistService = plugin.getWhitelistService()
         
         if (args.size < 2) {
-            sendWhitelistUsage(sender)
+            sender.sendMessage(languageManager.getMessage("commands.whitelist.usage"))
             return
         }
 
@@ -280,17 +265,12 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_header", "player" to whitelistPlayer.username))
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_by", "name" to addedByName))
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_on", "date" to date.toString()))
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.info_reason", "reason" to (whitelistPlayer.reason ?: "Not specified")))
                     
                     // Show Discord connection info if available
                     if (whitelistPlayer.discordConnection != null) {
                         val discord = whitelistPlayer.discordConnection
                         val status = if (discord.verified) "§aVerified" else "§cNot verified"
                         sender.sendMessage("§7- Discord: §f${discord.discordUsername} §7($status§7)")
-                        sender.sendMessage("§7- Connected: §f${Date.from(discord.connectedAt)}")
-                        if (discord.verifiedAt != null) {
-                            sender.sendMessage("§7- Verified: §f${Date.from(discord.verifiedAt)}")
-                        }
                     } else {
                         sender.sendMessage("§7- Discord: §cNot connected")
                     }
@@ -299,24 +279,10 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 }
             }
             
-            else -> sendWhitelistUsage(sender)
+            else -> {
+                sender.sendMessage(languageManager.getMessage("commands.whitelist.invalid_subcommand"))
+            }
         }
-    }
-    
-    /**
-     * Sends whitelist command usage to the sender.
-     */
-    private fun sendWhitelistUsage(sender: CommandSender) {
-        val languageManager = plugin.getLanguageManager()
-        sender.sendMessage(languageManager.getMessage("commands.whitelist.usage"))
-        sender.sendMessage(languageManager.getMessage("commands.whitelist.help_add"))
-        sender.sendMessage(languageManager.getMessage("commands.whitelist.help_remove"))
-        sender.sendMessage(languageManager.getMessage("commands.whitelist.help_list"))
-        sender.sendMessage(languageManager.getMessage("commands.whitelist.help_gui"))
-        sender.sendMessage(languageManager.getMessage("commands.whitelist.help_on"))
-        sender.sendMessage(languageManager.getMessage("commands.whitelist.help_off"))
-        sender.sendMessage(languageManager.getMessage("commands.whitelist.help_reload"))
-        sender.sendMessage(languageManager.getMessage("commands.whitelist.help_info"))
     }
     
     /**
@@ -480,15 +446,12 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         
         // Show whitelist commands if user has whitelist permission
         if (sender.hasPermission("cloudly.whitelist")) {
-            sender.sendMessage("§f/cloudly whitelist <add|remove|list|gui|on|off|reload|info> §7- Manage whitelist")
+            sender.sendMessage(languageManager.getMessage("commands.help.whitelist"))
         }
         
         // Show Discord connect command (available to all players)
-        sender.sendMessage("§f/cloudly connect <discord_username> §7- Connect your Discord account")
-        
-        // Show version command (available to all players)
-        sender.sendMessage(languageManager.getMessage("commands.help.version"))
-        
+        sender.sendMessage(languageManager.getMessage("commands.help.discord.connect"))
+
         sender.sendMessage(languageManager.getMessage("commands.help.help"))
     }
     
@@ -515,9 +478,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 
                 // Discord connect is available to all players
                 subcommands.add("connect")
-                
-                // Version is available to all players
-                subcommands.add("version")
                 
                 // Help is always available
                 subcommands.add("help")
