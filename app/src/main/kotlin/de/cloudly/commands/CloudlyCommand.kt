@@ -3,9 +3,6 @@ package de.cloudly.commands
 import de.cloudly.CloudlyPaper
 import de.cloudly.config.HotReloadManager
 import de.cloudly.discord.DiscordVerificationResult
-import de.cloudly.permissions.commands.GroupCommand
-import de.cloudly.permissions.commands.UserCommand
-import de.cloudly.permissions.commands.PermissionCommand
 import de.cloudly.utils.SchedulerUtils
 import de.cloudly.whitelist.model.WhitelistPlayer
 import kotlinx.coroutines.*
@@ -72,16 +69,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     return true
                 }
                 handleDiscordConnectCommand(sender, args)
-            }
-            "perms" -> {
-                // Permission system commands
-                if (!sender.hasPermission("cloudly.permissions.admin") && 
-                    !sender.hasPermission("cloudly.permissions.group.list") && 
-                    !sender.hasPermission("cloudly.permissions.user.view")) {
-                    sender.sendMessage(languageManager.getMessage("commands.no_permission"))
-                    return true
-                }
-                handlePermissionCommand(sender, args, command)
             }
             "help", null -> handleHelpCommand(sender)
             else -> {
@@ -440,52 +427,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
     }
     
     /**
-     * Handles the permission subcommand.
-     * Routes to the appropriate permission command handler.
-     */
-    private fun handlePermissionCommand(sender: CommandSender, args: Array<out String>, command: Command) {
-        if (args.size < 2) {
-            // Show help for permission commands
-            val permissionManager = plugin.getPermissionManager()
-            if (permissionManager != null && permissionManager.isEnabled()) {
-                val permissionCommand = PermissionCommand(plugin, permissionManager)
-                permissionCommand.onCommand(sender, command, "perms", arrayOf("help"))
-            } else {
-                sender.sendMessage("§c✗ Permission system is not enabled")
-            }
-            return
-        }
-        
-        val subCommand = args[1].lowercase()
-        val permissionManager = plugin.getPermissionManager()
-        
-        if (permissionManager == null || !permissionManager.isEnabled()) {
-            sender.sendMessage("§c✗ Permission system is not enabled")
-            return
-        }
-        
-        // Create new args array without the "perms" part
-        val newArgs = args.drop(1).toTypedArray()
-        
-        when (subCommand) {
-            "group", "groups" -> {
-                val groupCommand = GroupCommand(plugin, permissionManager)
-                groupCommand.onCommand(sender, command, "group", newArgs.drop(1).toTypedArray())
-            }
-            "user", "users" -> {
-                val userCommand = UserCommand(plugin, permissionManager)
-                userCommand.onCommand(sender, command, "user", newArgs.drop(1).toTypedArray())
-            }
-            else -> {
-                // Pass to general permission command handler
-                val permissionCommand = PermissionCommand(plugin, permissionManager)
-                permissionCommand.onCommand(sender, command, "perms", newArgs)
-            }
-        }
-    }
-
-    
-    /**
      * Handles the help subcommand.
      * Displays available commands and their usage.
      */
@@ -504,13 +445,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         // Show whitelist commands if user has whitelist permission
         if (sender.hasPermission("cloudly.whitelist")) {
             sender.sendMessage(languageManager.getMessage("commands.help.whitelist"))
-        }
-        
-        // Show permission commands if user has permission management access
-        if (sender.hasPermission("cloudly.permissions.admin") || 
-            sender.hasPermission("cloudly.permissions.group.list") || 
-            sender.hasPermission("cloudly.permissions.user.view")) {
-            sender.sendMessage(languageManager.getMessage("commands.help.perms"))
         }
         
         // Show Discord connect command (available to all players)
@@ -543,13 +477,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 // Discord connect is available to all players
                 subcommands.add("connect")
                 
-                // Permission commands
-                if (sender.hasPermission("cloudly.permissions.admin") || 
-                    sender.hasPermission("cloudly.permissions.group.list") || 
-                    sender.hasPermission("cloudly.permissions.user.view")) {
-                    subcommands.add("perms")
-                }
-                
                 // Help is always available
                 subcommands.add("help")
                 
@@ -570,14 +497,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                                 .filter { it.startsWith(args[1].lowercase()) }
                         } else emptyList()
                     }
-                    "perms" -> {
-                        if (sender.hasPermission("cloudly.permissions.admin") || 
-                            sender.hasPermission("cloudly.permissions.group.list") || 
-                            sender.hasPermission("cloudly.permissions.user.view")) {
-                            listOf("group", "user", "help", "info", "reload")
-                                .filter { it.startsWith(args[1].lowercase()) }
-                        } else emptyList()
-                    }
                     else -> emptyList()
                 }
             }
@@ -594,51 +513,10 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                                 .filter { it.lowercase().startsWith(args[2].lowercase()) }
                         } else emptyList()
                     }
-                    "perms" -> {
-                        // Handle perms subcommand tab completion
-                        val permissionManager = plugin.getPermissionManager()
-                        if (permissionManager != null && permissionManager.isEnabled()) {
-                            when (args[1].lowercase()) {
-                                "group" -> {
-                                    val groupCommand = GroupCommand(plugin, permissionManager)
-                                    groupCommand.onTabComplete(sender, command, "group", arrayOf(args[2]))
-                                        ?: emptyList()
-                                }
-                                "user" -> {
-                                    val userCommand = UserCommand(plugin, permissionManager)
-                                    userCommand.onTabComplete(sender, command, "user", arrayOf(args[2]))
-                                        ?: emptyList()
-                                }
-                                else -> emptyList()
-                            }
-                        } else emptyList()
-                    }
                     else -> emptyList()
                 }
             }
-            else -> {
-                // Four+ level arguments for permission commands
-                if (args[0].equals("perms", ignoreCase = true) && args.size >= 4) {
-                    val permissionManager = plugin.getPermissionManager()
-                    if (permissionManager != null && permissionManager.isEnabled()) {
-                        // Create args for the underlying command (without "perms")
-                        val subArgs = args.drop(1).toTypedArray()
-                        when (args[1].lowercase()) {
-                            "group" -> {
-                                val groupCommand = GroupCommand(plugin, permissionManager)
-                                groupCommand.onTabComplete(sender, command, "group", subArgs.drop(1).toTypedArray())
-                                    ?: emptyList()
-                            }
-                            "user" -> {
-                                val userCommand = UserCommand(plugin, permissionManager)
-                                userCommand.onTabComplete(sender, command, "user", subArgs.drop(1).toTypedArray())
-                                    ?: emptyList()
-                            }
-                            else -> emptyList()
-                        }
-                    } else emptyList()
-                } else emptyList()
-            }
+            else -> emptyList()
         }
     }
 }

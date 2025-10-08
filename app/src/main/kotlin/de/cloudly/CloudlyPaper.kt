@@ -8,7 +8,6 @@ import de.cloudly.config.LanguageManager
 import de.cloudly.discord.DiscordService
 import de.cloudly.gui.WhitelistGuiManager
 import de.cloudly.listeners.PlayerConnectionListener
-import de.cloudly.permissions.PermissionManager
 import de.cloudly.utils.SchedulerUtils
 import de.cloudly.whitelist.WhitelistService
 import org.bukkit.plugin.java.JavaPlugin
@@ -22,7 +21,6 @@ class CloudlyPaper : JavaPlugin() {
     private lateinit var whitelistGuiManager: WhitelistGuiManager
     private lateinit var discordService: DiscordService
     private lateinit var playerConnectionListener: PlayerConnectionListener
-    private lateinit var permissionManager: PermissionManager
     
     companion object {
         lateinit var instance: CloudlyPaper
@@ -49,15 +47,6 @@ class CloudlyPaper : JavaPlugin() {
     fun getDiscordService(): DiscordService {
         return discordService
     }
-
-    /**
-     * Get the permission manager instance
-     */
-    fun getPermissionManager(): PermissionManager {
-        return permissionManager
-    }
-
-
     
     override fun onEnable() {
         // Set plugin instance
@@ -105,10 +94,6 @@ class CloudlyPaper : JavaPlugin() {
         playerConnectionListener = PlayerConnectionListener(this)
         server.pluginManager.registerEvents(playerConnectionListener, this)
         
-        // Initialize permission system
-        permissionManager = PermissionManager(this)
-        permissionManager.initialize()
-        
         if (debugMode) {
             logger.info(languageManager.getMessage("plugin.debug_enabled"))
         }
@@ -128,11 +113,6 @@ class CloudlyPaper : JavaPlugin() {
         // Close Discord service resources
         if (::discordService.isInitialized) {
             discordService.shutdown()
-        }
-        
-        // Close permission system
-        if (::permissionManager.isInitialized) {
-            permissionManager.shutdown()
         }
         
         // Save configuration before shutdown

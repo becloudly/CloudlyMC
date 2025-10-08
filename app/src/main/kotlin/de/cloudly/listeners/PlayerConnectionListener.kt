@@ -29,15 +29,6 @@ class PlayerConnectionListener(private val plugin: CloudlyPaper) : Listener {
                 event.joinMessage = null
             }
             
-            // Notify permission system of player join (if enabled)
-            try {
-                if (plugin.getPermissionManager().isEnabled()) {
-                    plugin.getPermissionManager().onPlayerJoin(event.player)
-                }
-            } catch (e: Exception) {
-                // Permission system might not be initialized yet, ignore
-            }
-            
             // Send custom join message if enabled
             val customJoinEnabled = plugin.getConfigManager().getBoolean("player_connection.custom_messages.join.enabled", true)
             if (customJoinEnabled) {
@@ -87,15 +78,6 @@ class PlayerConnectionListener(private val plugin: CloudlyPaper) : Listener {
             // Always suppress the default message if configured
             if (removeDefaultMessages) {
                 event.quitMessage = null
-            }
-            
-            // Notify permission system of player quit (if enabled)
-            try {
-                if (plugin.getPermissionManager().isEnabled()) {
-                    plugin.getPermissionManager().onPlayerQuit(event.player)
-                }
-            } catch (e: Exception) {
-                // Permission system might not be initialized yet, ignore
             }
             
             // Send custom leave message if enabled

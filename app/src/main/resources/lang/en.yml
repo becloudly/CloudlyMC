@@ -109,7 +109,6 @@ commands:
     info: "§f  /cloudly info §7- Show plugin information"
     help: "§f  /cloudly help §7- Show this help menu"
     whitelist: "§f  /cloudly whitelist <add|remove|list|gui|on|off|reload|info> §7- Manage whitelist"
-    perms: "§f  /cloudly perms <group|user|style|help|info|reload> §7- Manage permissions"
     discord.connect: "§f  /cloudly connect <discord_username> §7- Connect your Discord account"
 
 # GUI Messages
@@ -172,92 +171,3 @@ player_connection:
   leave:
     chat: "§8[§c-§8] §f{player_name} §7left the game"
     console: "Player {player_name} left the game"
-
-# Permission System Messages
-permissions:
-  # Common messages
-  player_not_found: "§c✗ Player §f{player}§c not found"
-  group_not_found: "§c✗ Group §f{group}§c not found"
-  permission_not_found: "§c✗ Permission §f{permission}§c not found"
-  invalid_duration: "§c✗ Invalid duration format. Use format like: 1d, 2h, 30m, permanent"
-  database_error: "§c✗ Database error occurred. Check console for details"
-  
-  # Group management
-  groups:
-    created: "§a✓ Group §f{group}§a created successfully with weight §f{weight}"
-  
-  group:
-    created: "§a✓ Group §f{group}§a created successfully"
-    deleted: "§a✓ Group §f{group}§a deleted successfully"
-    already_exists: "§c✗ Group §f{group}§c already exists"
-    weight_set: "§a✓ Group §f{group}§a weight set to §f{weight}"
-    prefix_set: "§a✓ Group §f{group}§a prefix set to §f{prefix}"
-    suffix_set: "§a✓ Group §f{group}§a suffix set to §f{suffix}"
-    permission_added: "§a✓ Permission §f{permission}§a added to group §f{group}"
-    permission_removed: "§a✓ Permission §f{permission}§a removed from group §f{group}"
-    permission_already_exists: "§c✗ Group §f{group}§c already has permission §f{permission}"
-    permission_not_exists: "§c✗ Group §f{group}§c doesn't have permission §f{permission}"
-    
-    list_header: "§6§lGroups §7({count} total)§6:"
-    list_entry: "§f  • {group} §7(Weight: {weight})"
-    
-    info_header: "§6§lGroup Information §7- §f{group}§6:"
-    info_weight: "§f  • Weight: §7{weight}"
-    info_prefix: "§f  • Prefix: {prefix}"
-    info_suffix: "§f  • Suffix: {suffix}"
-    info_permissions: "§f  • Permissions ({count}):"
-    info_permission_entry: "§7    - {permission}"
-    info_no_permissions: "§7    No permissions assigned"
-  
-  # User management
-  users:
-    group_added: "§a✓ User §f{user}§a has been added to group §f{group}"
-  
-  user:
-    group_added: "§a✓ Added group §f{group}§a to user §f{user}"
-    group_removed: "§a✓ Removed group §f{group}§a from user §f{user}"
-    group_added_temp: "§a✓ Added temporary group §f{group}§a to user §f{user}§a for §f{duration}"
-    group_already_exists: "§c✗ User §f{user}§c already has group §f{group}"
-    group_not_exists: "§c✗ User §f{user}§c doesn't have group §f{group}"
-    permission_added: "§a✓ Permission §f{permission}§a added to user §f{user}"
-    permission_removed: "§a✓ Permission §f{permission}§a removed from user §f{user}"
-    permission_added_temp: "§a✓ Temporary permission §f{permission}§a added to user §f{user}§a for §f{duration}"
-    permission_already_exists: "§c✗ User §f{user}§c already has permission §f{permission}"
-    permission_not_exists: "§c✗ User §f{user}§c doesn't have permission §f{permission}"
-    cleaned_up: "§a✓ Cleaned up {count} expired permissions for user §f{user}"
-    
-    info_header: "§6§lUser Information §7- §f{user}§6:"
-    info_uuid: "§f  • UUID: §7{uuid}"
-    info_groups: "§f  • Groups ({count}):"
-    info_group_entry: "§7    - {group}"
-    info_group_entry_temp: "§7    - {group} §c(expires {expiry})"
-    info_permissions: "§f  • Direct Permissions ({count}):"
-    info_permission_entry: "§7    - {permission}"
-    info_permission_entry_temp: "§7    - {permission} §c(expires {expiry})"
-    info_effective_permissions: "§f  • Effective Permissions ({count}):"
-    info_no_groups: "§7    No groups assigned"
-    info_no_permissions: "§7    No direct permissions assigned"
-    info_effective_prefix: "§f  • Effective Prefix: {prefix}"
-    info_effective_suffix: "§f  • Effective Suffix: {suffix}"
-  
-  # Permission system management
-  system:
-    reloaded: "§a✓ Permission system reloaded successfully"
-    reload_failed: "§c✗ Failed to reload permission system. Check console for details"
-    check_has_permission: "§a✓ User §f{user}§a has permission §f{permission}"
-    check_no_permission: "§c✗ User §f{user}§c does not have permission §f{permission}"
-    cleanup_completed: "§a✓ Cleaned up {count} expired permissions across all users"
-    
-    stats_header: "§6§lPermission System Statistics§6:"
-    stats_groups: "§f  • Total Groups: §7{groups}"
-    stats_users: "§f  • Total Users: §7{users}"
-    stats_permissions: "§f  • Total Permissions: §7{permissions}"
-    stats_temp_permissions: "§f  • Temporary Permissions: §7{temp_permissions}"
-    stats_discovered_permissions: "§f  • Discovered Permissions: §7{discovered}"
-    
-    info_header: "§6§lPermission System Information§6:"
-    info_version: "§f  • Version: §7CloudlyMC Permission System v1.0"
-    info_storage: "§f  • Storage Backend: §7{storage}"
-    info_groups_count: "§f  • Groups: §7{groups}"
-    info_users_count: "§f  • Users: §7{users}"
-    info_cache_status: "§f  • Cache Status: §7Active"
