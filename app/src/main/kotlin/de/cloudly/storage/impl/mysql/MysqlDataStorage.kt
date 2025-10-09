@@ -30,6 +30,11 @@ class MysqlDataStorage(
     private var connection: Connection? = null
     private val initialized = AtomicBoolean(false)
     
+    init {
+        // Validate table name to prevent SQL injection
+        validateTableName(tableName)
+    }
+    
     override fun initialize(): Boolean {
         return try {
             // Load the MySQL JDBC driver
@@ -339,6 +344,17 @@ class MysqlDataStorage(
         } catch (e: SQLException) {
             plugin.logger.log(Level.SEVERE, "Failed to create MySQL table", e)
             throw StorageConnectionException("Failed to create MySQL table", e)
+        }
+    }
+    
+    /**
+     * Validate table name to prevent SQL injection.
+     * @param name The table name to validate
+     * @throws IllegalArgumentException if the table name contains invalid characters
+     */
+    private fun validateTableName(name: String) {
+        require(name.matches(Regex("[a-zA-Z0-9_]+"))) {
+            "Invalid table name: $name"
         }
     }
     
