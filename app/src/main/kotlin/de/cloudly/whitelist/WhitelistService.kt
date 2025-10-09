@@ -24,6 +24,7 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
     private val storageFactory = StorageFactory(plugin)
     private var repository: DataRepository<WhitelistPlayer>? = null
     private var enabled = false
+    private var listenerRegistered = false
     
     /**
      * Initialize the whitelist service.
@@ -51,8 +52,11 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
         if (repository?.initialize() == true) {
             plugin.logger.info("Whitelist repository initialized successfully using new storage system")
             
-            // Register event listener
-            plugin.server.pluginManager.registerEvents(this, plugin)
+            // Register event listener if not already registered
+            if (!listenerRegistered) {
+                plugin.server.pluginManager.registerEvents(this, plugin)
+                listenerRegistered = true
+            }
         } else {
             plugin.logger.severe("Failed to initialize whitelist repository")
             enabled = false
@@ -177,10 +181,9 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
             repository?.initialize()
             
             // Register event listener if not already registered
-            try {
+            if (!listenerRegistered) {
                 plugin.server.pluginManager.registerEvents(this, plugin)
-            } catch (e: IllegalArgumentException) {
-                // Already registered, ignore
+                listenerRegistered = true
             }
         }
         

@@ -33,6 +33,9 @@ class CloudlyPaper : JavaPlugin() {
      * Get the whitelist service instance
      */
     fun getWhitelistService(): WhitelistService {
+        if (!::whitelistService.isInitialized) {
+            throw IllegalStateException("Plugin not fully initialized")
+        }
         return whitelistService
     }
 
@@ -40,6 +43,9 @@ class CloudlyPaper : JavaPlugin() {
      * Get the whitelist GUI manager instance
      */
     fun getWhitelistGuiManager(): WhitelistGuiManager {
+        if (!::whitelistGuiManager.isInitialized) {
+            throw IllegalStateException("Plugin not fully initialized")
+        }
         return whitelistGuiManager
     }
 
@@ -47,6 +53,9 @@ class CloudlyPaper : JavaPlugin() {
      * Get the Discord service instance
      */
     fun getDiscordService(): DiscordService {
+        if (!::discordService.isInitialized) {
+            throw IllegalStateException("Plugin not fully initialized")
+        }
         return discordService
     }
     

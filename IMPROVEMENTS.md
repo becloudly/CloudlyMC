@@ -34,21 +34,29 @@ fun getWhitelistService(): WhitelistService {
 
 ---
 
-### 2. Cache Memory Leak in DiscordService
+### 2. ~~Cache Memory Leak in DiscordService~~ ✅ FIXED
 **Location:** `DiscordService.kt` line 295  
 **Severity:** Medium  
 **Issue:** The `isExpired()` method checks cache expiration but doesn't clean up expired entries.
 
 **Impact:** Cache grows indefinitely, consuming memory unnecessarily.
 
-**Suggested Fix:** Implement automatic cache cleanup:
+**Status:** ✅ **FIXED** - Implemented automatic cache cleanup in version 0.0.1-alpha_11
+- Added `startCacheCleanup()` method that schedules periodic cleanup task
+- Task runs every minute (1200 ticks) to remove expired entries
+- Properly cancelled in `shutdown()` to prevent resource leaks
+- Uses `SchedulerUtils.runTaskTimerAsynchronously` for cross-platform compatibility
+
+**Implementation:**
 ```kotlin
 // Add periodic cleanup task
 private fun startCacheCleanup() {
-    SchedulerUtils.runTaskTimerAsynchronously(plugin, Runnable {
-        val now = Instant.now()
-        userCache.entries.removeIf { it.value.isExpired(cacheDuration) }
-    }, 20 * 60, 20 * 60) // Every minute
+    cacheCleanupTask = SchedulerUtils.runTaskTimerAsynchronously(plugin, Runnable {
+        val removed = userCache.entries.removeIf { it.value.isExpired(cacheDuration) }
+        if (removed && configManager.getBoolean("plugin.debug", false)) {
+            plugin.logger.info("Discord cache cleanup: removed expired entries")
+        }
+    }, 20 * 60, 20 * 60) // Every minute (1200 ticks)
 }
 ```
 
@@ -998,7 +1006,7 @@ messages:
 1. Fix lateinit property access safety
 2. Add JSON write locking
 3. Implement MySQL connection pooling
-4. Fix Discord cache memory leak
+4. ~~Fix Discord cache memory leak~~ ✅ **COMPLETED**
 5. Add command cooldowns
 
 ### Phase 2: Security & Stability (2-3 weeks)

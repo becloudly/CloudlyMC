@@ -68,6 +68,20 @@ interface DataStorage<T : Any> {
     fun clear(): Boolean
     
     /**
+     * Store or update multiple items in the storage.
+     * @param items A map of key-value pairs to store
+     * @return true if all items were stored successfully, false otherwise
+     */
+    fun storeAll(items: Map<String, T>): Boolean
+    
+    /**
+     * Remove multiple items from the storage.
+     * @param keys A set of keys to remove
+     * @return true if all items were removed successfully, false otherwise
+     */
+    fun removeAll(keys: Set<String>): Boolean
+    
+    /**
      * Close the storage connection and clean up resources.
      */
     fun close()

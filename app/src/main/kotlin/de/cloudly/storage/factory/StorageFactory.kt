@@ -106,9 +106,10 @@ class StorageFactory(private val plugin: JavaPlugin) {
         
         val connectionTimeout = config.properties["connectionTimeout"]?.toIntOrNull() ?: 30000
         val useSSL = config.properties["useSSL"]?.toBoolean() ?: false
+        val poolSize = config.properties["poolSize"]?.toIntOrNull() ?: 10
         
-        plugin.logger.info("Creating MySQL storage for '${config.repositoryName}' at: $host:$port/$database")
-        return MysqlDataStorage(plugin, host, port, database, username, password, tableName, connectionTimeout, useSSL)
+        plugin.logger.info("Creating MySQL storage for '${config.repositoryName}' at: $host:$port/$database with pool size: $poolSize")
+        return MysqlDataStorage(plugin, host, port, database, username, password, tableName, connectionTimeout, useSSL, poolSize)
     }
     
     /**

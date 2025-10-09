@@ -1,9 +1,11 @@
 package de.cloudly.discord
 
 import de.cloudly.CloudlyPaper
+import de.cloudly.utils.SchedulerUtils
 import de.cloudly.whitelist.model.DiscordConnection
 import kotlinx.coroutines.*
 import okhttp3.*
+import org.bukkit.scheduler.BukkitTask
 import org.json.JSONObject
 import java.io.IOException
 import java.time.Instant
@@ -56,6 +58,8 @@ class DiscordService(private val plugin: CloudlyPaper) {
             rateLimiter.release()
         }
     }
+    // Task reference for cache cleanup
+    private var cacheCleanupTask: BukkitTask? = null
     
     /**
      * Initialize the Discord service with configuration.
@@ -105,12 +109,28 @@ class DiscordService(private val plugin: CloudlyPaper) {
                 .writeTimeout(apiTimeout, TimeUnit.SECONDS)
                 .build()
             
+            // Start periodic cache cleanup to prevent memory leak
+            startCacheCleanup()
+            
             plugin.logger.info("Discord service initialized successfully")
             true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to initialize Discord service", e)
             false
         }
+    }
+    
+    /**
+     * Start periodic cache cleanup task to remove expired entries.
+     * This prevents memory leaks from expired cache entries accumulating.
+     */
+    private fun startCacheCleanup() {
+        cacheCleanupTask = SchedulerUtils.runTaskTimerAsynchronously(plugin, Runnable {
+            val removed = userCache.entries.removeIf { it.value.isExpired(cacheDuration) }
+            if (removed && configManager.getBoolean("plugin.debug", false)) {
+                plugin.logger.info("Discord cache cleanup: removed expired entries")
+            }
+        }, 20 * 60, 20 * 60) // Every minute (1200 ticks)
     }
     
     /**
@@ -275,6 +295,10 @@ class DiscordService(private val plugin: CloudlyPaper) {
      */
     fun shutdown() {
         try {
+            // Cancel the cache cleanup task
+            cacheCleanupTask?.cancel()
+            cacheCleanupTask = null
+            
             coroutineScope.cancel()
             httpClient?.dispatcher?.executorService?.shutdown()
             userCache.clear()

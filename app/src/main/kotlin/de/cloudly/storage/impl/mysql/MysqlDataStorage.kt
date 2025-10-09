@@ -1,12 +1,13 @@
 package de.cloudly.storage.impl.mysql
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import de.cloudly.storage.core.DataStorage
 import de.cloudly.storage.core.StorageException
 import de.cloudly.storage.core.StorageConnectionException
 import de.cloudly.storage.core.StorageOperationException
 import org.bukkit.plugin.java.JavaPlugin
 import java.sql.Connection
-import java.sql.DriverManager
 import java.sql.SQLException
 import java.util.logging.Level
 import java.util.concurrent.atomic.AtomicBoolean
@@ -24,33 +25,46 @@ class MysqlDataStorage(
     private val password: String,
     private val tableName: String,
     private val connectionTimeout: Int = 30000,
-    private val useSSL: Boolean = false
+    private val useSSL: Boolean = false,
+    private val poolSize: Int = 10
 ) : DataStorage<String> {
     
-    private var connection: Connection? = null
+    private var dataSource: HikariDataSource? = null
     private val initialized = AtomicBoolean(false)
     
     override fun initialize(): Boolean {
         return try {
-            // Load the MySQL JDBC driver
-            Class.forName("com.mysql.cj.jdbc.Driver")
+            // Configure HikariCP connection pool
+            val config = HikariConfig().apply {
+                jdbcUrl = buildConnectionUrl()
+                username = this@MysqlDataStorage.username
+                password = this@MysqlDataStorage.password
+                maximumPoolSize = poolSize
+                minimumIdle = minOf(2, poolSize)
+                connectionTimeout = this@MysqlDataStorage.connectionTimeout.toLong()
+                
+                // Performance and reliability settings
+                poolName = "CloudlyMC-MySQL-Pool"
+                addDataSourceProperty("cachePrepStmts", "true")
+                addDataSourceProperty("prepStmtCacheSize", "250")
+                addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
+            }
             
-            // Build connection URL
-            val url = buildConnectionUrl()
-            
-            // Create the connection
-            connection = DriverManager.getConnection(url, username, password)
+            // Create the HikariCP datasource
+            dataSource = HikariDataSource(config)
             
             // Test the connection
-            if (connection?.isValid(5) != true) {
-                throw StorageConnectionException("MySQL connection is not valid")
+            dataSource?.connection?.use { conn ->
+                if (!conn.isValid(5)) {
+                    throw StorageConnectionException("MySQL connection is not valid")
+                }
             }
             
             // Create the data table if it doesn't exist
             createTable()
             
             initialized.set(true)
-            plugin.logger.info("MySQL storage initialized: $host:$port/$database")
+            plugin.logger.info("MySQL storage initialized with connection pool (size: $poolSize): $host:$port/$database")
             true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to initialize MySQL storage: $host:$port/$database", e)
@@ -67,11 +81,13 @@ class MysqlDataStorage(
         """.trimIndent()
         
         return try {
-            connection?.prepareStatement(sql)?.use { statement ->
-                statement.setString(1, key)
-                statement.setString(2, item)
-                statement.executeUpdate()
-                true
+            dataSource?.connection?.use { conn ->
+                conn.prepareStatement(sql).use { statement ->
+                    statement.setString(1, key)
+                    statement.setString(2, item)
+                    statement.executeUpdate()
+                    true
+                }
             } ?: false
         } catch (e: SQLException) {
             plugin.logger.log(Level.SEVERE, "Failed to store item with key '$key' in MySQL storage", e)
@@ -85,14 +101,16 @@ class MysqlDataStorage(
         val sql = "SELECT value FROM $tableName WHERE key_name = ?"
         
         return try {
-            connection?.prepareStatement(sql)?.use { statement ->
-                statement.setString(1, key)
-                val resultSet = statement.executeQuery()
-                
-                if (resultSet.next()) {
-                    resultSet.getString("value")
-                } else {
-                    null
+            dataSource?.connection?.use { conn ->
+                conn.prepareStatement(sql).use { statement ->
+                    statement.setString(1, key)
+                    val resultSet = statement.executeQuery()
+                    
+                    if (resultSet.next()) {
+                        resultSet.getString("value")
+                    } else {
+                        null
+                    }
                 }
             }
         } catch (e: SQLException) {
@@ -107,10 +125,12 @@ class MysqlDataStorage(
         val sql = "DELETE FROM $tableName WHERE key_name = ?"
         
         return try {
-            connection?.prepareStatement(sql)?.use { statement ->
-                statement.setString(1, key)
-                val rowsAffected = statement.executeUpdate()
-                rowsAffected > 0
+            dataSource?.connection?.use { conn ->
+                conn.prepareStatement(sql).use { statement ->
+                    statement.setString(1, key)
+                    val rowsAffected = statement.executeUpdate()
+                    rowsAffected > 0
+                }
             } ?: false
         } catch (e: SQLException) {
             plugin.logger.log(Level.SEVERE, "Failed to remove item with key '$key' from MySQL storage", e)
@@ -124,10 +144,12 @@ class MysqlDataStorage(
         val sql = "SELECT 1 FROM $tableName WHERE key_name = ? LIMIT 1"
         
         return try {
-            connection?.prepareStatement(sql)?.use { statement ->
-                statement.setString(1, key)
-                val resultSet = statement.executeQuery()
-                resultSet.next()
+            dataSource?.connection?.use { conn ->
+                conn.prepareStatement(sql).use { statement ->
+                    statement.setString(1, key)
+                    val resultSet = statement.executeQuery()
+                    resultSet.next()
+                }
             } ?: false
         } catch (e: SQLException) {
             plugin.logger.log(Level.SEVERE, "Failed to check existence of key '$key' in MySQL storage", e)
@@ -143,13 +165,15 @@ class MysqlDataStorage(
         return try {
             val result = mutableMapOf<String, String>()
             
-            connection?.createStatement()?.use { statement ->
-                val resultSet = statement.executeQuery(sql)
-                
-                while (resultSet.next()) {
-                    val key = resultSet.getString("key_name")
-                    val value = resultSet.getString("value")
-                    result[key] = value
+            dataSource?.connection?.use { conn ->
+                conn.createStatement().use { statement ->
+                    val resultSet = statement.executeQuery(sql)
+                    
+                    while (resultSet.next()) {
+                        val key = resultSet.getString("key_name")
+                        val value = resultSet.getString("value")
+                        result[key] = value
+                    }
                 }
             }
             
@@ -168,11 +192,13 @@ class MysqlDataStorage(
         return try {
             val result = mutableSetOf<String>()
             
-            connection?.createStatement()?.use { statement ->
-                val resultSet = statement.executeQuery(sql)
-                
-                while (resultSet.next()) {
-                    result.add(resultSet.getString("key_name"))
+            dataSource?.connection?.use { conn ->
+                conn.createStatement().use { statement ->
+                    val resultSet = statement.executeQuery(sql)
+                    
+                    while (resultSet.next()) {
+                        result.add(resultSet.getString("key_name"))
+                    }
                 }
             }
             
@@ -189,13 +215,15 @@ class MysqlDataStorage(
         val sql = "SELECT COUNT(*) as count FROM $tableName"
         
         return try {
-            connection?.createStatement()?.use { statement ->
-                val resultSet = statement.executeQuery(sql)
-                
-                if (resultSet.next()) {
-                    resultSet.getLong("count")
-                } else {
-                    0L
+            dataSource?.connection?.use { conn ->
+                conn.createStatement().use { statement ->
+                    val resultSet = statement.executeQuery(sql)
+                    
+                    if (resultSet.next()) {
+                        resultSet.getLong("count")
+                    } else {
+                        0L
+                    }
                 }
             } ?: 0L
         } catch (e: SQLException) {
@@ -210,9 +238,11 @@ class MysqlDataStorage(
         val sql = "DELETE FROM $tableName"
         
         return try {
-            connection?.createStatement()?.use { statement ->
-                statement.executeUpdate(sql)
-                true
+            dataSource?.connection?.use { conn ->
+                conn.createStatement().use { statement ->
+                    statement.executeUpdate(sql)
+                    true
+                }
             } ?: false
         } catch (e: SQLException) {
             plugin.logger.log(Level.SEVERE, "Failed to clear MySQL storage", e)
@@ -220,14 +250,96 @@ class MysqlDataStorage(
         }
     }
     
+    override fun storeAll(items: Map<String, String>): Boolean {
+        checkInitialized()
+        
+        if (items.isEmpty()) {
+            return true
+        }
+        
+        val sql = """
+            INSERT INTO $tableName (key_name, value) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = CURRENT_TIMESTAMP
+        """.trimIndent()
+        
+        return try {
+            connection?.let { conn ->
+                val autoCommit = conn.autoCommit
+                try {
+                    conn.autoCommit = false
+                    
+                    conn.prepareStatement(sql).use { statement ->
+                        items.forEach { (key, value) ->
+                            statement.setString(1, key)
+                            statement.setString(2, value)
+                            statement.addBatch()
+                        }
+                        statement.executeBatch()
+                    }
+                    
+                    conn.commit()
+                    plugin.logger.fine("Stored ${items.size} items in MySQL storage")
+                    true
+                } catch (e: SQLException) {
+                    conn.rollback()
+                    throw e
+                } finally {
+                    conn.autoCommit = autoCommit
+                }
+            } ?: false
+        } catch (e: SQLException) {
+            plugin.logger.log(Level.SEVERE, "Failed to store ${items.size} items in MySQL storage", e)
+            false
+        }
+    }
+    
+    override fun removeAll(keys: Set<String>): Boolean {
+        checkInitialized()
+        
+        if (keys.isEmpty()) {
+            return true
+        }
+        
+        val sql = "DELETE FROM $tableName WHERE key_name = ?"
+        
+        return try {
+            connection?.let { conn ->
+                val autoCommit = conn.autoCommit
+                try {
+                    conn.autoCommit = false
+                    
+                    conn.prepareStatement(sql).use { statement ->
+                        keys.forEach { key ->
+                            statement.setString(1, key)
+                            statement.addBatch()
+                        }
+                        statement.executeBatch()
+                    }
+                    
+                    conn.commit()
+                    plugin.logger.fine("Removed ${keys.size} items from MySQL storage")
+                    true
+                } catch (e: SQLException) {
+                    conn.rollback()
+                    throw e
+                } finally {
+                    conn.autoCommit = autoCommit
+                }
+            } ?: false
+        } catch (e: SQLException) {
+            plugin.logger.log(Level.SEVERE, "Failed to remove ${keys.size} items from MySQL storage", e)
+            false
+        }
+    }
+    
     override fun close() {
         try {
-            connection?.close()
-            connection = null
+            dataSource?.close()
+            dataSource = null
             initialized.set(false)
-            plugin.logger.fine("MySQL storage connection closed")
-        } catch (e: SQLException) {
-            plugin.logger.log(Level.WARNING, "Error closing MySQL storage connection", e)
+            plugin.logger.fine("MySQL storage connection pool closed")
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "Error closing MySQL storage connection pool", e)
         }
     }
     
@@ -246,14 +358,16 @@ class MysqlDataStorage(
             backupData.append("-- MySQL backup for table $tableName\n")
             backupData.append("-- Generated at ${java.time.Instant.now()}\n\n")
             
-            connection?.createStatement()?.use { statement ->
-                val resultSet = statement.executeQuery(sql)
-                
-                while (resultSet.next()) {
-                    val key = resultSet.getString("key_name").replace("'", "''")
-                    val value = resultSet.getString("value").replace("'", "''")
+            dataSource?.connection?.use { conn ->
+                conn.createStatement().use { statement ->
+                    val resultSet = statement.executeQuery(sql)
                     
-                    backupData.append("INSERT INTO $tableName (key_name, value) VALUES ('$key', '$value');\n")
+                    while (resultSet.next()) {
+                        val key = resultSet.getString("key_name").replace("'", "''")
+                        val value = resultSet.getString("value").replace("'", "''")
+                        
+                        backupData.append("INSERT INTO $tableName (key_name, value) VALUES ('$key', '$value');\n")
+                    }
                 }
             }
             
@@ -283,10 +397,12 @@ class MysqlDataStorage(
             val backupContent = java.nio.file.Files.readString(backupFile.toPath())
             val statements = backupContent.split(";").filter { it.trim().isNotEmpty() && !it.trim().startsWith("--") }
             
-            connection?.createStatement()?.use { statement ->
-                for (sql in statements) {
-                    if (sql.trim().isNotEmpty()) {
-                        statement.execute(sql.trim())
+            dataSource?.connection?.use { conn ->
+                conn.createStatement().use { statement ->
+                    for (sql in statements) {
+                        if (sql.trim().isNotEmpty()) {
+                            statement.execute(sql.trim())
+                        }
                     }
                 }
             }
@@ -333,8 +449,10 @@ class MysqlDataStorage(
         """.trimIndent()
         
         try {
-            connection?.createStatement()?.use { statement ->
-                statement.execute(sql)
+            dataSource?.connection?.use { conn ->
+                conn.createStatement().use { statement ->
+                    statement.execute(sql)
+                }
             }
         } catch (e: SQLException) {
             plugin.logger.log(Level.SEVERE, "Failed to create MySQL table", e)
@@ -347,18 +465,14 @@ class MysqlDataStorage(
      * @throws StorageException if not initialized
      */
     private fun checkInitialized() {
-        if (!initialized.get() || connection == null) {
+        if (!initialized.get() || dataSource == null) {
             throw StorageException("MySQL storage has not been initialized")
         }
         
-        // Check if connection is still valid
-        try {
-            if (connection?.isValid(5) != true) {
-                plugin.logger.warning("MySQL connection is no longer valid, attempting to reconnect...")
-                initialize()
-            }
-        } catch (e: SQLException) {
-            plugin.logger.log(Level.WARNING, "Failed to validate MySQL connection", e)
+        // HikariCP handles connection validation and reconnection automatically
+        if (dataSource?.isClosed == true) {
+            plugin.logger.warning("MySQL connection pool is closed, attempting to reinitialize...")
+            initialize()
         }
     }
 }
