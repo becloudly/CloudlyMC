@@ -144,6 +144,28 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
     }
     
     /**
+     * Get a paginated list of whitelisted players.
+     * @param offset The starting index (0-based)
+     * @param limit The maximum number of players to return
+     * @return A list of whitelisted players within the specified range
+     */
+    fun getPlayers(offset: Int, limit: Int): List<WhitelistPlayer> {
+        if (!enabled || repository == null) return emptyList()
+        
+        return repository?.getPaginated(offset, limit) ?: emptyList()
+    }
+    
+    /**
+     * Get the total count of whitelisted players.
+     * @return The number of whitelisted players
+     */
+    fun getPlayerCount(): Long {
+        if (!enabled || repository == null) return 0
+        
+        return repository?.count() ?: 0
+    }
+    
+    /**
      * Update a player's Discord connection information.
      * @param uuid The UUID of the player to update
      * @param discordConnection The Discord connection information
