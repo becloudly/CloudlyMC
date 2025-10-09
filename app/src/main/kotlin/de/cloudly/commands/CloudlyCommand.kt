@@ -167,6 +167,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         val serverType = if (de.cloudly.utils.SchedulerUtils.isFolia()) "Folia" else "Paper/Spigot"
         sender.sendMessage(languageManager.getMessage("commands.info.server_type", "type" to serverType))
         sender.sendMessage(languageManager.getMessage("commands.info.author"))
+        sender.sendMessage(languageManager.getMessage("commands.info.footer"))
     }
 
     /**
@@ -246,6 +247,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     return
                 }
                 
+                sender.sendMessage("")
                 sender.sendMessage(languageManager.getMessage("commands.whitelist.list_header", "count" to players.size.toString()))
                 players.forEach { player ->
                     val date = Date.from(player.addedAt)
@@ -253,6 +255,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                         "username" to player.username, 
                         "date" to date.toString()))
                 }
+                sender.sendMessage(languageManager.getMessage("commands.whitelist.list_footer"))
             }
             
             "gui" -> {
@@ -307,6 +310,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     
                     val date = Date.from(whitelistPlayer.addedAt)
                     
+                    sender.sendMessage("")
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_header", "player" to whitelistPlayer.username))
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_by", "name" to addedByName))
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_on", "date" to date.toString()))
@@ -315,10 +319,11 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     if (whitelistPlayer.discordConnection != null) {
                         val discord = whitelistPlayer.discordConnection
                         val status = if (discord.verified) "§aVerified" else "§cNot verified"
-                        sender.sendMessage("§7- Discord: §f${discord.discordUsername} §7($status§7)")
+                        sender.sendMessage("  §e▪ §fDiscord§8: §7${discord.discordUsername} §8(§7$status§8)")
                     } else {
-                        sender.sendMessage("§7- Discord: §cNot connected")
+                        sender.sendMessage("  §e▪ §fDiscord§8: §cNot connected")
                     }
+                    sender.sendMessage(languageManager.getMessage("commands.whitelist.info_footer"))
                 } else {
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.player_not_whitelisted", "player" to playerName))
                 }
@@ -492,19 +497,26 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         
         // Show admin commands if user has admin permission
         if (sender.hasPermission("cloudly.admin")) {
+            sender.sendMessage(languageManager.getMessage("commands.help.admin_header"))
             sender.sendMessage(languageManager.getMessage("commands.help.reload"))
             sender.sendMessage(languageManager.getMessage("commands.help.info"))
         }
         
         // Show whitelist commands if user has whitelist permission
         if (sender.hasPermission("cloudly.whitelist")) {
+            sender.sendMessage(languageManager.getMessage("commands.help.whitelist_header"))
             sender.sendMessage(languageManager.getMessage("commands.help.whitelist"))
         }
         
         // Show Discord connect command (available to all players)
+        sender.sendMessage(languageManager.getMessage("commands.help.discord_header"))
         sender.sendMessage(languageManager.getMessage("commands.help.discord.connect"))
 
+        // Show general commands
+        sender.sendMessage(languageManager.getMessage("commands.help.general_header"))
         sender.sendMessage(languageManager.getMessage("commands.help.help"))
+        
+        sender.sendMessage(languageManager.getMessage("commands.help.separator"))
     }
     
     override fun onTabComplete(
