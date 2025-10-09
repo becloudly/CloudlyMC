@@ -89,7 +89,7 @@ class DiscordService(private val plugin: CloudlyPaper) {
             apiTimeout = configManager.getInt("discord.api_timeout", 10).toLong()
             cacheDuration = configManager.getInt("discord.cache_duration", 30).toLong()
             
-            plugin.logger.info("Discord config loaded - Token length: ${botToken?.length ?: 0}, Server ID: $serverId")
+            plugin.logger.info("Discord config loaded successfully")
             
             if (botToken.isNullOrBlank() || botToken == "YOUR_BOT_TOKEN_HERE") {
                 plugin.logger.warning("Discord bot token is not configured. Discord features will be disabled.")
