@@ -11,6 +11,7 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerLoginEvent
 import org.bukkit.plugin.java.JavaPlugin
+import java.time.Instant
 import java.util.UUID
 import java.util.logging.Level
 
@@ -24,6 +25,21 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
     private val storageFactory = StorageFactory(plugin)
     private var repository: DataRepository<WhitelistPlayer>? = null
     private var enabled = false
+    
+    /**
+     * Log an audit event for whitelist changes.
+     * Records timestamp, action, target, actor, and details for security and compliance.
+     * 
+     * @param action The action performed (e.g., WHITELIST_ADD, WHITELIST_REMOVE)
+     * @param target The UUID of the affected player (or system UUID for global actions)
+     * @param actor The UUID of the player or admin who performed the action
+     * @param details Additional details about the action
+     */
+    private fun logAuditEvent(action: String, target: UUID, actor: UUID?, details: String?) {
+        val timestamp = Instant.now()
+        plugin.logger.info("[AUDIT] $timestamp - $action - Target: $target - Actor: $actor - Details: $details")
+        // Also store in audit log file or database
+    }
     
     /**
      * Initialize the whitelist service.
@@ -76,7 +92,14 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
             reason = reason
         )
         
-        return repository?.store(player.uniqueId.toString(), whitelistPlayer) ?: false
+        val result = repository?.store(player.uniqueId.toString(), whitelistPlayer) ?: false
+        
+        if (result) {
+            val details = "Username: ${player.name}${reason?.let { ", Reason: $it" } ?: ""}"
+            logAuditEvent("WHITELIST_ADD", player.uniqueId, addedBy, details)
+        }
+        
+        return result
     }
     
     /**
@@ -97,18 +120,37 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
             reason = reason
         )
         
-        return repository?.store(uuid.toString(), whitelistPlayer) ?: false
+        val result = repository?.store(uuid.toString(), whitelistPlayer) ?: false
+        
+        if (result) {
+            val details = "Username: $username${reason?.let { ", Reason: $it" } ?: ""}"
+            logAuditEvent("WHITELIST_ADD", uuid, addedBy, details)
+        }
+        
+        return result
     }
     
     /**
      * Remove a player from the whitelist.
      * @param uuid The UUID of the player to remove
+     * @param removedBy The UUID of the player or admin who removed this player (optional)
      * @return true if the player was removed successfully, false otherwise
      */
-    fun removePlayer(uuid: UUID): Boolean {
+    fun removePlayer(uuid: UUID, removedBy: UUID? = null): Boolean {
         if (!enabled || repository == null) return false
         
-        return repository?.remove(uuid.toString()) ?: false
+        // Get player info before removal for audit log
+        val player = repository?.retrieve(uuid.toString())
+        val username = player?.username ?: "Unknown"
+        
+        val result = repository?.remove(uuid.toString()) ?: false
+        
+        if (result) {
+            val details = "Username: $username"
+            logAuditEvent("WHITELIST_REMOVE", uuid, removedBy, details)
+        }
+        
+        return result
     }
     
     /**
@@ -147,22 +189,31 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * Update a player's Discord connection information.
      * @param uuid The UUID of the player to update
      * @param discordConnection The Discord connection information
+     * @param updatedBy The UUID of the player or admin who updated this connection (optional)
      * @return true if the update was successful, false otherwise
      */
-    fun updatePlayerDiscord(uuid: UUID, discordConnection: DiscordConnection): Boolean {
+    fun updatePlayerDiscord(uuid: UUID, discordConnection: DiscordConnection, updatedBy: UUID? = null): Boolean {
         if (!enabled || repository == null) return false
         
         val existingPlayer = repository?.retrieve(uuid.toString()) ?: return false
         val updatedPlayer = existingPlayer.copy(discordConnection = discordConnection)
         
-        return repository?.store(uuid.toString(), updatedPlayer) ?: false
+        val result = repository?.store(uuid.toString(), updatedPlayer) ?: false
+        
+        if (result) {
+            val details = "Discord: ${discordConnection.discordUsername}, Verified: ${discordConnection.verified}"
+            logAuditEvent("DISCORD_UPDATE", uuid, updatedBy, details)
+        }
+        
+        return result
     }
     
     /**
      * Enable or disable the whitelist.
      * @param enable true to enable the whitelist, false to disable it
+     * @param changedBy The UUID of the player or admin who changed the whitelist state (optional)
      */
-    fun enable(enable: Boolean) {
+    fun enable(enable: Boolean, changedBy: UUID? = null) {
         this.enabled = enable
         plugin.config.set("whitelist.enabled", enable)
         plugin.saveConfig()
@@ -183,6 +234,12 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
                 // Already registered, ignore
             }
         }
+        
+        // Log audit event for enabling/disabling whitelist
+        val action = if (enable) "WHITELIST_ENABLE" else "WHITELIST_DISABLE"
+        val systemUuid = UUID(0, 0) // Use system UUID for global actions
+        val details = "State changed to: ${if (enable) "enabled" else "disabled"}"
+        logAuditEvent(action, systemUuid, changedBy, details)
         
         plugin.logger.info("Custom whitelist ${if (enable) "enabled" else "disabled"}")
     }
