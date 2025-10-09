@@ -9,6 +9,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.logging.Level
 
 /**
@@ -24,6 +25,7 @@ class JsonDataStorage(
     private val data = ConcurrentHashMap<String, String>()
     private val file: File
     private var initialized = false
+    private val writeLock = ReentrantReadWriteLock()
     
     init {
         // Resolve the file path relative to the plugin's data folder
@@ -179,6 +181,7 @@ class JsonDataStorage(
             return
         }
         
+        writeLock.readLock().lock()
         try {
             val content = Files.readString(file.toPath())
             if (content.isBlank()) {
@@ -198,6 +201,8 @@ class JsonDataStorage(
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to load data from JSON storage", e)
             throw StorageOperationException("Failed to load JSON data", e)
+        } finally {
+            writeLock.readLock().unlock()
         }
     }
     
@@ -205,6 +210,7 @@ class JsonDataStorage(
      * Save data from memory to the JSON file.
      */
     private fun saveData() {
+        writeLock.writeLock().lock()
         try {
             val jsonObject = JSONObject()
             
@@ -225,6 +231,8 @@ class JsonDataStorage(
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to save data to JSON storage", e)
             throw StorageOperationException("Failed to save JSON data", e)
+        } finally {
+            writeLock.writeLock().unlock()
         }
     }
     
