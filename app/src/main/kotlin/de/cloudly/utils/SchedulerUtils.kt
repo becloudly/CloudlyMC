@@ -23,7 +23,8 @@ object SchedulerUtils {
     private var foliaRunAtFixedRateMethod: Method? = null
     private var foliaRunDelayedMethod: Method? = null
     
-    const val TICKS_TO_MILLISECONDS = 50 // Replace 50 with the correct conversion value if needed
+    // 1 Minecraft tick = 50ms (20 ticks per second)
+    const val TICKS_TO_MILLISECONDS = 50L
     
     /**
      * Initialize the scheduler utility by detecting server type.
