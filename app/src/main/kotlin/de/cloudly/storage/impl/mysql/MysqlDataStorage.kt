@@ -268,7 +268,7 @@ class MysqlDataStorage(
         """.trimIndent()
         
         return try {
-            connection?.let { conn ->
+            dataSource?.connection?.use { conn ->
                 val autoCommit = conn.autoCommit
                 try {
                     conn.autoCommit = false
@@ -308,7 +308,7 @@ class MysqlDataStorage(
         val sql = "DELETE FROM $tableName WHERE key_name = ?"
         
         return try {
-            connection?.let { conn ->
+            dataSource?.connection?.use { conn ->
                 val autoCommit = conn.autoCommit
                 try {
                     conn.autoCommit = false
