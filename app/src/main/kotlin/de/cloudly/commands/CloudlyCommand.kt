@@ -222,7 +222,9 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     offlinePlayer.uniqueId
                 }
                 
-                if (whitelistService.removePlayer(uuid)) {
+                val removedBy = if (sender is Player) sender.uniqueId else UUID.fromString("00000000-0000-0000-0000-000000000000")
+                
+                if (whitelistService.removePlayer(uuid, removedBy)) {
                     // Check if the player is currently online and kick them
                     val onlinePlayer = Bukkit.getPlayer(uuid)
                     if (onlinePlayer != null && onlinePlayer.isOnline) {
@@ -264,12 +266,14 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
             }
             
             "on" -> {
-                whitelistService.enable(true)
+                val changedBy = if (sender is Player) sender.uniqueId else UUID.fromString("00000000-0000-0000-0000-000000000000")
+                whitelistService.enable(true, changedBy)
                 sender.sendMessage(languageManager.getMessage("commands.whitelist.enabled"))
             }
             
             "off" -> {
-                whitelistService.enable(false)
+                val changedBy = if (sender is Player) sender.uniqueId else UUID.fromString("00000000-0000-0000-0000-000000000000")
+                whitelistService.enable(false, changedBy)
                 sender.sendMessage(languageManager.getMessage("commands.whitelist.disabled"))
             }
             
@@ -448,7 +452,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 if (currentPlayer != null) {
                     val updatedPlayer = currentPlayer.copy(discordConnection = discordConnection)
                     
-                    if (whitelistService.updatePlayerDiscord(sender.uniqueId, discordConnection)) {
+                    if (whitelistService.updatePlayerDiscord(sender.uniqueId, discordConnection, sender.uniqueId)) {
                         sender.sendMessage(languageManager.getMessage("commands.discord.connected_successfully", 
                             "discord_username" to result.username))
                     } else {
