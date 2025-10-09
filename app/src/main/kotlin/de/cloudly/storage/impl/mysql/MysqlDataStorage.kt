@@ -220,6 +220,88 @@ class MysqlDataStorage(
         }
     }
     
+    override fun storeAll(items: Map<String, String>): Boolean {
+        checkInitialized()
+        
+        if (items.isEmpty()) {
+            return true
+        }
+        
+        val sql = """
+            INSERT INTO $tableName (key_name, value) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = CURRENT_TIMESTAMP
+        """.trimIndent()
+        
+        return try {
+            connection?.let { conn ->
+                val autoCommit = conn.autoCommit
+                try {
+                    conn.autoCommit = false
+                    
+                    conn.prepareStatement(sql).use { statement ->
+                        items.forEach { (key, value) ->
+                            statement.setString(1, key)
+                            statement.setString(2, value)
+                            statement.addBatch()
+                        }
+                        statement.executeBatch()
+                    }
+                    
+                    conn.commit()
+                    plugin.logger.fine("Stored ${items.size} items in MySQL storage")
+                    true
+                } catch (e: SQLException) {
+                    conn.rollback()
+                    throw e
+                } finally {
+                    conn.autoCommit = autoCommit
+                }
+            } ?: false
+        } catch (e: SQLException) {
+            plugin.logger.log(Level.SEVERE, "Failed to store ${items.size} items in MySQL storage", e)
+            false
+        }
+    }
+    
+    override fun removeAll(keys: Set<String>): Boolean {
+        checkInitialized()
+        
+        if (keys.isEmpty()) {
+            return true
+        }
+        
+        val sql = "DELETE FROM $tableName WHERE key_name = ?"
+        
+        return try {
+            connection?.let { conn ->
+                val autoCommit = conn.autoCommit
+                try {
+                    conn.autoCommit = false
+                    
+                    conn.prepareStatement(sql).use { statement ->
+                        keys.forEach { key ->
+                            statement.setString(1, key)
+                            statement.addBatch()
+                        }
+                        statement.executeBatch()
+                    }
+                    
+                    conn.commit()
+                    plugin.logger.fine("Removed ${keys.size} items from MySQL storage")
+                    true
+                } catch (e: SQLException) {
+                    conn.rollback()
+                    throw e
+                } finally {
+                    conn.autoCommit = autoCommit
+                }
+            } ?: false
+        } catch (e: SQLException) {
+            plugin.logger.log(Level.SEVERE, "Failed to remove ${keys.size} items from MySQL storage", e)
+            false
+        }
+    }
+    
     override fun close() {
         try {
             connection?.close()
