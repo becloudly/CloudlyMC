@@ -35,6 +35,9 @@ dependencies {
     // MySQL JDBC driver
     implementation("com.mysql:mysql-connector-j:9.4.0")
     
+    // HikariCP for MySQL connection pooling
+    implementation("com.zaxxer:HikariCP:5.1.0")
+    
     // JSON library for import/export functionality
     implementation("org.json:json:20250517")
     
@@ -70,6 +73,9 @@ tasks {
         // Relocate database drivers to avoid conflicts
         relocate("org.sqlite", "de.cloudly.libs.sqlite")
         relocate("com.mysql", "de.cloudly.libs.mysql")
+        
+        // Relocate HikariCP to avoid conflicts
+        relocate("com.zaxxer.hikari", "de.cloudly.libs.hikari")
         
         // Relocate HTTP client to avoid conflicts
         relocate("okhttp3", "de.cloudly.libs.okhttp3")
