@@ -321,7 +321,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                         val status = if (discord.verified) "§aVerified" else "§cNot verified"
                         sender.sendMessage("  §e▪ §fDiscord§8: §7${discord.discordUsername} §8(§7$status§8)")
                     } else {
-                        sender.sendMessage("  §e▪ §fDiscord§8: §cNot connected")
+                        sender.sendMessage(languageManager.getMessage("commands.whitelist.info_discord_not_connected"))
                     }
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_footer"))
                 } else {
