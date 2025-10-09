@@ -224,33 +224,19 @@ interface DataStorage<T> {
 
 ---
 
-### 4. Discord API Rate Limiting Missing
+### 4. Discord API Rate Limiting Missing ✅ **RESOLVED**
 **Location:** `DiscordService.kt`  
 **Severity:** Medium  
+**Status:** ✅ Implemented in commit 997c81c  
 **Issue:** No rate limiting or exponential backoff for API calls.
 
 **Impact:** Could hit Discord rate limits and get blocked.
 
-**Suggested Fix:** Implement rate limiting:
-```kotlin
-private val rateLimiter = Semaphore(5) // Max 5 concurrent requests
-private val lastRequestTime = AtomicLong(0)
-
-private suspend fun <T> rateLimit(block: suspend () -> T): T {
-    rateLimiter.acquire()
-    try {
-        // Ensure minimum 200ms between requests
-        val timeSinceLastRequest = System.currentTimeMillis() - lastRequestTime.get()
-        if (timeSinceLastRequest < 200) {
-            delay(200 - timeSinceLastRequest)
-        }
-        lastRequestTime.set(System.currentTimeMillis())
-        return block()
-    } finally {
-        rateLimiter.release()
-    }
-}
-```
+**Resolution:** Rate limiting has been successfully implemented with:
+- Semaphore(5) for max 5 concurrent requests
+- AtomicLong for thread-safe timestamp tracking
+- rateLimit() suspend function wrapping all Discord API calls
+- Minimum 200ms delay between requests
 
 ---
 

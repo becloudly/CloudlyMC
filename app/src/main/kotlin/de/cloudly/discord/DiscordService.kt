@@ -10,7 +10,9 @@ import org.json.JSONObject
 import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Level
 
 /**
@@ -34,6 +36,28 @@ class DiscordService(private val plugin: CloudlyPaper) {
     // Coroutine scope for async operations
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
+    // Rate limiting for Discord API
+    private val rateLimiter = Semaphore(5) // Max 5 concurrent requests
+    private val lastRequestTime = AtomicLong(0)
+    
+    /**
+     * Rate limit Discord API calls to prevent hitting rate limits.
+     * Ensures maximum 5 concurrent requests and minimum 200ms between requests.
+     */
+    private suspend fun <T> rateLimit(block: suspend () -> T): T {
+        rateLimiter.acquire()
+        try {
+            // Ensure minimum 200ms between requests
+            val timeSinceLastRequest = System.currentTimeMillis() - lastRequestTime.get()
+            if (timeSinceLastRequest < 200) {
+                delay(200 - timeSinceLastRequest)
+            }
+            lastRequestTime.set(System.currentTimeMillis())
+            return block()
+        } finally {
+            rateLimiter.release()
+        }
+    }
     // Task reference for cache cleanup
     private var cacheCleanupTask: BukkitTask? = null
     
@@ -201,27 +225,29 @@ class DiscordService(private val plugin: CloudlyPaper) {
             .build()
         
         return withContext(Dispatchers.IO) {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    plugin.logger.warning("Discord API error: ${response.code} ${response.message}")
-                    return@withContext null
+            rateLimit {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        plugin.logger.warning("Discord API error: ${response.code} ${response.message}")
+                        return@use null
+                    }
+                    
+                    val responseBody = response.body?.string() ?: return@use null
+                    val jsonArray = org.json.JSONArray(responseBody)
+                    
+                    if (jsonArray.length() == 0) {
+                        return@use null
+                    }
+                    
+                    val member = jsonArray.getJSONObject(0)
+                    val user = member.getJSONObject("user")
+                    
+                    DiscordUser(
+                        id = user.getString("id"),
+                        username = user.getString("username"),
+                        discriminator = user.optString("discriminator", "0")
+                    )
                 }
-                
-                val responseBody = response.body?.string() ?: return@withContext null
-                val jsonArray = org.json.JSONArray(responseBody)
-                
-                if (jsonArray.length() == 0) {
-                    return@withContext null
-                }
-                
-                val member = jsonArray.getJSONObject(0)
-                val user = member.getJSONObject("user")
-                
-                DiscordUser(
-                    id = user.getString("id"),
-                    username = user.getString("username"),
-                    discriminator = user.optString("discriminator", "0")
-                )
             }
         }
     }
@@ -243,8 +269,10 @@ class DiscordService(private val plugin: CloudlyPaper) {
             .build()
         
         return withContext(Dispatchers.IO) {
-            client.newCall(request).execute().use { response ->
-                response.isSuccessful
+            rateLimit {
+                client.newCall(request).execute().use { response ->
+                    response.isSuccessful
+                }
             }
         }
     }
