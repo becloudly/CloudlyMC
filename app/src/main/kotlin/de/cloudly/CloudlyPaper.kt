@@ -23,6 +23,7 @@ class CloudlyPaper : JavaPlugin() {
     private lateinit var discordService: DiscordService
     private lateinit var playerConnectionListener: PlayerConnectionListener
     private lateinit var playerChatListener: PlayerChatListener
+    private lateinit var cloudlyCommand: CloudlyCommand
     
     companion object {
         lateinit var instance: CloudlyPaper
@@ -121,6 +122,11 @@ class CloudlyPaper : JavaPlugin() {
             discordService.shutdown()
         }
         
+        // Close command handler resources
+        if (::cloudlyCommand.isInitialized) {
+            cloudlyCommand.shutdown()
+        }
+        
         // Save configuration before shutdown
         if (::configManager.isInitialized) {
             configManager.saveConfig()
@@ -139,7 +145,7 @@ class CloudlyPaper : JavaPlugin() {
     private fun registerCommands() {
         // Register main Cloudly command
         getCommand("cloudly")?.let { command ->
-            val cloudlyCommand = CloudlyCommand(this)
+            cloudlyCommand = CloudlyCommand(this)
             command.setExecutor(cloudlyCommand)
             command.tabCompleter = cloudlyCommand
         }

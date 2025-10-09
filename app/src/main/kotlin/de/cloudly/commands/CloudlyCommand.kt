@@ -519,4 +519,15 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
             else -> emptyList()
         }
     }
+    
+    /**
+     * Shutdown the command handler and clean up resources.
+     */
+    fun shutdown() {
+        try {
+            coroutineScope.cancel()
+        } catch (e: Exception) {
+            plugin.logger.warning("Error shutting down CloudlyCommand: ${e.message}")
+        }
+    }
 }
