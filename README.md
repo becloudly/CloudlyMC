@@ -24,9 +24,10 @@
 
 | 🚀 **Performance** | 🛡️ **Security** | 🌐 **Modern** | 🔧 **Flexible** |
 |:---:|:---:|:---:|:---:|
-| Async Kotlin coroutines | CodeQL security scanning | Latest Kotlin 2.2.0 | Hot-reload configuration |
-| Folia multi-threading | Dependency vulnerability checks | Paper/Folia support | Multi-language ready |
-| Optimized JAR size | Safe null handling | Modern Java 17+ | Modular architecture |
+| Async Kotlin coroutines | Audit logging system | Latest Kotlin 2.2.0 | Hot-reload configuration |
+| Batch operations | SQL injection protection | Paper/Folia support | Multi-database support |
+| Connection pooling | Command cooldowns | Modern Java 17+ | Whitelist + Discord |
+| Write-back caching | Resource cleanup tracking | Modular architecture | Permission system |
 
 </div>
 
