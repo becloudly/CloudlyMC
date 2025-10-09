@@ -224,6 +224,7 @@ class JsonDataStorage(
             return
         }
         
+        writeLock.readLock().lock()
         try {
             val content = Files.readString(file.toPath())
             if (content.isBlank()) {
@@ -243,6 +244,8 @@ class JsonDataStorage(
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to load data from JSON storage", e)
             throw StorageOperationException("Failed to load JSON data", e)
+        } finally {
+            writeLock.readLock().unlock()
         }
     }
     
