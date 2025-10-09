@@ -116,7 +116,8 @@ commands:
     whitelist_header: "\n§e§l  📋 Whitelist Management"
     whitelist: "    §f/cloudly whitelist §8<§7subcommand§8>\n      §7↳ add, remove, list, gui, on, off, reload, info"
     discord_header: "\n§e§l  🔗 Discord Integration"
-    discord.connect: "    §f/cloudly connect §8<§7discord_username§8>\n      §7↳ Link your Discord account"
+    discord:
+      connect: "    §f/cloudly connect §8<§7discord_username§8>\n      §7↳ Link your Discord account"
     general_header: "\n§e§l  ℹ General Commands"
     help: "    §f/cloudly help\n      §7↳ Show this help menu"
 
