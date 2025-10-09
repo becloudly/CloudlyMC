@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.logging.Level
 
@@ -30,7 +31,7 @@ class PlayerChatListener(private val plugin: CloudlyPaper) : Listener {
             val player = event.player
             
             // Get current time formatted as [HH:MM:SS]
-            val currentTime = LocalTime.now().format(timeFormatter)
+            val currentTime = LocalTime.now(ZoneId.systemDefault()).format(timeFormatter)
             
             // Create the formatted message
             // Gray "[HH:MM:SS] | " + White "PlayerName: " + Gray message content
