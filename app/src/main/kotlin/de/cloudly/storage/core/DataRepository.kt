@@ -138,6 +138,24 @@ class DataRepository<T>(
     }
     
     /**
+     * Get a paginated list of items from the repository.
+     * @param offset The starting index (0-based)
+     * @param limit The maximum number of items to return
+     * @return A list of items within the specified range
+     */
+    fun getPaginated(offset: Int, limit: Int): List<T> {
+        checkInitialized()
+        val allValues = cache.values.toList()
+        val startIndex = offset.coerceAtLeast(0)
+        val endIndex = (startIndex + limit).coerceAtMost(allValues.size)
+        return if (startIndex < allValues.size) {
+            allValues.subList(startIndex, endIndex)
+        } else {
+            emptyList()
+        }
+    }
+    
+    /**
      * Get the count of items in the repository.
      * @return The number of items stored
      */
