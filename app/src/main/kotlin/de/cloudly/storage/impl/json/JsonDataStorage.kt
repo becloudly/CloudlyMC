@@ -3,12 +3,16 @@ package de.cloudly.storage.impl.json
 import de.cloudly.storage.core.DataStorage
 import de.cloudly.storage.core.StorageException
 import de.cloudly.storage.core.StorageOperationException
+import de.cloudly.utils.SchedulerUtils
 import org.bukkit.plugin.java.JavaPlugin
+import org.bukkit.scheduler.BukkitTask
 import org.json.JSONObject
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.logging.Level
 
 /**
@@ -24,6 +28,9 @@ class JsonDataStorage(
     private val data = ConcurrentHashMap<String, String>()
     private val file: File
     private var initialized = false
+    private val pendingWrites = AtomicBoolean(false)
+    private val writeLock = ReentrantReadWriteLock()
+    private var flushTask: BukkitTask? = null
     
     init {
         // Resolve the file path relative to the plugin's data folder
@@ -46,6 +53,9 @@ class JsonDataStorage(
             loadData()
             initialized = true
             
+            // Start periodic flush task
+            startPeriodicFlush()
+            
             plugin.logger.info("JSON storage initialized: ${file.absolutePath}")
             true
         } catch (e: Exception) {
@@ -59,7 +69,7 @@ class JsonDataStorage(
         
         return try {
             data[key] = item
-            saveData()
+            pendingWrites.set(true)
             true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to store item with key '$key' in JSON storage", e)
@@ -78,7 +88,7 @@ class JsonDataStorage(
         return try {
             val removed = data.remove(key) != null
             if (removed) {
-                saveData()
+                pendingWrites.set(true)
             }
             removed
         } catch (e: Exception) {
@@ -112,7 +122,7 @@ class JsonDataStorage(
         
         return try {
             data.clear()
-            saveData()
+            pendingWrites.set(true)
             true
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to clear JSON storage", e)
@@ -121,10 +131,16 @@ class JsonDataStorage(
     }
     
     override fun close() {
-        // Save data before closing
+        // Cancel periodic flush task
+        flushTask?.cancel()
+        flushTask = null
+        
+        // Save data before closing if there are pending writes
         if (initialized) {
             try {
-                saveData()
+                if (pendingWrites.compareAndSet(true, false)) {
+                    saveData()
+                }
             } catch (e: Exception) {
                 plugin.logger.log(Level.WARNING, "Failed to save data during JSON storage close", e)
             }
@@ -138,12 +154,23 @@ class JsonDataStorage(
         checkInitialized()
         
         return try {
+            // Flush pending writes before backup
+            if (pendingWrites.compareAndSet(true, false)) {
+                saveData()
+            }
+            
             val backupFile = File(plugin.dataFolder, backupPath)
             backupFile.parentFile?.mkdirs()
             
-            Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
-            plugin.logger.info("JSON storage backed up to: ${backupFile.absolutePath}")
-            true
+            // Use read lock to ensure we don't backup during a write
+            writeLock.readLock().lock()
+            try {
+                Files.copy(file.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                plugin.logger.info("JSON storage backed up to: ${backupFile.absolutePath}")
+                true
+            } finally {
+                writeLock.readLock().unlock()
+            }
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to backup JSON storage to '$backupPath'", e)
             false
@@ -169,6 +196,24 @@ class JsonDataStorage(
             plugin.logger.log(Level.SEVERE, "Failed to restore JSON storage from '$backupPath'", e)
             false
         }
+    }
+    
+    /**
+     * Start periodic flush task to save pending writes to disk.
+     * Flushes every 5 seconds if there are pending writes.
+     */
+    private fun startPeriodicFlush() {
+        flushTask = SchedulerUtils.runTaskTimerAsynchronously(plugin, Runnable {
+            if (pendingWrites.compareAndSet(true, false)) {
+                try {
+                    saveData()
+                } catch (e: Exception) {
+                    plugin.logger.log(Level.WARNING, "Failed to flush pending writes", e)
+                    // Reset flag so we can retry on next flush
+                    pendingWrites.set(true)
+                }
+            }
+        }, 20 * 5, 20 * 5) // Every 5 seconds (20 ticks = 1 second)
     }
     
     /**
@@ -203,8 +248,10 @@ class JsonDataStorage(
     
     /**
      * Save data from memory to the JSON file.
+     * Uses write lock to prevent concurrent writes.
      */
     private fun saveData() {
+        writeLock.writeLock().lock()
         try {
             val jsonObject = JSONObject()
             
@@ -225,6 +272,8 @@ class JsonDataStorage(
         } catch (e: Exception) {
             plugin.logger.log(Level.SEVERE, "Failed to save data to JSON storage", e)
             throw StorageOperationException("Failed to save JSON data", e)
+        } finally {
+            writeLock.writeLock().unlock()
         }
     }
     
