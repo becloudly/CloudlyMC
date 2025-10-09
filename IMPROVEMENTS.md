@@ -295,7 +295,7 @@ plugin.logger.info("Discord config loaded successfully")
 
 ---
 
-### 3. SQL Injection in Backup Method
+### 3. SQL Injection in Backup Method ✅ FIXED
 **Location:** `MysqlDataStorage.kt` lines 243-256  
 **Severity:** Medium  
 **Issue:** Table name is not sanitized in backup SQL generation.
@@ -306,13 +306,17 @@ backupData.append("INSERT INTO $tableName ...")
 
 **Impact:** If tableName is user-controlled, SQL injection is possible.
 
-**Suggested Fix:** Validate table name against allowed characters:
+**Status:** ✅ **FIXED** - Added `validateTableName()` function and init block validation
 ```kotlin
-private fun validateTableName(name: String): String {
+init {
+    // Validate table name to prevent SQL injection
+    validateTableName(tableName)
+}
+
+private fun validateTableName(name: String) {
     require(name.matches(Regex("[a-zA-Z0-9_]+"))) {
         "Invalid table name: $name"
     }
-    return name
 }
 ```
 
@@ -1016,11 +1020,12 @@ messages:
 5. Add command cooldowns
 
 ### Phase 2: Security & Stability (2-3 weeks)
-1. Implement credential encryption
-2. Add audit logging
-3. Add configuration validation
-4. Improve error handling consistency
-5. Add resource cleanup tracking
+1. ~~Fix SQL injection in table names~~ ✅ COMPLETED
+2. Implement credential encryption
+3. Add audit logging
+4. Add configuration validation
+5. Improve error handling consistency
+6. Add resource cleanup tracking
 
 ### Phase 3: Performance (2-3 weeks)
 1. Implement write-back caching for JSON
