@@ -130,6 +130,41 @@ class JsonDataStorage(
         }
     }
     
+    override fun storeAll(items: Map<String, String>): Boolean {
+        checkInitialized()
+        
+        return try {
+            data.putAll(items)
+            saveData()
+            plugin.logger.fine("Stored ${items.size} items in JSON storage")
+            true
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "Failed to store ${items.size} items in JSON storage", e)
+            false
+        }
+    }
+    
+    override fun removeAll(keys: Set<String>): Boolean {
+        checkInitialized()
+        
+        return try {
+            var removedCount = 0
+            keys.forEach { key ->
+                if (data.remove(key) != null) {
+                    removedCount++
+                }
+            }
+            if (removedCount > 0) {
+                saveData()
+            }
+            plugin.logger.fine("Removed $removedCount items from JSON storage")
+            true
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "Failed to remove ${keys.size} items from JSON storage", e)
+            false
+        }
+    }
+    
     override fun close() {
         // Cancel periodic flush task
         flushTask?.cancel()
