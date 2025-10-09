@@ -69,6 +69,7 @@ commands:
     user_not_found: "§c✗ Discord user §f{discord_username}§c not found or not accessible by the bot"
     not_server_member: "§c✗ Discord user §f{discord_username}§c is not a member of the configured server"
     api_error: "§c✗ Discord API error. Please try again later"
+    cooldown: "§c✗ Please wait §f{seconds}§c seconds before using this command again"
 
   # Reload command
   reload:

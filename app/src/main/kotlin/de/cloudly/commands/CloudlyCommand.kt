@@ -16,6 +16,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Date
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Main command handler for the Cloudly plugin.
@@ -27,6 +28,9 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
     
     // Coroutine scope for async Discord operations
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    // Cooldown tracking for rate limiting
+    private val cooldowns = ConcurrentHashMap<UUID, Long>()
     
     override fun onCommand(
         sender: CommandSender,
@@ -78,6 +82,43 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         }
         
         return true
+    }
+    
+    /**
+     * Check if a player is on cooldown for a command.
+     * 
+     * @param player The player to check
+     * @param seconds The cooldown duration in seconds
+     * @return true if the player can use the command, false if still on cooldown
+     */
+    private fun checkCooldown(player: Player, seconds: Int): Boolean {
+        val now = System.currentTimeMillis()
+        val lastUse = cooldowns[player.uniqueId] ?: 0
+        return if (now - lastUse >= seconds * 1000) {
+            cooldowns[player.uniqueId] = now
+            true
+        } else {
+            false
+        }
+    }
+    
+    /**
+     * Get the remaining cooldown time for a player in seconds.
+     * 
+     * @param player The player to check
+     * @param seconds The cooldown duration in seconds
+     * @return The remaining cooldown time in seconds, or 0 if no cooldown
+     */
+    private fun getRemainingCooldown(player: Player, seconds: Int): Long {
+        val now = System.currentTimeMillis()
+        val lastUse = cooldowns[player.uniqueId] ?: 0
+        val elapsed = now - lastUse
+        val cooldownMs = seconds * 1000L
+        return if (elapsed < cooldownMs) {
+            (cooldownMs - elapsed) / 1000
+        } else {
+            0
+        }
     }
     
     /**
@@ -293,6 +334,15 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         val languageManager = plugin.getLanguageManager()
         val discordService = plugin.getDiscordService()
         val whitelistService = plugin.getWhitelistService()
+        
+        // Check cooldown to prevent command spam and API abuse
+        val cooldownSeconds = 30
+        if (!checkCooldown(sender, cooldownSeconds)) {
+            val remaining = getRemainingCooldown(sender, cooldownSeconds)
+            sender.sendMessage(languageManager.getMessage("commands.discord.cooldown", 
+                "seconds" to remaining.toString()))
+            return
+        }
         
         // Check if Discord service is enabled
         if (!discordService.isEnabled()) {
