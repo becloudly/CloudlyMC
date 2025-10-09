@@ -27,7 +27,7 @@
 | Async Kotlin coroutines | Audit logging system | Latest Kotlin 2.2.0 | Hot-reload configuration |
 | Batch operations | SQL injection protection | Paper/Folia support | Multi-database support |
 | Connection pooling | Command cooldowns | Modern Java 17+ | Whitelist + Discord |
-| Write-back caching | Resource cleanup tracking | Modular architecture | Permission system |
+| Write-back caching | Resource cleanup tracking | Modular architecture | Multi-language support |
 
 </div>
 
@@ -60,13 +60,6 @@
 - **⚡ Rate Limiting**: Smart API rate limiting to prevent quota exhaustion
 - **💾 Caching System**: Efficient caching with configurable duration and automatic memory management
 - **🛡️ Error Handling**: Graceful degradation when Discord services are unavailable
-
-### 🛡️ **Permission System**
-- **👥 Group Management**: Create and manage permission groups with inheritance
-- **👤 User Permissions**: Individual player permission overrides and assignments
-- **⚖️ Weight System**: Priority-based permission resolution
-- **🔄 Hot-Reload**: Live permission updates without server restart
-- **💾 Flexible Storage**: Store permissions in JSON, SQLite, or MySQL
 
 ### 🛠️ **Technical Excellence**
 - **🚀 Async Performance**: Built with Kotlin coroutines for non-blocking operations
@@ -192,13 +185,6 @@ discord:
 whitelist:
   enabled: false                  # Enable custom whitelist system
 
-# Permission System Settings
-permissions:
-  enabled: true                   # Enable permission system
-  default_group:
-    name: "base"                  # Default group for new players
-    weight: 1                     # Group priority weight
-
 # Global Storage Configuration
 storage:
   default_type: "json"            # Options: json, sqlite, mysql
@@ -282,18 +268,6 @@ storage:
 ```bash
 /cloudly connect PhantomCloudly
 ```
-
-#### **Permission Commands**
-
-| Command | Description | Permission | Example |
-|---------|-------------|------------|---------|
-| `/cloudly perms group <action>` | Manage permission groups | `cloudly.permissions.*` | Group operations |
-| `/cloudly perms user <action>` | Manage user permissions | `cloudly.permissions.*` | User operations |
-| `/cloudly perms help` | Show permissions help | `cloudly.permissions.*` | Display help |
-| `/cloudly perms info` | Show system information | `cloudly.permissions.*` | System status |
-| `/cloudly perms reload` | Reload permissions | `cloudly.permissions.*` | Refresh from storage |
-
-**Note:** Full permission system documentation available in [documentation.md](documentation.md)
 
 ## 🔧 Advanced Configuration
 
