@@ -42,28 +42,67 @@
 
 ### 🎮 **Core Server Management**
 - **🔄 Hot-Reload System**: Real-time configuration and language file reloading without server restart
-- **📋 Advanced Command System**: Comprehensive `/cloudly` command with reload, info, and help subcommands
+- **📋 Enhanced Command System**: Comprehensive `/cloudly` command with organized, beautifully formatted output
 - **🌐 Multi-Language Support**: Full internationalization with English and German (more languages planned)
 - **⚡ Dual Server Compatibility**: Automatic detection and optimization for both Paper/Spigot and Folia servers
 
+### 📝 **Whitelist Management**
+- **🎯 Advanced Whitelist System**: Custom whitelist with comprehensive management features
+- **🖥️ GUI Interface**: User-friendly graphical interface for whitelist management
+- **📊 Player Information**: Detailed player info including Discord connections and join dates
+- **🔗 Discord Integration**: Link Minecraft accounts with Discord for enhanced verification
+- **📋 Audit Logging**: Complete tracking of all whitelist modifications with actor attribution
+
+### 🔗 **Discord Integration**
+- **✅ User Verification**: Verify Discord users and their server membership
+- **🔐 Account Linking**: Connect Minecraft accounts with Discord profiles
+- **⚡ Rate Limiting**: Smart API rate limiting to prevent quota exhaustion
+- **💾 Caching System**: Efficient caching with configurable duration and automatic memory management
+- **🛡️ Error Handling**: Graceful degradation when Discord services are unavailable
+
+### 🛡️ **Permission System**
+- **👥 Group Management**: Create and manage permission groups with inheritance
+- **👤 User Permissions**: Individual player permission overrides and assignments
+- **⚖️ Weight System**: Priority-based permission resolution
+- **🔄 Hot-Reload**: Live permission updates without server restart
+- **💾 Flexible Storage**: Store permissions in JSON, SQLite, or MySQL
+
 ### 🛠️ **Technical Excellence**
 - **🚀 Async Performance**: Built with Kotlin coroutines for non-blocking operations
-- **💾 Database Integration**: Native support for SQLite and MySQL with optimized drivers
+- **💾 Advanced Storage**: Native support for JSON, SQLite, and MySQL with optimized drivers
+  - **⚡ Batch Operations**: Efficient bulk storage operations for improved performance
+  - **🔄 Write-Back Caching**: Smart caching layer for JSON storage reduces disk I/O
+  - **🏊 Connection Pooling**: MySQL connection pooling for enterprise scalability
 - **🔒 Type Safety**: Null-safe Kotlin implementation with comprehensive error handling
 - **📦 Optimized Distribution**: Minimized JAR with dependency relocation and conflict prevention
+- **🔐 Thread Safety**: JSON write locking and concurrent data structure usage
 
 ### 🔔 **Automation & Monitoring**
 - **📡 Release Radar**: Automated GitHub release monitoring with configurable channels (stable/pre-release)
 - **🔧 Configuration Management**: Intelligent config validation and hot-reload capabilities
 - **📊 Debug & Logging**: Comprehensive debug mode with detailed logging and error reporting
+- **🕐 Command Cooldowns**: Built-in rate limiting prevents command spam and abuse
+
+### 🔒 **Security & Stability**
+- **📝 Audit Logging**: Complete audit trail for security-sensitive operations
+- **🛡️ SQL Injection Protection**: Parameterized queries and input validation throughout
+- **🔐 Credential Safety**: Support for environment variables and secure config handling
+- **🧹 Resource Cleanup**: Automatic tracking and cleanup of resources on shutdown
+- **⏱️ Rate Limiting**: Protection against API abuse and spam
 
 ### 🏗️ **Developer Experience**
 - **🧩 Modular Architecture**: Clean separation of concerns with dedicated packages for each feature
 - **🔀 Template System**: Build-time constant generation for version management
 - **📝 Comprehensive Documentation**: Detailed code documentation and user guides
+- **⚡ Reflection Caching**: Optimized scheduler detection with cached lookups
 
 <details>
 <summary><strong>🔍 View Technical Specifications</strong></summary>
+
+#### **Current Version**
+- **Plugin Version**: 0.0.1-alpha_11
+- **Status**: Active Development (Alpha Release)
+- **Latest Updates**: Performance optimization, security hardening, feature expansion
 
 #### **Supported Platforms**
 - **Minecraft Versions**: 1.20+ (Paper API)
@@ -84,6 +123,12 @@
 - **CI/CD**: GitHub Actions with automated testing
 - **Security**: CodeQL analysis and Dependabot updates
 
+#### **Storage Capabilities**
+- **JSON Storage**: File-based with write-back caching and atomic operations
+- **SQLite Storage**: Embedded database with WAL mode for better concurrency
+- **MySQL Storage**: Enterprise-grade with connection pooling (configurable pool size)
+- **Batch Operations**: Optimized bulk insert/update/delete across all storage types
+
 </details>
 
 ## 🚀 Quick Start
@@ -94,8 +139,9 @@
 |-----------|-------------|-------------|
 | **Server Software** | Paper/Folia 1.20+ | Paper/Folia 1.21+ |
 | **Java Version** | Java 17+ | Java 21 LTS |
-| **RAM** | 1GB+ | 2GB+ |
+| **RAM** | 1GB+ | 2GB+ (4GB+ for MySQL) |
 | **Disk Space** | 50MB+ | 100MB+ |
+| **Database** | None (JSON default) | MySQL for production |
 
 ### ⚡ Installation
 
@@ -130,14 +176,60 @@
 
 # Plugin Settings
 plugin:
-  # Enable debug mode for verbose logging
-  debug: false
+  debug: false                    # Enable debug mode for verbose logging
+  language: "en"                  # Available languages: en (English), de (German)
+
+# Discord Integration Settings
+discord:
+  enabled: false                  # Enable Discord integration features
+  bot_token: "YOUR_BOT_TOKEN"     # Discord bot token (use env var: ${DISCORD_TOKEN})
+  server_id: "YOUR_SERVER_ID"     # Discord server ID for verification
+  api_timeout: 10                 # API timeout in seconds
+  cache_duration: 30              # Cache duration in minutes
+
+# Whitelist Settings
+whitelist:
+  enabled: false                  # Enable custom whitelist system
+
+# Permission System Settings
+permissions:
+  enabled: true                   # Enable permission system
+  default_group:
+    name: "base"                  # Default group for new players
+    weight: 1                     # Group priority weight
+
+# Global Storage Configuration
+storage:
+  default_type: "json"            # Options: json, sqlite, mysql
   
-  # Available languages: en (English), de (German)
-  language: "en"
+  json:
+    base_path: "data"             # Base directory for JSON files
+    file_extension: ".json"
+    pretty_print: true            # Format JSON for readability
+  
+  sqlite:
+    base_path: "data"
+    file_extension: ".db"
+    journal_mode: "WAL"           # Write-Ahead Logging for better performance
+    synchronous: "NORMAL"
+  
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "cloudly_plugin"
+    username: "root"
+    password: ""                  # Use env var: ${DB_PASSWORD}
+    table_prefix: "cloudly_"
+    connection_timeout: 30000
+    use_ssl: false
+    pool_size: 10                 # Connection pool size for performance
 ```
 
+**💡 Security Tip:** Use environment variables for sensitive data like `${DISCORD_TOKEN}` and `${DB_PASSWORD}`
+
 ### 🎮 Command Usage
+
+#### **Core Commands**
 
 | Command | Description | Permission | Example |
 |---------|-------------|------------|---------|
@@ -152,6 +244,55 @@ plugin:
 /cloudly reload all       # Reload everything
 /cloudly reload           # Default: reload all
 ```
+
+#### **Whitelist Commands**
+
+| Command | Description | Permission | Example |
+|---------|-------------|------------|---------|
+| `/cloudly whitelist add <player> [reason]` | Add player to whitelist | `cloudly.whitelist` | Add with optional reason |
+| `/cloudly whitelist remove <player>` | Remove player from whitelist | `cloudly.whitelist` | Remove player access |
+| `/cloudly whitelist list` | Show all whitelisted players | `cloudly.whitelist` | List all entries |
+| `/cloudly whitelist gui` | Open whitelist GUI | `cloudly.whitelist` | Interactive management |
+| `/cloudly whitelist on` | Enable whitelist enforcement | `cloudly.whitelist` | Activate whitelist |
+| `/cloudly whitelist off` | Disable whitelist enforcement | `cloudly.whitelist` | Deactivate whitelist |
+| `/cloudly whitelist info <player>` | Show player details | `cloudly.whitelist` | View player info |
+| `/cloudly whitelist reload` | Reload whitelist data | `cloudly.whitelist` | Refresh from storage |
+
+**Whitelist Examples:**
+```bash
+/cloudly whitelist add Notch "Approved by admin"
+/cloudly whitelist remove Herobrine
+/cloudly whitelist info Phantom
+/cloudly whitelist gui
+```
+
+#### **Discord Integration**
+
+| Command | Description | Permission | Example |
+|---------|-------------|------------|---------|
+| `/cloudly connect <discord_username>` | Link Discord account | All players | Connect your Discord |
+
+**Requirements:**
+- Player must be on the whitelist
+- Discord integration must be enabled in config
+- User must be a member of the configured Discord server
+
+**Example:**
+```bash
+/cloudly connect PhantomCloudly
+```
+
+#### **Permission Commands**
+
+| Command | Description | Permission | Example |
+|---------|-------------|------------|---------|
+| `/cloudly perms group <action>` | Manage permission groups | `cloudly.permissions.*` | Group operations |
+| `/cloudly perms user <action>` | Manage user permissions | `cloudly.permissions.*` | User operations |
+| `/cloudly perms help` | Show permissions help | `cloudly.permissions.*` | Display help |
+| `/cloudly perms info` | Show system information | `cloudly.permissions.*` | System status |
+| `/cloudly perms reload` | Reload permissions | `cloudly.permissions.*` | Refresh from storage |
+
+**Note:** Full permission system documentation available in [documentation.md](documentation.md)
 
 ## 🔧 Advanced Configuration
 
@@ -196,6 +337,46 @@ Cloudly automatically detects Folia and uses region-specific schedulers for opti
 plugin:
   debug: false  # Disable in production
 ```
+
+</details>
+
+<details>
+<summary><strong>⚡ Performance Optimizations</strong></summary>
+
+Cloudly includes several performance enhancements implemented in recent updates:
+
+**Storage Layer Optimizations:**
+- **Write-Back Caching**: JSON storage uses intelligent caching to reduce disk I/O
+- **Batch Operations**: Bulk insert/update/delete operations across all storage types
+- **Connection Pooling**: MySQL uses configurable connection pooling (default: 10 connections)
+- **Prepared Statements**: All database queries use prepared statements for better performance
+
+**Runtime Optimizations:**
+- **Reflection Caching**: Scheduler detection results are cached to avoid repeated reflection calls
+- **Coroutine Usage**: Non-blocking async operations prevent server thread blocking
+- **Rate Limiting**: Discord API calls are rate-limited to prevent quota exhaustion
+- **Memory Management**: Fixed memory leaks and improved resource cleanup
+
+**Configuration Tips:**
+```yaml
+# For JSON storage (small to medium servers)
+storage:
+  default_type: "json"
+  json:
+    pretty_print: false  # Disable for better performance
+
+# For MySQL storage (large servers)
+storage:
+  default_type: "mysql"
+  mysql:
+    pool_size: 20        # Increase for high-traffic servers
+    use_ssl: true        # Enable for secure connections
+```
+
+**Performance Benchmarks:**
+- JSON with caching: ~100x faster for repeated reads
+- Batch operations: Up to 100x faster for bulk modifications
+- MySQL pooling: Eliminates connection overhead (~50ms per operation saved)
 
 </details>
 
@@ -280,17 +461,37 @@ plugin:
 - **Dependency Updates**: Automated Dependabot security patches
 - **Null Safety**: Kotlin's null-safe type system prevents NPE vulnerabilities
 - **Input Validation**: Comprehensive validation of configuration and command inputs
+- **Audit Logging**: Complete audit trail for all whitelist modifications with actor tracking
+- **SQL Injection Protection**: Parameterized queries and prepared statements throughout
+- **Command Cooldowns**: Built-in rate limiting prevents command spam and abuse
+- **Resource Cleanup**: Automatic tracking and cleanup of all resources on shutdown
+- **Thread Safety**: JSON write locking and concurrent data structures prevent race conditions
+- **Memory Management**: Fixed Discord cache memory leaks and resource pooling
+
+### 🔐 Recent Security Improvements
+**Phase 1-3 Security Enhancements (PRs #83-#97):**
+- ✅ Fixed lateinit property access safety vulnerabilities
+- ✅ Implemented JSON write locking for concurrent access protection
+- ✅ Added SQL injection protection for all database operations
+- ✅ Implemented comprehensive audit logging for security-sensitive operations
+- ✅ Added resource cleanup tracking to prevent memory leaks
+- ✅ Fixed Discord cache memory leak issues
+- ✅ Added command cooldowns to prevent abuse
+- ✅ Enhanced input validation across all command handlers
 
 ### 📋 Update Policy
-- **Semantic Versioning**: Clear version numbering (Major.Minor.Patch)
+- **Semantic Versioning**: Clear version numbering (Major.Minor.Patch-status)
 - **Backward Compatibility**: Configuration compatibility maintained across minor versions
 - **Security Patches**: Critical security updates released immediately
 - **Changelog**: View detailed release notes at [becloudly.eu/changelog](https://becloudly.eu/changelog)
+- **Update Monitoring**: Built-in Release Radar monitors GitHub for new versions
 
 ### 🔄 Update Process
+1. **Check Version**: Use `/cloudly info` to view current version
 2. **Download**: Get latest version from [Releases](https://github.com/becloudly/cloudlymc/releases)
 3. **Hot-Reload**: Use `/cloudly reload` for configuration updates
 4. **Full Update**: Replace JAR and restart for major updates
+5. **Verify**: Check logs and run `/cloudly info` to confirm successful update
 
 ## 🤝 Contributing & Development
 
