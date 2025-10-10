@@ -41,33 +41,7 @@ class PlaceholderProcessor {
 
 ---
 
-### 2. Hard-coded GUI Slot Numbers
-**Location:** `WhitelistGui.kt` lines 34-41  
-**Severity:** Low  
-**Issue:** GUI navigation slots are hard-coded constants which makes the layout fragile and difficult to modify.
-
-**Impact:**
-- Hard to change GUI layout
-- Risk of slot conflicts
-- Difficult to add new navigation items
-- Not flexible for different inventory sizes
-
-**Suggested Fix:** Use a more flexible layout system:
-```kotlin
-class GuiLayout(val rows: Int) {
-    private val slots = mutableMapOf<String, Int>()
-    
-    fun setSlot(name: String, row: Int, col: Int) {
-        slots[name] = row * 9 + col
-    }
-    
-    fun getSlot(name: String): Int = slots[name] ?: -1
-}
-```
-
----
-
-### 3. No Dedicated Audit Log File
+### 2. No Dedicated Audit Log File
 **Location:** `WhitelistService.kt` line 42  
 **Severity:** Medium  
 **Issue:** Audit logs are only written to the plugin logger, not to a separate audit log file. The comment indicates this is a known limitation.
@@ -914,7 +888,6 @@ messages:
 | Storage Query System | Medium | High | High | Feature |
 | GUI Pagination | Medium | Medium | Medium | Feature |
 | Config Version/Migration | Medium | Medium | Medium | Maintainability |
-| GUI Slot Layout System | Low | Low | Low | Code Quality |
 | Update Checker/Release Radar | Low | Low | Medium | Feature |
 | PlaceholderAPI | Low | Low | Low | Feature |
 
@@ -960,8 +933,7 @@ messages:
 1. Implement transaction support in storage layer
 2. Add circuit breaker pattern for Discord API
 3. Replace primitive placeholder system with proper implementation
-4. Refactor GUI slot layout system
-5. Add comprehensive error handling with Result types
+4. Add comprehensive error handling with Result types
 
 ### Phase 6: Features (4-6 weeks)
 1. Automated backup system
