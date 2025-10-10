@@ -31,14 +31,18 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
     
     companion object {
         private const val INVENTORY_SIZE = 54 // 6 rows
-        private const val PREV_PAGE_SLOT = 45
-        private const val REFRESH_SLOT = 47
-        private const val INFO_SLOT = 49
-        private const val NEXT_PAGE_SLOT = 53
         private val BORDER_MATERIAL = Material.GRAY_STAINED_GLASS_PANE
         private val NAVIGATION_MATERIAL = Material.ARROW
         private val INFO_MATERIAL = Material.BOOK
         private val REFRESH_MATERIAL = Material.EMERALD
+        
+        // Flexible layout system for slot positioning
+        private val layout = GuiLayout(6).apply {
+            setSlot("prev_page", 5, 0)   // Bottom row, left (slot 45)
+            setSlot("refresh", 5, 2)     // Bottom row, left-center (slot 47)
+            setSlot("info", 5, 4)        // Bottom row, center (slot 49)
+            setSlot("next_page", 5, 8)   // Bottom row, right (slot 53)
+        }
     }
     
     init {
@@ -251,7 +255,7 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
                     setLore(listOf(languageManager.getMessage("gui.whitelist.previous_page_lore", "page" to currentPage.toString())))
                 }
             }
-            inv.setItem(PREV_PAGE_SLOT, prevItem)
+            inv.setItem(layout.getSlot("prev_page"), prevItem)
         }
         
         // Info item
@@ -271,7 +275,7 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
                 ))
             }
         }
-        inv.setItem(INFO_SLOT, infoItem)
+        inv.setItem(layout.getSlot("info"), infoItem)
         
         // Refresh button
         val refreshItem = ItemStack(REFRESH_MATERIAL).apply {
@@ -280,7 +284,7 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
                 setLore(listOf(languageManager.getMessage("gui.whitelist.refresh_lore")))
             }
         }
-        inv.setItem(REFRESH_SLOT, refreshItem)
+        inv.setItem(layout.getSlot("refresh"), refreshItem)
         
         // Next page button
         if (currentPage < totalPages - 1) {
@@ -290,7 +294,7 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
                     setLore(listOf(languageManager.getMessage("gui.whitelist.next_page_lore", "page" to (currentPage + 2).toString())))
                 }
             }
-            inv.setItem(NEXT_PAGE_SLOT, nextItem)
+            inv.setItem(layout.getSlot("next_page"), nextItem)
         }
     }
     
@@ -313,22 +317,22 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
         val clickedItem = event.currentItem ?: return
         
         when (slot) {
-            PREV_PAGE_SLOT -> {
+            layout.getSlot("prev_page") -> {
                 if (currentPage > 0) {
                     currentPage--
                     updateInventory()
                 }
             }
-            NEXT_PAGE_SLOT -> {
+            layout.getSlot("next_page") -> {
                 if (currentPage < getTotalPages() - 1) {
                     currentPage++
                     updateInventory()
                 }
             }
-            INFO_SLOT -> {
+            layout.getSlot("info") -> {
                 // Show information (no refresh here, just informational)
             }
-            REFRESH_SLOT -> {
+            layout.getSlot("refresh") -> {
                 // Refresh the GUI
                 loadWhitelistedPlayers()
                 if (whitelistedPlayers.isEmpty()) {
