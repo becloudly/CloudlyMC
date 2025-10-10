@@ -9,39 +9,7 @@ This document contains a comprehensive analysis of the CloudlyMC plugin codebase
 
 ## 🐛 Potential Bugs & Errors
 
-### 1. Primitive Placeholder System
-**Location:** `PlayerConnectionListener.kt` lines 44-52, 95-103  
-**Severity:** Medium  
-**Issue:** Placeholders are replaced using simple `string.replace()` which is inefficient for multiple replacements and error-prone.
-
-**Impact:** 
-- Multiple passes through the string for each placeholder
-- No validation if placeholder exists
-- Hard to maintain and extend
-- Difficult to add complex formatting
-
-**Suggested Fix:** Implement a proper placeholder system:
-```kotlin
-class PlaceholderProcessor {
-    private val placeholders = mutableMapOf<String, (Player) -> String>()
-    
-    fun register(key: String, resolver: (Player) -> String) {
-        placeholders[key] = resolver
-    }
-    
-    fun process(template: String, player: Player): String {
-        var result = template
-        placeholders.forEach { (key, resolver) ->
-            result = result.replace("{$key}", resolver(player))
-        }
-        return result
-    }
-}
-```
-
----
-
-### 2. Hard-coded GUI Slot Numbers
+### 1. Hard-coded GUI Slot Numbers
 **Location:** `WhitelistGui.kt` lines 34-41  
 **Severity:** Low  
 **Issue:** GUI navigation slots are hard-coded constants which makes the layout fragile and difficult to modify.
@@ -67,7 +35,7 @@ class GuiLayout(val rows: Int) {
 
 ---
 
-### 3. No Dedicated Audit Log File
+### 2. No Dedicated Audit Log File
 **Location:** `WhitelistService.kt` line 42  
 **Severity:** Medium  
 **Issue:** Audit logs are only written to the plugin logger, not to a separate audit log file. The comment indicates this is a known limitation.
