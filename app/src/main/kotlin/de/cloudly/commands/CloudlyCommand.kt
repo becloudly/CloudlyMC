@@ -4,6 +4,7 @@ import de.cloudly.CloudlyPaper
 import de.cloudly.config.HotReloadManager
 import de.cloudly.discord.DiscordVerificationResult
 import de.cloudly.utils.SchedulerUtils
+import de.cloudly.utils.TimeUtils
 import de.cloudly.whitelist.model.WhitelistPlayer
 import kotlinx.coroutines.*
 import org.bukkit.Bukkit
@@ -250,10 +251,10 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 sender.sendMessage("")
                 sender.sendMessage(languageManager.getMessage("commands.whitelist.list_header", "count" to players.size.toString()))
                 players.forEach { player ->
-                    val date = Date.from(player.addedAt)
+                    val date = TimeUtils.formatTimestamp(player.addedAt)
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.list_entry", 
                         "username" to player.username, 
-                        "date" to date.toString()))
+                        "date" to date))
                 }
                 sender.sendMessage(languageManager.getMessage("commands.whitelist.list_footer"))
             }
@@ -308,12 +309,12 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                         Bukkit.getOfflinePlayer(addedByUuid).name ?: "Unknown"
                     }
                     
-                    val date = Date.from(whitelistPlayer.addedAt)
+                    val date = TimeUtils.formatTimestamp(whitelistPlayer.addedAt)
                     
                     sender.sendMessage("")
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_header", "player" to whitelistPlayer.username))
                     sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_by", "name" to addedByName))
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_on", "date" to date.toString()))
+                    sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_on", "date" to date))
                     
                     // Show Discord connection info if available
                     if (whitelistPlayer.discordConnection != null) {

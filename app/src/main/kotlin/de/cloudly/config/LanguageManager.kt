@@ -119,6 +119,9 @@ class LanguageManager(private val plugin: JavaPlugin, private val configManager:
             result = result.replace("{$placeholder}", value.toString())
         }
         
+        // Replace literal \n with actual newlines
+        result = result.replace("\\n", "\n")
+        
         return result
     }
     

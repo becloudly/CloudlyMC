@@ -40,7 +40,7 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * @param details Additional details about the action
      */
     private fun logAuditEvent(action: String, target: UUID, actor: UUID?, details: String?) {
-        val timestamp = Instant.now()
+        val timestamp = de.cloudly.utils.TimeUtils.formatTimestamp(Instant.now())
         plugin.logger.info("[AUDIT] $timestamp - $action - Target: $target - Actor: $actor - Details: $details")
         
         // Also store in dedicated audit log file

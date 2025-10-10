@@ -4,6 +4,8 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.io.BufferedWriter
 import java.io.File
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import java.util.logging.Level
 
@@ -19,6 +21,11 @@ class AuditLogger(private val plugin: JavaPlugin) {
     private var writer: BufferedWriter? = null
     private val lock = Any()
     
+    // Timestamp formatter using system default timezone for better readability
+    private val timestampFormatter = DateTimeFormatter
+        .ofPattern("yyyy-MM-dd HH:mm:ss")
+        .withZone(ZoneId.systemDefault())
+    
     init {
         try {
             // Create logs directory if it doesn't exist
@@ -27,7 +34,8 @@ class AuditLogger(private val plugin: JavaPlugin) {
             // Open the audit log file in append mode
             writer = auditFile.bufferedWriter(charset = Charsets.UTF_8, bufferSize = 8192).apply {
                 // Write a startup marker
-                val startupMessage = "[AUDIT] ${Instant.now()} - AUDIT_LOG_STARTED - Target: 00000000-0000-0000-0000-000000000000 - Actor: null - Details: Audit logging initialized\n"
+                val timestamp = timestampFormatter.format(Instant.now())
+                val startupMessage = "[AUDIT] $timestamp - AUDIT_LOG_STARTED - Target: 00000000-0000-0000-0000-000000000000 - Actor: null - Details: Audit logging initialized\n"
                 write(startupMessage)
                 flush()
             }
@@ -49,7 +57,7 @@ class AuditLogger(private val plugin: JavaPlugin) {
      * @param details Additional details about the action
      */
     fun log(action: String, target: UUID, actor: UUID?, details: String?) {
-        val timestamp = Instant.now()
+        val timestamp = timestampFormatter.format(Instant.now())
         val logLine = "[AUDIT] $timestamp - $action - Target: $target - Actor: $actor - Details: $details\n"
         
         synchronized(lock) {
@@ -73,7 +81,8 @@ class AuditLogger(private val plugin: JavaPlugin) {
             try {
                 writer?.let {
                     // Write a shutdown marker
-                    val shutdownMessage = "[AUDIT] ${Instant.now()} - AUDIT_LOG_STOPPED - Target: 00000000-0000-0000-0000-000000000000 - Actor: null - Details: Audit logging shutdown\n"
+                    val timestamp = timestampFormatter.format(Instant.now())
+                    val shutdownMessage = "[AUDIT] $timestamp - AUDIT_LOG_STOPPED - Target: 00000000-0000-0000-0000-000000000000 - Actor: null - Details: Audit logging shutdown\n"
                     it.write(shutdownMessage)
                     it.flush()
                     it.close()

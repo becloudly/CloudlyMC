@@ -45,16 +45,16 @@ commands:
     player_removed_kick_message: "§c§lDu wurdest von der Whitelist entfernt"
     player_not_whitelisted: "§c§l✗ §cSpieler §e{player}§c ist nicht auf der Whitelist"
     list_empty: "§e⚠ Die Whitelist ist leer"
-    list_header: "§8§m                                                §r\n§6§l    Whitelist-Spieler §8(§7{count} insgesamt§8)\n§8§m                                                §r"
+    list_header: "§8§m───────────────────§r\n§6§l Whitelist §8(§7{count}§8)\n§8§m───────────────────§r"
     list_entry: "  §f▪ §e{username} §8│ §7Hinzugefügt: {date}"
-    list_footer: "§8§m                                                §r"
+    list_footer: "§8§m───────────────────§r"
     enabled: "§a✓ Whitelist wurde §l§aAKTIVIERT"
     disabled: "§a✓ Whitelist wurde §l§cDEAKTIVIERT"
     reloaded: "§a✓ Whitelist wurde §l§aNEU GELADEN"
-    info_header: "§8§m                                                §r\n§6§l    Whitelist Info §8│ §f{player}\n§8§m                                                §r"
+    info_header: "§8§m──────────────────§r\n§6§l Info §8│ §f{player}\n§8§m──────────────────§r"
     info_added_by: "  §e▪ §fHinzugefügt von§8: §7{name}"
     info_added_on: "  §e▪ §fHinzugefügt am§8: §7{date}"
-    info_footer: "§8§m                                                §r"
+    info_footer: "§8§m──────────────────§r"
 
   # Discord Befehle
   discord:
@@ -98,28 +98,28 @@ commands:
 
   # Info command
   info:
-    header: "§8§m                                                §r\n§6§l    Plugin Informationen\n§8§m                                                §r"
+    header: "§8§m───────────────§r §6§l Plugin Info §8§m───────────────§r"
     version: "  §e▪ §fVersion§8: §7{version}"
     language: "  §e▪ §fSprache§8: §7{language}"
     debug: "  §e▪ §fDebug-Modus§8: §7{debug}"
     server_type: "  §e▪ §fServer-Typ§8: §7{type}"
-    author: "  §e▪ §fAutor§8: §7Cloudly\n    §8↳ §bhttps://becloudly.eu"
-    footer: "§8§m                                                §r"
+    author: "  §e▪ §fAutor§8: §7Cloudly\\n    §8↳ §bhttps://becloudly.eu"
+    footer: "§8§m───────────────§r"
 
   # Help command
   help:
-    header: "§8§m                                                §r\n§6§l    Cloudly Befehls-Hilfe\n§8§m                                                §r"
-    separator: "§8§m                                                §r"
-    admin_header: "\n§e§l  ⚙ Administrations-Befehle"
-    reload: "    §f/cloudly reload §8[§7config§8|§7lang§8|§7all§8]\n      §7↳ Plugin-Komponenten neu laden"
-    info: "    §f/cloudly info\n      §7↳ Plugin-Informationen anzeigen"
-    whitelist_header: "\n§e§l  📋 Whitelist-Verwaltung"
-    whitelist: "    §f/cloudly whitelist §8<§7unterbefehl§8>\n      §7↳ add, remove, list, gui, on, off, reload, info"
-    discord_header: "\n§e§l  🔗 Discord-Integration"
+    header: "§8§m───────────────§r §6§l Befehls-Hilfe §8§m───────────────§r"
+    separator: "§8§m───────────────§r"
+    admin_header: "\\n§e§l  ⚙ Administration"
+    reload: "    §f/cloudly reload §8[§7config§8|§7lang§8|§7all§8]\\n      §7↳ Komponenten neu laden"
+    info: "    §f/cloudly info\\n      §7↳ Plugin-Info anzeigen"
+    whitelist_header: "\\n§e§l  📋 Whitelist"
+    whitelist: "    §f/cloudly whitelist §8<§7unterbefehl§8>\\n      §7↳ add, remove, list, gui, on, off, reload, info"
+    discord_header: "\\n§e§l  🔗 Discord"
     discord:
-      connect: "    §f/cloudly connect §8<§7discord_benutzername§8>\n      §7↳ Verbinde dein Discord-Konto"
-    general_header: "\n§e§l  ℹ Allgemeine Befehle"
-    help: "    §f/cloudly help\n      §7↳ Dieses Hilfemenü anzeigen"
+      connect: "    §f/cloudly connect §8<§7discord_benutzername§8>\\n      §7↳ Discord verbinden"
+    general_header: "\\n§e§l  ℹ Allgemein"
+    help: "    §f/cloudly help\\n      §7↳ Dieses Menü anzeigen"
 
 # GUI Nachrichten
 gui:
