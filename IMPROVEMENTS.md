@@ -9,62 +9,6 @@ This document contains a comprehensive analysis of the CloudlyMC plugin codebase
 
 ## 🐛 Potential Bugs & Errors
 
-### 1. Hard-coded GUI Slot Numbers
-**Location:** `WhitelistGui.kt` lines 34-41  
-**Severity:** Low  
-**Issue:** GUI navigation slots are hard-coded constants which makes the layout fragile and difficult to modify.
-
-**Impact:**
-- Hard to change GUI layout
-- Risk of slot conflicts
-- Difficult to add new navigation items
-- Not flexible for different inventory sizes
-
-**Suggested Fix:** Use a more flexible layout system:
-```kotlin
-class GuiLayout(val rows: Int) {
-    private val slots = mutableMapOf<String, Int>()
-    
-    fun setSlot(name: String, row: Int, col: Int) {
-        slots[name] = row * 9 + col
-    }
-    
-    fun getSlot(name: String): Int = slots[name] ?: -1
-}
-```
-
----
-
-### 2. No Dedicated Audit Log File
-**Location:** `WhitelistService.kt` line 42  
-**Severity:** Medium  
-**Issue:** Audit logs are only written to the plugin logger, not to a separate audit log file. The comment indicates this is a known limitation.
-
-**Impact:**
-- Audit logs mixed with regular plugin logs
-- Difficult to query historical audit data
-- No long-term retention strategy
-- Compliance requirements not met
-
-**Suggested Fix:** Implement dedicated audit logging:
-```kotlin
-class AuditLogger(private val plugin: JavaPlugin) {
-    private val auditFile = File(plugin.dataFolder, "logs/audit.log")
-    private val writer: BufferedWriter
-    
-    init {
-        auditFile.parentFile.mkdirs()
-        writer = auditFile.bufferedWriter()
-    }
-    
-    fun log(entry: AuditEntry) {
-        val line = "${entry.timestamp}|${entry.action}|${entry.target}|${entry.actor}|${entry.details}\n"
-        writer.write(line)
-        writer.flush()
-    }
-}
-```
-
 ---
 
 ## ⚡ Performance Issues
@@ -872,7 +816,6 @@ messages:
 | Feature | Priority | Effort | Impact | Category |
 |---------|----------|--------|--------|----------|
 | Credential Encryption | High | High | High | Security |
-| Dedicated Audit Log File | High | Low | High | Security |
 | Configuration Validation | High | Medium | High | Stability |
 | Transaction Support | High | High | High | Stability |
 | Automated Backups | High | Medium | High | Feature |
@@ -882,7 +825,6 @@ messages:
 | Storage Query System | Medium | High | High | Feature |
 | GUI Pagination | Medium | Medium | Medium | Feature |
 | Config Version/Migration | Medium | Medium | Medium | Maintainability |
-| GUI Slot Layout System | Low | Low | Low | Code Quality |
 | Update Checker/Release Radar | Low | Low | Medium | Feature |
 | PlaceholderAPI | Low | Low | Low | Feature |
 
@@ -919,17 +861,15 @@ messages:
 
 ### Phase 4: Security & Configuration (2-3 weeks)
 1. Implement credential encryption with environment variable support
-2. Add dedicated audit log file (high priority)
-3. Add comprehensive configuration validation
-4. Implement config version tracking and migration system
-5. Improve error handling consistency with Result types
+2. Add comprehensive configuration validation
+3. Implement config version tracking and migration system
+4. Improve error handling consistency with Result types
 
 ### Phase 5: Stability & Architecture (3-4 weeks)
 1. Implement transaction support in storage layer
 2. Add circuit breaker pattern for Discord API
 3. Replace primitive placeholder system with proper implementation
-4. Refactor GUI slot layout system
-5. Add comprehensive error handling with Result types
+4. Add comprehensive error handling with Result types
 
 ### Phase 6: Features (4-6 weeks)
 1. Automated backup system
