@@ -3,6 +3,7 @@ package de.cloudly.whitelist
 import de.cloudly.storage.config.StorageConfig
 import de.cloudly.storage.core.DataRepository
 import de.cloudly.storage.factory.StorageFactory
+import de.cloudly.utils.AuditLogger
 import de.cloudly.whitelist.model.DiscordConnection
 import de.cloudly.whitelist.model.WhitelistPlayer
 import org.bukkit.entity.Player
@@ -24,12 +25,14 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
     private val storageConfig = StorageConfig(plugin) // Use global storage config
     private val storageFactory = StorageFactory(plugin)
     private var repository: DataRepository<WhitelistPlayer>? = null
+    private var auditLogger: AuditLogger? = null
     private var enabled = false
     private var listenerRegistered = false
     
     /**
      * Log an audit event for whitelist changes.
      * Records timestamp, action, target, actor, and details for security and compliance.
+     * Logs to both the plugin logger and a dedicated audit log file.
      * 
      * @param action The action performed (e.g., WHITELIST_ADD, WHITELIST_REMOVE)
      * @param target The UUID of the affected player (or system UUID for global actions)
@@ -39,7 +42,9 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
     private fun logAuditEvent(action: String, target: UUID, actor: UUID?, details: String?) {
         val timestamp = Instant.now()
         plugin.logger.info("[AUDIT] $timestamp - $action - Target: $target - Actor: $actor - Details: $details")
-        // Also store in audit log file or database
+        
+        // Also store in dedicated audit log file
+        auditLogger?.log(action, target, actor, details)
     }
     
     /**
@@ -47,6 +52,11 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * Loads configuration and sets up the storage implementation.
      */
     fun initialize() {
+        // Initialize audit logger (always, even if whitelist is disabled, for system events)
+        if (auditLogger == null) {
+            auditLogger = AuditLogger(plugin)
+        }
+        
         // Load configuration
         storageConfig.load()
         enabled = plugin.config.getBoolean("whitelist.enabled", false)
@@ -273,8 +283,10 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
      * Reload the whitelist configuration and storage.
      */
     fun reload() {
-        // Close existing repository
+        // Close existing resources
         repository?.close()
+        auditLogger?.close()
+        auditLogger = null
         
         // Reinitialize
         initialize()
@@ -282,11 +294,15 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
     
     /**
      * Shutdown the whitelist service.
-     * Closes the repository connection.
+     * Closes the repository connection and audit logger.
      */
     fun shutdown() {
         repository?.close()
         repository = null
+        
+        auditLogger?.close()
+        auditLogger = null
+        
         enabled = false
     }
     
