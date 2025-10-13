@@ -42,7 +42,7 @@ dependencies {
     implementation("org.json:json:20250517")
     
     // HTTP client for GitHub API communication
-    implementation("com.squareup.okhttp3:okhttp:5.1.0")
+    implementation("com.squareup.okhttp3:okhttp:5.2.1")
 }
 
 // Java version updated to 21 (LTS)
