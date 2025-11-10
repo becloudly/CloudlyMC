@@ -98,7 +98,7 @@ commands:
 
   # Info command
   info:
-    header: "§8§m───────────────§r §6§l Plugin Info §8§m───────────────§r"
+    header: "§6§l Plugin Info"
     version: "  §e▪ §fVersion§8: §7{version}"
     language: "  §e▪ §fLanguage§8: §7{language}"
     debug: "  §e▪ §fDebug Mode§8: §7{debug}"
@@ -108,7 +108,7 @@ commands:
 
   # Help command
   help:
-    header: "§8§m───────────────§r §6§l Command Help §8§m───────────────§r"
+    header: "§6§l Command Help"
     separator: "§8§m───────────────§r"
     admin_header: "\\n§e§l  ⚙ Administration"
     reload: "    §f/cloudly reload §8[§7config§8|§7lang§8|§7all§8]\\n      §7↳ Hot-reload components"
