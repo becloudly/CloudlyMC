@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.2.0"
+    kotlin("jvm") version "2.2.21"
     id("com.gradleup.shadow") version "9.2.2"
     id("java")
 }
@@ -30,7 +30,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
     // SQLite JDBC driver
-    implementation("org.xerial:sqlite-jdbc:3.50.3.0")
+    implementation("org.xerial:sqlite-jdbc:3.51.0.0")
 
     // MySQL JDBC driver
     implementation("com.mysql:mysql-connector-j:9.4.0")
