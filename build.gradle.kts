@@ -33,7 +33,7 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.51.0.0")
 
     // MySQL JDBC driver
-    implementation("com.mysql:mysql-connector-j:9.4.0")
+    implementation("com.mysql:mysql-connector-j:9.5.0")
     
     // HikariCP for MySQL connection pooling
     implementation("com.zaxxer:HikariCP:5.1.0")
