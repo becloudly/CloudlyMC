@@ -2,6 +2,13 @@ package de.cloudly.listeners
 
 import de.cloudly.CloudlyPaper
 import de.cloudly.Messages
+import de.cloudly.discord.DiscordLinkHealth
+import de.cloudly.whitelist.model.DiscordConnection
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.entity.Player
@@ -34,6 +41,12 @@ class DiscordVerificationListener(private val plugin: CloudlyPaper) : Listener {
 
     // Track which players were hidden from awaiting players so we can reveal them later
     private val hiddenPlayers = ConcurrentHashMap<UUID, MutableSet<UUID>>()
+    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private enum class VerificationTrigger(val logLabel: String) {
+        JOIN("player join"),
+        MANUAL("manual reset")
+    }
     
     /**
      * State tracking for a player awaiting verification.
@@ -53,49 +66,26 @@ class DiscordVerificationListener(private val plugin: CloudlyPaper) : Listener {
         val player = event.player
         
         try {
-            // Always hide freshly joined players from users that still await verification
-            hidePlayerFromAwaitingPlayers(player)
-            
             // Check if Discord verification is enabled
             val discordService = plugin.getDiscordService()
             if (!discordService.isEnabled()) {
                 return
             }
-            
+
+            val whitelistPlayer = plugin.getWhitelistService().getPlayer(player.uniqueId)
+            val discordConnection = whitelistPlayer?.discordConnection
+            if (discordConnection?.verified == true) {
+                verifyLinkedAccountOnJoin(player, discordConnection)
+                return
+            }
+
             // Check if verification is required
             val requireVerification = plugin.getConfigManager().getBoolean("discord.require_verification", false)
             if (!requireVerification) {
                 return
             }
-            
-            // Check if player is already verified
-            val whitelistPlayer = plugin.getWhitelistService().getPlayer(player.uniqueId)
-            if (whitelistPlayer?.discordConnection?.verified == true) {
-                // Already verified, no need to enforce
-                return
-            }
-            
-            // Add to awaiting verification
-            awaitingVerification[player.uniqueId] = VerificationState(
-                joinedAt = Instant.now(),
-                uuid = player.uniqueId,
-                name = player.name
-            )
-            
-            // Apply restrictions
-            applyRestrictions(player)
 
-            // Ensure other awaiting players cannot see this player either
-            hidePlayerFromAwaitingPlayers(player)
-            
-            // Send verification message
-            sendVerificationMessage(player)
-            
-            // Schedule timeout kick (5 minutes)
-            val timeoutMinutes = plugin.getConfigManager().getInt("discord.verification_timeout_minutes", 5).toLong()
-            scheduleTimeout(player, timeoutMinutes)
-            
-            plugin.logger.info("Player ${player.name} requires Discord verification")
+            startVerificationFlow(player, VerificationTrigger.JOIN, overrideExisting = true)
             
         } catch (e: Exception) {
             plugin.logger.log(Level.WARNING, "Error starting Discord verification for ${player.name}", e)
@@ -135,6 +125,31 @@ class DiscordVerificationListener(private val plugin: CloudlyPaper) : Listener {
 
         // Hide all other players from this user until verification completes
         hideOtherPlayersFor(player)
+    }
+
+    private fun startVerificationFlow(player: Player, trigger: VerificationTrigger, overrideExisting: Boolean) {
+        val uuid = player.uniqueId
+
+        if (!overrideExisting && awaitingVerification.containsKey(uuid)) {
+            return
+        }
+
+        awaitingVerification[uuid] = VerificationState(
+            joinedAt = Instant.now(),
+            uuid = uuid,
+            name = player.name
+        )
+
+        hidePlayerFromAwaitingPlayers(player)
+        applyRestrictions(player)
+        hidePlayerFromAwaitingPlayers(player)
+
+        sendVerificationMessage(player)
+
+        val timeoutMinutes = plugin.getConfigManager().getInt("discord.verification_timeout_minutes", 5).toLong()
+        scheduleTimeout(player, timeoutMinutes)
+
+        plugin.logger.info("Player ${player.name} requires Discord verification (${trigger.logLabel})")
     }
     
     /**
@@ -246,6 +261,51 @@ class DiscordVerificationListener(private val plugin: CloudlyPaper) : Listener {
         // Store the task
         timeoutTasks[player.uniqueId] = task
     }
+
+    private fun verifyLinkedAccountOnJoin(player: Player, connection: DiscordConnection) {
+        val playerUuid = player.uniqueId
+        val playerName = player.name
+
+        coroutineScope.launch {
+            when (val health = plugin.getDiscordService().evaluateLinkedAccount(connection)) {
+                DiscordLinkHealth.Valid, DiscordLinkHealth.ServiceDisabled -> {
+                    // Nothing to do, player may continue playing
+                }
+                DiscordLinkHealth.NotServerMember -> {
+                    plugin.logger.info("Player $playerName kicked: Discord account not on server")
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        Bukkit.getPlayer(playerUuid)?.takeIf { it.isOnline }?.kickPlayer(Messages.Commands.Discord.JOIN_NOT_MEMBER)
+                    })
+                }
+                DiscordLinkHealth.MissingRole -> {
+                    plugin.logger.info("Player $playerName kicked: Discord role missing")
+                    Bukkit.getScheduler().runTask(plugin, Runnable {
+                        Bukkit.getPlayer(playerUuid)?.takeIf { it.isOnline }?.kickPlayer(Messages.Commands.Discord.joinMissingRole(null))
+                    })
+                }
+                is DiscordLinkHealth.ApiError -> {
+                    plugin.logger.log(Level.WARNING, "Could not validate Discord link for $playerName: ${health.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Reapply the verification flow for a player, enforcing restrictions again.
+     */
+    fun restartVerification(player: Player, force: Boolean = false) {
+        val discordService = plugin.getDiscordService()
+        if (!discordService.isEnabled()) {
+            return
+        }
+
+        val verificationRequired = force || plugin.getConfigManager().getBoolean("discord.require_verification", false)
+        if (!verificationRequired) {
+            return
+        }
+
+        startVerificationFlow(player, VerificationTrigger.MANUAL, overrideExisting = true)
+    }
     
     /**
      * Mark player as verified and remove restrictions.
@@ -306,29 +366,52 @@ class DiscordVerificationListener(private val plugin: CloudlyPaper) : Listener {
     }
     
     /**
-     * Prevent chat for unverified players (except /cloudly connect).
+     * Prevent chat for unverified players while linking is pending.
      */
     @EventHandler(priority = EventPriority.LOWEST)
     fun onPlayerChat(event: PlayerChatEvent) {
-        if (awaitingVerification.containsKey(event.player.uniqueId)) {
-            event.isCancelled = true
-            event.player.sendMessage(Messages.Commands.Discord.VERIFICATION_CHAT_BLOCKED)
+        val uuid = event.player.uniqueId
+        if (!awaitingVerification.containsKey(uuid)) {
+            return
         }
+
+        if (plugin.getDiscordService().hasPendingVerification(uuid)) {
+            // Allow the async chat listener to intercept verification codes silently
+            return
+        }
+
+        event.isCancelled = true
+        event.player.sendMessage(Messages.Commands.Discord.VERIFICATION_CHAT_BLOCKED)
     }
     
     /**
-     * Prevent commands for unverified players (except /cloudly connect).
+     * Prevent commands for players that still need to complete linking, allowing only link-related commands.
      */
     @EventHandler(priority = EventPriority.LOWEST)
     fun onPlayerCommand(event: PlayerCommandPreprocessEvent) {
-        if (awaitingVerification.containsKey(event.player.uniqueId)) {
-            val command = event.message.lowercase().split(" ")[0]
-            
-            // Allow only /cloudly connect
-            if (!command.equals("/cloudly", ignoreCase = true)) {
-                event.isCancelled = true
-                event.player.sendMessage(Messages.Commands.Discord.VERIFICATION_COMMAND_BLOCKED)
-            }
+        val uuid = event.player.uniqueId
+        val awaiting = awaitingVerification.containsKey(uuid)
+        val pendingLink = plugin.getDiscordService().hasPendingVerification(uuid)
+
+        if (!awaiting && !pendingLink) {
+            return
+        }
+
+        val parts = event.message.trim().lowercase().split("\\s+".toRegex())
+        if (parts.isEmpty()) {
+            return
+        }
+
+        val baseCommand = parts[0]
+        val subcommand = parts.getOrNull(1)
+
+        val isCloudly = baseCommand == "/cloudly"
+        val isLink = subcommand == "link"
+        val isUnlink = subcommand == "unlink"
+
+        if (!(isCloudly && (isLink || isUnlink))) {
+            event.isCancelled = true
+            event.player.sendMessage(Messages.Commands.Discord.VERIFICATION_COMMAND_BLOCKED)
         }
     }
 
@@ -362,5 +445,6 @@ class DiscordVerificationListener(private val plugin: CloudlyPaper) : Listener {
         timeoutTasks.clear()
         awaitingVerification.clear()
         hiddenPlayers.clear()
+        coroutineScope.cancel()
     }
 }

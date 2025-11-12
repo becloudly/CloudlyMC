@@ -4,10 +4,12 @@ import de.cloudly.commands.CloudlyCommand
 import de.cloudly.commands.VanillaWhitelistCommand
 import de.cloudly.config.ConfigManager
 import de.cloudly.discord.DiscordService
+import de.cloudly.gui.AdminGuiManager
 import de.cloudly.gui.WhitelistGuiManager
 import de.cloudly.listeners.AntiCommandBlockListener
 import de.cloudly.listeners.PlayerConnectionListener
 import de.cloudly.listeners.PlayerChatListener
+import de.cloudly.moderation.BanService
 import de.cloudly.whitelist.WhitelistService
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -15,6 +17,7 @@ class CloudlyPaper : JavaPlugin() {
     
     private lateinit var configManager: ConfigManager
     private lateinit var whitelistService: WhitelistService
+    private lateinit var adminGuiManager: AdminGuiManager
     private lateinit var whitelistGuiManager: WhitelistGuiManager
     private lateinit var discordService: DiscordService
     private lateinit var queueService: de.cloudly.queue.QueueService
@@ -23,6 +26,7 @@ class CloudlyPaper : JavaPlugin() {
     private lateinit var discordVerificationListener: de.cloudly.listeners.DiscordVerificationListener
     private lateinit var antiCommandBlockListener: AntiCommandBlockListener
     private lateinit var cloudlyCommand: CloudlyCommand
+    private lateinit var banService: BanService
     
     companion object {
         lateinit var instance: CloudlyPaper
@@ -42,11 +46,25 @@ class CloudlyPaper : JavaPlugin() {
     /**
      * Get the whitelist GUI manager instance
      */
+    fun getAdminGuiManager(): AdminGuiManager {
+        if (!::adminGuiManager.isInitialized) {
+            throw IllegalStateException("Plugin not fully initialized")
+        }
+        return adminGuiManager
+    }
+
     fun getWhitelistGuiManager(): WhitelistGuiManager {
         if (!::whitelistGuiManager.isInitialized) {
             throw IllegalStateException("Plugin not fully initialized")
         }
         return whitelistGuiManager
+    }
+
+    fun getBanService(): BanService {
+        if (!::banService.isInitialized) {
+            throw IllegalStateException("Plugin not fully initialized")
+        }
+        return banService
     }
 
     /**
@@ -104,7 +122,12 @@ class CloudlyPaper : JavaPlugin() {
         whitelistService = WhitelistService(this)
         whitelistService.initialize()
         
+        // Initialize moderation/ban service
+        banService = BanService(this, whitelistService)
+        banService.initialize()
+        
         // Initialize GUI manager
+        adminGuiManager = AdminGuiManager(this)
         whitelistGuiManager = WhitelistGuiManager(this)
         
         // Initialize Discord service
@@ -135,13 +158,20 @@ class CloudlyPaper : JavaPlugin() {
     
     override fun onDisable() {
         // Close all open GUIs
+        if (::adminGuiManager.isInitialized) {
+            adminGuiManager.closeAll()
+        }
         if (::whitelistGuiManager.isInitialized) {
-            whitelistGuiManager.closeAllGuis()
+            whitelistGuiManager.closeAll()
         }
         
         // Close whitelist service resources
         if (::whitelistService.isInitialized) {
             whitelistService.shutdown()
+        }
+        
+        if (::banService.isInitialized) {
+            banService.shutdown()
         }
         
         // Close Discord service resources

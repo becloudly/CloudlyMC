@@ -23,12 +23,17 @@ import java.util.UUID
  * Beautiful GUI for displaying whitelisted players.
  * Shows player skulls with detailed information and allows pagination.
  */
-class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player) : Listener {
+class WhitelistGui(
+    private val plugin: CloudlyPaper,
+    private val viewer: Player,
+    private val initialPage: Int = 0
+) : Listener {
     
     private var inventory: Inventory? = null
-    private var currentPage = 0
+    private var currentPage = initialPage
     private val playersPerPage = 28 // 4 rows of 7 slots for players
     private var whitelistedPlayers: List<WhitelistPlayer> = emptyList()
+    private var cleanedUp = false
     
     companion object {
         private const val INVENTORY_SIZE = 54 // 6 rows
@@ -362,29 +367,11 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
         
         when (event.click) {
             org.bukkit.event.inventory.ClickType.LEFT -> {
-                // Show detailed player information
-                viewer.closeInventory()
-                viewer.sendMessage(Messages.Gui.Whitelist.playerDetails(playerName))
-                
-                val whitelistPlayer = plugin.getWhitelistService().getPlayer(playerUuid)
-                if (whitelistPlayer != null) {
-                    val addedByUuid = whitelistPlayer.addedBy ?: UUID.fromString("00000000-0000-0000-0000-000000000000")
-                    val addedByName = if (addedByUuid == UUID.fromString("00000000-0000-0000-0000-000000000000")) {
-                        Messages.Gui.Whitelist.CONSOLE
-                    } else {
-                        Bukkit.getOfflinePlayer(addedByUuid).name ?: Messages.Gui.Whitelist.UNKNOWN
-                    }
-                    
-                    val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
-                    val dateStr = whitelistPlayer.addedAt.atZone(ZoneId.systemDefault()).format(formatter)
-                    
-                    viewer.sendMessage(Messages.Commands.Whitelist.infoHeader(whitelistPlayer.username))
-                    viewer.sendMessage(Messages.Commands.Whitelist.infoAddedBy(addedByName))
-                    viewer.sendMessage(Messages.Commands.Whitelist.infoAddedOn(dateStr))
-                    if (!whitelistPlayer.reason.isNullOrBlank()) {
-                        viewer.sendMessage("§e▪ §fGrund§8: §7${whitelistPlayer.reason}")
-                    }
+                if (!viewer.hasPermission("cloudly.moderation")) {
+                    viewer.sendMessage(Messages.Gui.Whitelist.NO_PERMISSION_ADMIN)
+                    return
                 }
+                WhitelistPlayerAdminGui(plugin, viewer, playerUuid, playerName, currentPage).open()
             }
             
             org.bukkit.event.inventory.ClickType.RIGHT -> {
@@ -440,8 +427,13 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
      * Cleans up resources when the GUI is closed.
      */
     private fun cleanup() {
+        if (cleanedUp) {
+            return
+        }
+        cleanedUp = true
         // Unregister this listener
         InventoryClickEvent.getHandlerList().unregister(this)
         InventoryCloseEvent.getHandlerList().unregister(this)
+        plugin.getWhitelistGuiManager().unregisterGui(viewer.uniqueId)
     }
 }

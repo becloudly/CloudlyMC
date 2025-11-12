@@ -12,6 +12,52 @@ object Messages {
         const val DISABLED = "Cloudly Plugin deaktiviert"
         const val DEBUG_ENABLED = "Debug-Modus ist aktiviert"
     }
+
+    // ========== Moderation & Admin Aktionen ==========
+    object Moderation {
+        const val NO_PERMISSION = "§c§l✗ §cDu hast keine Berechtigung für diese Aktion."
+        const val DEFAULT_BAN_REASON = "Verstoß gegen Serverregeln"
+
+        fun discordNotLinked(player: String) = "§e⚠ Spieler §f$player§e hat keine Discord-Verknüpfung."
+        fun discordUnlinkSuccess(player: String) = "§a§l✓ §aDiscord-Verknüpfung von §f$player§a wurde entfernt."
+        fun discordUnlinkFailed(player: String) = "§c§l✗ §cDiscord-Verknüpfung von §f$player§c konnte nicht entfernt werden."
+        fun discordForceRelink(player: String) = "§a§l✓ §aDiscord-Verifizierung für §f$player§a wurde zurückgesetzt."
+        const val DISCORD_FORCE_PLAYER = "§e⚠ Deine Discord-Verknüpfung wurde vom Team zurückgesetzt. Bitte führe §f/cloudly link <discord>§e erneut aus."
+
+        fun kickSuccess(player: String) = "§a§l✓ §aSpieler §f$player§a wurde gekickt."
+        fun kickOffline(player: String) = "§c§l✗ §cSpieler §f$player§c ist nicht online."
+        const val KICK_MESSAGE = "§c§lDu wurdest vom Team gekickt. Bitte melde dich im Support."
+
+        fun tempBanSuccess(player: String, duration: String) = "§a§l✓ §aSpieler §f$player§a wurde für §e$duration§a gebannt."
+        fun permaBanSuccess(player: String) = "§4§l✓ §cSpieler §f$player§c wurde permanent gebannt und vollständig entfernt."
+        fun banAlreadyActive(player: String) = "§e⚠ Spieler §f$player§e ist bereits gebannt."
+        const val BAN_STORAGE_ERROR = "§c§l✗ §cDer Bann konnte nicht gespeichert werden. Bitte prüfe die Konsole."
+        fun playerNotWhitelisted(player: String) = "§c§l✗ §cSpieler §f$player§c ist nicht in der Whitelist-Datenbank."
+        fun unbanSuccess(player: String) = "§a§l✓ §aDer Bann von §f$player§a wurde aufgehoben."
+
+        object Target {
+            const val RELINK_NOTICE = "§e⚠ Deine Discord-Verknüpfung wurde zurückgesetzt. Bitte verifiziere dich erneut."
+            fun tempBan(expiry: String, reason: String?): String {
+                val reasonLine = reason?.let { "\n§7Grund: §f$it" } ?: ""
+                return "§c§l✗ §cDu wurdest temporär gebannt.\n§7Endet am: §f$expiry$reasonLine"
+            }
+            fun permanentBan(reason: String?): String {
+                val reasonLine = reason?.let { "\n§7Grund: §f$it" } ?: ""
+                return "§c§l✗ §cDu wurdest permanent vom Server gebannt.$reasonLine"
+            }
+        }
+
+        object Login {
+            fun temporary(remaining: String, reason: String?): String {
+                val reasonLine = reason?.let { "\n§7Grund: §f$it" } ?: ""
+                return "§c§l✗ §cDu bist noch §e$remaining§c vom Server gebannt.$reasonLine"
+            }
+            fun permanent(reason: String?): String {
+                val reasonLine = reason?.let { "\n§7Grund: §f$it" } ?: ""
+                return "§c§l✗ §cDu wurdest permanent vom Server gebannt.$reasonLine"
+            }
+        }
+    }
     
     // ========== Konfigurationsnachrichten ==========
     object Config {
@@ -61,12 +107,16 @@ object Messages {
             
             const val ENABLED = "§a✓ Whitelist wurde §l§aAKTIVIERT"
             const val DISABLED = "§a✓ Whitelist wurde §l§cDEAKTIVIERT"
-            const val RELOADED = "§a✓ Whitelist wurde §l§aNEU GELADEN"
             
             fun infoHeader(player: String) = "§8§m──────────────────§r\n§6§l Info §8│ §f$player\n§8§m──────────────────§r"
             fun infoAddedBy(name: String) = "  §e▪ §fHinzugefügt von§8: §7$name"
             fun infoAddedOn(date: String) = "  §e▪ §fHinzugefügt am§8: §7$date"
             const val INFO_FOOTER = "§8§m──────────────────§r"
+        }
+
+        object Admin {
+            const val GUI_USAGE = "  §7Verwendung§8: §f/cloudly admin gui §8[§7seite§8]"
+            const val PLAYERS_ONLY = "§c§l✗ §cDieser Befehl kann nur von Spielern verwendet werden"
         }
         
         // Discord Befehle
@@ -75,7 +125,8 @@ object Messages {
             const val PLAYERS_ONLY = "§c§l✗ §cDieser Befehl kann nur von Spielern verwendet werden"
             const val NOT_WHITELISTED = "§c§l✗ §cDu musst auf der Whitelist stehen, um dein Discord-Konto zu verbinden"
             fun alreadyConnected(discordUsername: String) = "§c§l✗ §cDu hast bereits das Discord-Konto §e$discordUsername§c verbunden"
-            const val CONNECT_USAGE = "  §7Verwendung§8: §f/cloudly connect §8<§7discord_benutzername§8>"
+            const val LINK_USAGE = "  §7Verwendung§8: §f/cloudly link §8<§7discord_benutzername§8>"
+            const val UNLINK_USAGE = "  §7Verwendung§8: §f/cloudly unlink"
             const val INVALID_USERNAME = "§c§l✗ §cUngültiger Discord-Benutzername. Muss 2-32 Zeichen lang sein"
             fun verifying(discordUsername: String) = "§e⏳ Verifiziere Discord-Konto §f$discordUsername§e..."
             const val VERIFICATION_ERROR = "§c§l✗ §cEin Fehler ist bei der Verifizierung deines Discord-Kontos aufgetreten. Bitte versuche es erneut"
@@ -86,36 +137,31 @@ object Messages {
             fun missingRole(discordUsername: String) = "§c§l✗ §cDiscord-Benutzer §e$discordUsername§c hat nicht die erforderliche Rolle auf dem Server"
             const val API_ERROR = "§c§l✗ §cDiscord API-Fehler. Bitte versuche es später erneut"
             fun cooldown(seconds: Int) = "§6§l⏳ §6Bitte warte §e$seconds§6 Sekunden, bevor du diesen Befehl erneut verwendest"
+            const val CODE_SENT = "§a§l✓ §aVerifizierungscode gesendet! §7Prüfe deine Discord-Nachrichten und gib den Code hier ein."
+            const val CODE_SEND_FAILED = "§c§l✗ §cDer Verifizierungscode konnte nicht gesendet werden. Prüfe deine Discord-Direktnachrichten-Einstellungen und versuche es erneut."
+            const val CODE_ALREADY_PENDING = "§e⚠ §eDu hast bereits einen aktiven Verifizierungscode. Gib ihn im Chat ein oder warte bis er abläuft."
+            const val CODE_INVALID = "§c§l✗ §cDer eingegebene Code ist ungültig. Prüfe deine Discord-Nachrichten und versuche es erneut."
+            const val CODE_EXPIRED = "§c§l✗ §cDieser Verifizierungscode ist abgelaufen. Verwende §f/cloudly link §7erneut, um einen neuen Code zu erhalten."
+            const val ACCOUNT_ALREADY_IN_USE = "§c§l✗ §cDieses Discord-Konto ist bereits mit einem anderen Minecraft-Spieler verbunden."
+            const val NO_PENDING_VERIFICATION = "§c§l✗ §cEs ist kein Verifizierungscode aktiv. Verwende §f/cloudly link §7erneut."
+            fun unlinkedSuccessfully(discordUsername: String) = "§a§l✓ §aDiscord-Konto §e$discordUsername§a wurde getrennt."
+            const val UNLINKED_NO_ACCOUNT = "§c§l✗ §cDu hast kein verknüpftes Discord-Konto."
+            const val UNLINKED_PENDING_CANCELLED = "§e⚠ §eAktive Verifizierung wurde abgebrochen."
+            const val UNLINK_FAILED = "§c§l✗ §cDie Trennung deines Discord-Kontos ist fehlgeschlagen. Bitte versuche es erneut."
+            fun joinMissingRole(roleName: String?) = "§c§l✗ §cDein verknüpftes Discord-Konto ${roleName?.let { "besitzt die erforderliche Rolle '$it' nicht" } ?: "besitzt nicht die erforderliche Rolle"}."
+            const val JOIN_NOT_MEMBER = "§c§l✗ §cDein verknüpftes Discord-Konto ist nicht mehr auf dem Discord-Server."
+            const val DM_CONTENT = "Hey! Dein Verifizierungscode lautet: %s. Gib ihn innerhalb von 5 Minuten im Minecraft-Chat ein."
             
             // Discord Verifizierung
             const val VERIFICATION_REQUIRED = "§6§l⚠ §6Discord-Verifizierung erforderlich!\n§7Du musst deinen Discord-Account verbinden, um zu spielen.\n§7Du hast §e5 Minuten§7 Zeit zur Verifizierung."
-            const val VERIFICATION_COMMAND = "§7Verwende §f/cloudly connect <discord_username>§7 zur Verifizierung"
+            const val VERIFICATION_COMMAND = "§7Verwende §f/cloudly link <discord_username>§7 zur Verifizierung"
             const val VERIFICATION_SUCCESS = "§a§l✓ §aDiscord-Verifizierung erfolgreich! Du kannst jetzt spielen."
             const val VERIFICATION_TIMEOUT = "§c§l✗ §cDu wurdest gekickt, weil du deinen Discord-Account nicht innerhalb von 5 Minuten verifiziert hast"
             const val VERIFICATION_WARNING_3MIN = "§6§l⚠ §6Discord-Verifizierung Warnung: noch §e3 Minuten"
             const val VERIFICATION_WARNING_2MIN = "§6§l⚠ §6Discord-Verifizierung Warnung: noch §e2 Minuten"
             const val VERIFICATION_WARNING_30SEC = "§c§l⚠ §cDiscord-Verifizierung Warnung: noch §e30 Sekunden§c!"
             const val VERIFICATION_CHAT_BLOCKED = "§c§l✗ §cDu kannst nicht chatten, bis du deinen Discord-Account verifiziert hast"
-            const val VERIFICATION_COMMAND_BLOCKED = "§c§l✗ §cDu kannst nur /cloudly connect verwenden, bis du deinen Discord-Account verifiziert hast"
-        }
-        
-        // Reload Befehl
-        object Reload {
-            const val STARTING_FULL = "§e⏳ Starte vollständiges Hot-Reload aller Plugin-Komponenten..."
-            const val STARTING_CONFIG = "§e⏳ Starte Neuladen der Konfiguration..."
-            const val RELOADING_CONFIG = "  §7▪ Lade Konfigurationsdateien neu..."
-            const val RELOADING_COMPONENTS = "  §7▪ Lade Plugin-Komponenten neu..."
-            const val CONFIG_RELOADED = "Konfiguration erfolgreich neu geladen"
-            const val COMPONENTS_RELOADED = "Plugin-Komponenten erfolgreich neu geladen"
-            const val CONFIG_SUCCESS = "\n§a§l✓ §aKonfiguration erfolgreich neu geladen!"
-            const val SUCCESS = "\n§a§l✓ §aHot-Reload erfolgreich abgeschlossen!"
-            const val SUCCESS_LOG = "Hot-Reload erfolgreich abgeschlossen"
-            const val CONFIG_FAILED = "\n§c§l✗ §cFehler beim Neuladen der Konfigurationsdateien! Details in der Konsole"
-            const val COMPONENTS_FAILED = "\n§c§l✗ §cFehler beim Neuladen der Plugin-Komponenten! Details in der Konsole"
-            const val PARTIAL_FAILURE = "\n§6§l⚠ §6Hot-Reload mit einigen Fehlern abgeschlossen. Details in der Konsole"
-            const val PARTIAL_FAILURE_LOG = "Hot-Reload mit einigen Fehlern abgeschlossen"
-            fun invalidTarget(target: String) = "§c✗ Ungültiges Reload-Ziel§8: §f$target"
-            const val USAGE = "  §7Verwendung§8: §f/cloudly reload §8[§7config§8|§7all§8]"
+            const val VERIFICATION_COMMAND_BLOCKED = "§c§l✗ §cDu kannst nur /cloudly link oder /cloudly unlink verwenden, bis du deinen Discord-Account verifiziert hast"
         }
         
         // Info Befehl
@@ -133,12 +179,13 @@ object Messages {
             const val HEADER = "§6§l Befehls-Hilfe"
             const val SEPARATOR = "§8§m───────────────§r"
             const val ADMIN_HEADER = "\n§e§l  ⚙ Administration"
-            const val RELOAD = "    §f/cloudly reload §8[§7config§8|§7all§8]\n      §7↳ Komponenten neu laden"
             const val INFO = "    §f/cloudly info\n      §7↳ Plugin-Info anzeigen"
+            const val ADMIN_GUI = "    §f/cloudly admin gui\n      §7↳ Admin-Dashboard öffnen"
             const val WHITELIST_HEADER = "\n§e§l  📋 Whitelist"
-            const val WHITELIST = "    §f/cloudly whitelist §8<§7unterbefehl§8>\n      §7↳ add, remove, list, gui, on, off, reload, info"
+            const val WHITELIST = "    §f/cloudly whitelist §8<§7unterbefehl§8>\n      §7↳ add, remove, list, on, off, info"
             const val DISCORD_HEADER = "\n§e§l  🔗 Discord"
-            const val DISCORD_CONNECT = "    §f/cloudly connect §8<§7discord_benutzername§8>\n      §7↳ Discord verbinden"
+            const val DISCORD_CONNECT = "    §f/cloudly link §8<§7discord_benutzername§8>\n      §7↳ Discord verbinden"
+            const val DISCORD_UNLINK = "    §f/cloudly unlink\n      §7↳ Discord-Verknüpfung entfernen"
             const val GENERAL_HEADER = "\n§e§l  ℹ Allgemein"
             const val HELP = "    §f/cloudly help\n      §7↳ Dieses Menü anzeigen"
         }
@@ -154,55 +201,133 @@ object Messages {
             }
             fun notifyAdmins(player: String, amount: Int): String {
                 val noun = if (amount == 1) "Commandblock" else "Commandblöcke"
-                return "§6§l⚠ §6Spieler §e$player§6 hatte §e$amount§6 $noun im Inventar - ersetzt durch Stein"
+                return """
+                    §8§m────────────────────────§r
+                    §6§l⚠ §6Commandblock-Schutz aktiviert
+                    §7Spieler§8: §f$player
+                    §7Menge§8: §f$amount $noun
+                    §7Aktion§8: §fDurch Stein ersetzt
+                    §8§m────────────────────────§r
+                """.trimIndent()
+            }
+
+            fun notifyAdminsLog(player: String, amount: Int): String {
+                val noun = if (amount == 1) "Commandblock" else "Commandblöcke"
+                return "[AntiCommandblock] Spieler $player hielt $amount $noun; ersetzt durch Stein"
             }
         }
     }
 
     // ========== GUI Nachrichten ==========
     object Gui {
-        object Whitelist {
-            fun title(count: Int) = "§6§lCloudly Whitelist §8- §7$count Spieler"
-            const val REFRESHED = "§a✓ Whitelist GUI wurde aktualisiert!"
-            fun playerDetails(player: String) = "§eZeige Details für §f$player§e:"
-            fun playerRemoved(player: String) = "§a✓ Spieler §f$player§a wurde von der Whitelist entfernt!"
-            fun removeFailed(player: String) = "§c✗ Fehler beim Entfernen von Spieler §f$player§c von der Whitelist!"
-            
-            // Navigation
+        object Admin {
+            fun title(count: Int) = "§6§lCloudly Admin §8- §7$count Spieler"
+            const val REFRESHED = "§a✓ Admin-Dashboard wurde aktualisiert!"
+            const val NO_PLAYERS_TRACKED = "§e⚠ Es sind aktuell keine Spieler im System erfasst"
+            fun playerLabel(player: String) = "§a§l$player"
+            fun playerRemoved(player: String) = "§a✓ Spieler §f$player§a wurde aus dem System entfernt"
+            fun removeFailed(player: String) = "§c✗ Spieler §f$player§c konnte nicht entfernt werden"
+
             const val PREVIOUS_PAGE = "§a§lVorherige Seite"
             const val NEXT_PAGE = "§a§lNächste Seite"
-            fun previousPageLore(page: Int) = "§7Klicke um zu Seite $page zu gehen"
-            fun nextPageLore(page: Int) = "§7Klicke um zu Seite $page zu gehen"
-            
-            // Info Panel
-            const val INFO_TITLE = "§6§lWhitelist Informationen"
-            fun infoTotalPlayers(count: Int) = "§7Spieler insgesamt: §f$count"
+            fun previousPageLore(page: Int) = "§7Klicke, um zu Seite $page zu wechseln"
+            fun nextPageLore(page: Int) = "§7Klicke, um zu Seite $page zu wechseln"
+
+            const val INFO_TITLE = "§6§lÜbersicht"
+            fun infoUuid(uuid: String) = "§7UUID: §f$uuid"
+            fun infoTotalPlayers(count: Int) = "§7Verwaltete Spieler: §f$count"
             fun infoCurrentPage(current: Int, total: Int) = "§7Aktuelle Seite: §f$current§7/§f$total"
             fun infoPlayersPerPage(count: Int) = "§7Spieler pro Seite: §f$count"
-            const val INFO_ADD_COMMAND = "§eVerwende §f/cloudly whitelist add <spieler>§e um Spieler hinzuzufügen"
-            const val INFO_REMOVE_COMMAND = "§eVerwende §f/cloudly whitelist remove <spieler>§e um Spieler zu entfernen"
-            
-            // Spieler Details
+            const val INFO_ADD_COMMAND = "§e/cloudly whitelist add <spieler> §7um Spieler aufzunehmen"
+            const val INFO_REMOVE_COMMAND = "§e/cloudly whitelist remove <spieler> §7um Spieler zu entfernen"
+
+            fun playerAddedBy(name: String) = "§7Hinzugefügt von: §f$name"
+            fun playerAddedOn(date: String) = "§7Hinzugefügt am: §f$date"
+            fun playerReason(reason: String) = "§7Grund: §f$reason"
+            fun playerDiscordVerified(username: String) = "§7Discord: §f$username §7(§aVerifiziert§7)"
+            fun playerDiscordConnected(username: String) = "§7Discord: §f$username §7(§eVerbunden§7)"
+            const val PLAYER_DISCORD_NOT_CONNECTED = "§7Discord: §cNicht verbunden"
+            const val PLAYER_OP_STATUS = "§6⭐ Server-Operator"
+            const val CONSOLE = "Konsole"
+            const val UNKNOWN = "Unbekannt"
+
+            const val ACTIONS_TITLE = "§e§lAktionen:"
+            const val ACTION_LEFT_CLICK = "§7• §fLinksklick: Moderations-Tools öffnen"
+            const val ACTION_RIGHT_CLICK = "§7• §cRechtsklick: Aus Whitelist entfernen"
+            const val NO_PERMISSION_ADMIN = "§c✗ Du hast keine Berechtigung für diese Tools"
+
+            const val REFRESH_BUTTON = "§e§lAktualisieren"
+            const val REFRESH_LORE = "§7Klicke, um die Daten neu zu laden"
+        }
+
+        object PlayerAdmin {
+            fun title(player: String) = "§6§lAdmin-Tools §8| §f$player"
+            fun tempBanTitle(player: String) = "§c§lBann auswählen §8| §f$player"
+            const val PLAYER_INFO_TITLE = "§e§lSpieler-Informationen"
+            const val DISCORD_INFO_TITLE = "§9§lDiscord"
+            const val DISCORD_NOT_LINKED = "§7Discord: §cNicht verbunden"
+            fun discordLinked(username: String, verified: Boolean): String {
+                val status = if (verified) "§aVerifiziert" else "§eVerbunden"
+                return "§7Discord: §f$username §8(§7$status§8)"
+            }
+            fun infoUuid(uuid: String) = "§7UUID: §f$uuid"
+            fun infoAddedBy(name: String) = Admin.playerAddedBy(name)
+            fun infoAddedOn(date: String) = Admin.playerAddedOn(date)
+            fun infoReason(reason: String) = "§7Grund: §f$reason"
+            const val BAN_STATUS_NONE = "§aKein aktiver Bann"
+            const val BAN_STATUS_ACTIVE = "§cAktiver Bann"
+            const val BAN_STATUS_PERMANENT = "§4Permanenter Bann"
+            fun banStatusUntil(until: String) = "§7Läuft ab: §f$until"
+            const val BUTTON_UNLINK = "§cDiscord trennen"
+            const val BUTTON_UNLINK_LORE = "§7Entfernt die aktuelle Discord-Verknüpfung"
+            const val BUTTON_FORCE_RELINK = "§6Neu verifizieren"
+            const val BUTTON_FORCE_RELINK_LORE = "§7Setzt die Verifizierung zurück und fordert einen neuen Link an"
+            const val BUTTON_KICK = "§c§lKick"
+            const val BUTTON_KICK_LORE = "§7Wirft den Spieler sofort vom Server"
+            const val BUTTON_TEMP_BAN = "§6§lTemporärer Bann"
+            const val BUTTON_TEMP_BAN_LORE = "§7Öffnet Bann-Dauern zur Auswahl"
+            const val BUTTON_PERMA_BAN = "§4§lPermanenter Bann"
+            const val BUTTON_PERMA_BAN_LORE = "§7Entfernt den Spieler dauerhaft und löscht Daten"
+            const val BUTTON_BACK = "§7Zurück zum Admin-Menü"
+            const val BUTTON_BACK_LORE = "§7Klicke, um zur Übersicht zurückzukehren"
+            const val ACTION_NO_PERMISSION = "§cKeine Berechtigung"
+            fun tempBanOptionLabel(label: String) = "§e$label"
+            const val TEMP_BAN_OPTION_LORE = "§7Klicke, um diesen Bann anzuwenden"
+            const val TEMP_BAN_BACK = "§7Zurück"
+            const val TEMP_BAN_BACK_LORE = "§7Zurück zu den Admin-Tools"
+            const val CONSOLE = "Konsole"
+            const val UNKNOWN = "Unbekannt"
+        }
+
+        object Whitelist {
+            fun title(count: Int) = "§6§lCloudly Whitelist §8- §7$count Spieler"
+            const val PLAYER_OP_STATUS = "§6⭐ Server-Operator"
+            const val CONSOLE = "Konsole"
+            const val UNKNOWN = "Unbekannt"
             fun playerAddedBy(name: String) = "§7Hinzugefügt von: §f$name"
             fun playerAddedOn(date: String) = "§7Hinzugefügt am: §f$date"
             fun playerDiscordVerified(username: String) = "§7Discord: §f$username §7(§aVerifiziert§7)"
             fun playerDiscordConnected(username: String) = "§7Discord: §f$username §7(§eVerbunden§7)"
             const val PLAYER_DISCORD_NOT_CONNECTED = "§7Discord: §cNicht verbunden"
-            const val PLAYER_OP_STATUS = "§6⭐ Server-Operator"
-            const val PLAYER_ADMIN_STATUS = "§c⚡ Administrator"
-            
-            // Aktionen
             const val ACTIONS_TITLE = "§e§lAktionen:"
-            const val ACTION_LEFT_CLICK = "§7• §fLinksklick: Details anzeigen"
-            const val ACTION_RIGHT_CLICK = "§7• §cRechtsklick: Von Whitelist entfernen"
-            
-            // Sonstige
-            const val ONLY_PLAYERS = "§c✗ Dieser Befehl kann nur von Spielern verwendet werden"
-            const val NO_PERMISSION_REMOVE = "§c✗ Du hast keine Berechtigung, Spieler von der Whitelist zu entfernen"
+            const val ACTION_LEFT_CLICK = "§7• §fLinksklick: Moderations-Tools öffnen"
+            const val ACTION_RIGHT_CLICK = "§7• §cRechtsklick: Aus Whitelist entfernen"
+            const val PREVIOUS_PAGE = "§a§lVorherige Seite"
+            const val NEXT_PAGE = "§a§lNächste Seite"
+            fun previousPageLore(page: Int) = "§7Klicke, um zu Seite $page zu wechseln"
+            fun nextPageLore(page: Int) = "§7Klicke, um zu Seite $page zu wechseln"
+            const val INFO_TITLE = "§6§lÜbersicht"
+            fun infoTotalPlayers(count: Int) = "§7Whitelist-Einträge: §f$count"
+            fun infoCurrentPage(current: Int, total: Int) = "§7Aktuelle Seite: §f$current§7/§f$total"
+            fun infoPlayersPerPage(count: Int) = "§7Spieler pro Seite: §f$count"
+            const val INFO_ADD_COMMAND = "§e/cloudly whitelist add <spieler>"
+            const val INFO_REMOVE_COMMAND = "§e/cloudly whitelist remove <spieler>"
             const val REFRESH_BUTTON = "§e§lAktualisieren"
-            const val REFRESH_LORE = "§7Klicke um die Whitelist zu aktualisieren"
-            const val CONSOLE = "Konsole"
-            const val UNKNOWN = "Unbekannt"
+            const val REFRESH_LORE = "§7Klicke, um die Liste neu zu laden"
+            const val REFRESHED = "§a✓ Whitelist-Ansicht aktualisiert"
+            fun playerRemoved(player: String) = "§a✓ Spieler §f$player§a wurde aus der Whitelist entfernt"
+            fun removeFailed(player: String) = "§c✗ Spieler §f$player§c konnte nicht entfernt werden"
+            const val NO_PERMISSION_ADMIN = "§c✗ Du hast keine Berechtigung für diese Tools"
         }
     }
     

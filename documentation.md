@@ -148,10 +148,8 @@ Das CloudlyMC Plugin verwendet einen zentralen Befehl `/cloudly` mit verschieden
 | `add` | `<spieler>` | Spieler zur Whitelist hinzufügen |
 | `remove` | `<spieler>` | Spieler von Whitelist entfernen |
 | `list` | - | Alle Whitelist-Spieler anzeigen |
-| `gui` | - | Whitelist-GUI öffnen (nur Spieler) |
 | `on` | - | Whitelist aktivieren |
 | `off` | - | Whitelist deaktivieren |
-| `reload` | - | Whitelist neu laden |
 | `info` | `<spieler>` | Spieler-Details anzeigen |
 
 **Beispiele:**
@@ -159,12 +157,12 @@ Das CloudlyMC Plugin verwendet einen zentralen Befehl `/cloudly` mit verschieden
 /cloudly whitelist add Notch
 /cloudly whitelist remove Herobrine
 /cloudly whitelist info Phantom
-/cloudly whitelist gui
+/cloudly admin gui
 ```
 
 ### 🔗 Discord-Befehle
 
-#### `/cloudly connect <discord_username>`
+#### `/cloudly link <discord_username>`
 **Berechtigung:** Alle Spieler  
 **Beschreibung:** Verbindet das Minecraft-Konto mit Discord
 
@@ -175,7 +173,16 @@ Das CloudlyMC Plugin verwendet einen zentralen Befehl `/cloudly` mit verschieden
 
 **Beispiel:**
 ```bash
-/cloudly connect PhantomCloudly
+/cloudly link PhantomCloudly
+```
+
+#### `/cloudly unlink`
+**Berechtigung:** Alle Spieler  
+**Beschreibung:** Trennt die aktuelle Discord-Verknüpfung und startet die Verifizierung erneut
+
+**Beispiel:**
+```bash
+/cloudly unlink
 ```
 
 ### 🛡️ Berechtigungs-Befehle
@@ -480,7 +487,7 @@ discord:
 
 4. **Spieler verbinden:**
 ```bash
-/cloudly connect DiscordUsername#1234
+/cloudly link DiscordUsername#1234
 ```
 ---
 ---

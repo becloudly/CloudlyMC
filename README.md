@@ -239,25 +239,25 @@ storage:
 | `/cloudly whitelist add <player> [reason]` | Add player to whitelist | `cloudly.whitelist` | Add with optional reason |
 | `/cloudly whitelist remove <player>` | Remove player from whitelist | `cloudly.whitelist` | Remove player access |
 | `/cloudly whitelist list` | Show all whitelisted players | `cloudly.whitelist` | List all entries |
-| `/cloudly whitelist gui` | Open whitelist GUI | `cloudly.whitelist` | Interactive management |
 | `/cloudly whitelist on` | Enable whitelist enforcement | `cloudly.whitelist` | Activate whitelist |
 | `/cloudly whitelist off` | Disable whitelist enforcement | `cloudly.whitelist` | Deactivate whitelist |
 | `/cloudly whitelist info <player>` | Show player details | `cloudly.whitelist` | View player info |
-| `/cloudly whitelist reload` | Reload whitelist data | `cloudly.whitelist` | Refresh from storage |
+| `/cloudly admin gui` | Open the admin dashboard | `cloudly.admin` | Launch interactive tools |
 
 **Whitelist Examples:**
 ```bash
 /cloudly whitelist add Notch "Approved by admin"
 /cloudly whitelist remove Herobrine
 /cloudly whitelist info Phantom
-/cloudly whitelist gui
+/cloudly admin gui
 ```
 
 #### **Discord Integration**
 
 | Command | Description | Permission | Example |
 |---------|-------------|------------|---------|
-| `/cloudly connect <discord_username>` | Link Discord account | All players | Connect your Discord |
+| `/cloudly link <discord_username>` | Link Discord account | All players | Link your Discord |
+| `/cloudly unlink` | Remove Discord account link and restart verification | All players | Reset Discord link |
 
 **Requirements:**
 - Player must be on the whitelist
@@ -266,7 +266,7 @@ storage:
 
 **Example:**
 ```bash
-/cloudly connect PhantomCloudly
+/cloudly link PhantomCloudly
 ```
 
 ## 🔧 Advanced Configuration

@@ -18,7 +18,7 @@ class WhitelistGuiManager(private val plugin: CloudlyPaper) {
      * Opens the whitelist GUI for a player.
      * If the player already has a GUI open, it will be closed first.
      */
-    fun openWhitelistGui(player: Player) {
+    fun openWhitelistGui(player: Player, initialPage: Int = 0) {
         // Close existing GUI if any
         closeGui(player)
         
@@ -30,7 +30,7 @@ class WhitelistGuiManager(private val plugin: CloudlyPaper) {
         }
         
         // Create and open new GUI
-        val gui = WhitelistGui(plugin, player)
+        val gui = WhitelistGui(plugin, player, initialPage)
         openGuis[player.uniqueId] = gui
         gui.open()
     }
@@ -59,14 +59,10 @@ class WhitelistGuiManager(private val plugin: CloudlyPaper) {
         return openGuis[player.uniqueId]
     }
     
-    /**
-     * Closes all open GUIs.
-     * Should be called when the plugin is disabled.
-     */
-    fun closeAllGuis() {
-        openGuis.values.forEach { gui ->
-            // The GUI will automatically clean up when the inventory is closed
-        }
+    fun closeAll() {
+        openGuis.keys
+            .mapNotNull { plugin.server.getPlayer(it) }
+            .forEach { it.closeInventory() }
         openGuis.clear()
     }
     

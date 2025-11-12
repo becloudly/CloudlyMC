@@ -22,6 +22,8 @@ permissions:
     children:
       cloudly.admin: true
       cloudly.whitelist: true
+      cloudly.moderation: true
+      cloudly.discord.manage: true
   
   cloudly.admin:
     description: Allows the player to manage the server.
@@ -29,4 +31,35 @@ permissions:
   
   cloudly.whitelist:
     description: Allows the player to manage the whitelist.
+    default: op
+    children:
+      cloudly.whitelist.remove: true
+
+  cloudly.whitelist.remove:
+    description: Allows removing players from the whitelist.
+    default: op
+
+  cloudly.discord.manage:
+    description: Allows managing Discord links of other players.
+    default: op
+
+  cloudly.moderation:
+    description: Allows access to the moderation toolset.
+    default: op
+    children:
+      cloudly.moderation.kick: true
+      cloudly.moderation.tempban: true
+      cloudly.moderation.permaban: true
+      cloudly.discord.manage: true
+
+  cloudly.moderation.kick:
+    description: Allows kicking players via the admin tools.
+    default: op
+
+  cloudly.moderation.tempban:
+    description: Allows issuing temporary bans via the admin tools.
+    default: op
+
+  cloudly.moderation.permaban:
+    description: Allows issuing permanent bans via the admin tools.
     default: op

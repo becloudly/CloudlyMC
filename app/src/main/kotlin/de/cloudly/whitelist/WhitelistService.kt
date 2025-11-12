@@ -243,6 +243,30 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
         
         return result
     }
+
+            /**
+             * Remove the Discord connection from a player.
+             * @param uuid The UUID of the player to update
+             * @param updatedBy The UUID of the actor performing the change (optional)
+             * @return true if the unlink succeeded, false otherwise
+             */
+            fun clearPlayerDiscord(uuid: UUID, updatedBy: UUID? = null): Boolean {
+                if (!enabled || repository == null) return false
+
+                val existingPlayer = repository?.retrieve(uuid.toString()) ?: return false
+                if (existingPlayer.discordConnection == null) {
+                    return false
+                }
+
+                val updatedPlayer = existingPlayer.copy(discordConnection = null)
+                val result = repository?.store(uuid.toString(), updatedPlayer) ?: false
+
+                if (result) {
+                    logAuditEvent("DISCORD_CLEAR", uuid, updatedBy, "Discord-Verknüpfung entfernt")
+                }
+
+                return result
+            }
     
     /**
      * Enable or disable the whitelist.
@@ -280,19 +304,6 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
     }
     
     /**
-     * Reload the whitelist configuration and storage.
-     */
-    fun reload() {
-        // Close existing resources
-        repository?.close()
-        auditLogger?.close()
-        auditLogger = null
-        
-        // Reinitialize
-        initialize()
-    }
-    
-    /**
      * Shutdown the whitelist service.
      * Closes the repository connection and audit logger.
      */
@@ -324,8 +335,20 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
         if (!isWhitelisted(player.uniqueId)) {
             event.disallow(
                 PlayerLoginEvent.Result.KICK_WHITELIST,
-                "You are not whitelisted on this server"
+                "Du bist nicht auf der Whitelist dieses Servers"
             )
         }
+    }
+
+    /**
+     * Locate a whitelisted player by their Discord identifier.
+     * Returns the first player that matches the given Discord ID, if any.
+     */
+    fun findPlayerByDiscordId(discordId: String): WhitelistPlayer? {
+        if (!enabled || repository == null) return null
+
+        return repository?.getAll()
+            ?.values
+            ?.firstOrNull { it.discordConnection?.discordId == discordId }
     }
 }

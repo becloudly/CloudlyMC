@@ -175,8 +175,7 @@ class AntiCommandBlockListener(private val plugin: CloudlyPaper) : Listener {
         plugin.server.onlinePlayers
             .filter { it.isOp || it.hasPermission("cloudly.admin") }
             .forEach { it.sendMessage(message) }
-        val plural = if (amount == 1) "command block" else "command blocks"
-        plugin.logger.warning("[AntiCommandBlock] ${player.name} attempted to keep $amount $plural; replaced with stone")
+        plugin.logger.warning(Messages.Protections.CommandBlock.notifyAdminsLog(player.name, amount))
     }
 
     private fun shouldHandle(player: Player): Boolean {

@@ -2,7 +2,7 @@ package de.cloudly.commands
 
 import de.cloudly.CloudlyPaper
 import de.cloudly.Messages
-import de.cloudly.discord.DiscordVerificationResult
+import de.cloudly.discord.DiscordCodeRequestResult
 import de.cloudly.utils.TimeUtils
 import kotlinx.coroutines.*
 import org.bukkit.Bukkit
@@ -12,7 +12,6 @@ import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Main command handler for the Cloudly plugin.
@@ -23,9 +22,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
     // Coroutine scope for async Discord operations
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
-    // Cooldown tracking for rate limiting
-    private val cooldowns = ConcurrentHashMap<UUID, Long>()
-    
     override fun onCommand(
         sender: CommandSender,
         command: Command,
@@ -34,14 +30,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
     ): Boolean {
         // Handle subcommands
         when (args.getOrNull(0)?.lowercase()) {
-            "reload" -> {
-                // Check admin permission for reload
-                if (!sender.hasPermission("cloudly.admin")) {
-                    sender.sendMessage(Messages.Commands.NO_PERMISSION)
-                    return true
-                }
-                handleReloadCommand(sender)
-            }
             "info" -> {
                 // Check admin permission for info
                 if (!sender.hasPermission("cloudly.admin")) {
@@ -49,6 +37,13 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     return true
                 }
                 handleInfoCommand(sender)
+            }
+            "admin" -> {
+                if (!sender.hasPermission("cloudly.admin")) {
+                    sender.sendMessage(Messages.Commands.NO_PERMISSION)
+                    return true
+                }
+                handleAdminCommand(sender, args)
             }
             "whitelist" -> {
                 // Check whitelist permission for whitelist commands
@@ -58,13 +53,24 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 }
                 handleWhitelistCommand(sender, args)
             }
-            "connect" -> {
-                // Discord connect command - available to all users
+            "link" -> {
+                // Discord link command - available to all users
                 if (sender !is Player) {
                     sender.sendMessage(Messages.Commands.Discord.PLAYERS_ONLY)
                     return true
                 }
-                handleDiscordConnectCommand(sender, args)
+                handleDiscordLinkCommand(sender, args)
+            }
+            "unlink" -> {
+                if (sender !is Player) {
+                    sender.sendMessage(Messages.Commands.Discord.PLAYERS_ONLY)
+                    return true
+                }
+                if (args.size > 1) {
+                    sender.sendMessage(Messages.Commands.Discord.UNLINK_USAGE)
+                    return true
+                }
+                handleDiscordUnlinkCommand(sender)
             }
             "help", null -> handleHelpCommand(sender)
             else -> {
@@ -74,22 +80,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         }
         
         return true
-    }
-    
-    /**
-     * Handles the reload subcommand.
-     * Usage: /cloudly reload
-     */
-    private fun handleReloadCommand(sender: CommandSender) {
-        sender.sendMessage(Messages.Commands.Reload.STARTING_CONFIG)
-        try {
-            plugin.getConfigManager().reloadConfig()
-            sender.sendMessage(Messages.Commands.Reload.CONFIG_SUCCESS)
-        } catch (e: Exception) {
-            sender.sendMessage(Messages.Commands.Reload.CONFIG_FAILED)
-            plugin.logger.warning("Fehler beim Neuladen der Konfiguration: ${e.message}")
-            e.printStackTrace()
-        }
     }
     
     /**
@@ -109,8 +99,27 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
     }
 
     /**
+     * Handles the admin subcommand.
+     * Usage: /cloudly admin gui
+     */
+    private fun handleAdminCommand(sender: CommandSender, args: Array<out String>) {
+        if (args.getOrNull(1)?.equals("gui", ignoreCase = true) != true) {
+            sender.sendMessage(Messages.Commands.Admin.GUI_USAGE)
+            return
+        }
+
+        if (sender !is Player) {
+            sender.sendMessage(Messages.Commands.Admin.PLAYERS_ONLY)
+            return
+        }
+
+        val initialPage = args.getOrNull(2)?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        plugin.getAdminGuiManager().openAdminGui(sender, initialPage)
+    }
+
+    /**
      * Handles the whitelist subcommand and its nested subcommands.
-     * Usage: /cloudly whitelist <add|remove|list|gui|on|off|reload|info>
+     * Usage: /cloudly whitelist <add|remove|list|on|off|info>
      */
     private fun handleWhitelistCommand(sender: CommandSender, args: Array<out String>) {
         val whitelistService = plugin.getWhitelistService()
@@ -191,16 +200,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 sender.sendMessage(Messages.Commands.Whitelist.LIST_FOOTER)
             }
             
-            "gui" -> {
-                // Open GUI for players only
-                if (sender !is Player) {
-                    sender.sendMessage(Messages.Gui.Whitelist.ONLY_PLAYERS)
-                    return
-                }
-                
-                plugin.getWhitelistGuiManager().openWhitelistGui(sender)
-            }
-            
             "on" -> {
                 val changedBy = if (sender is Player) sender.uniqueId else UUID.fromString("00000000-0000-0000-0000-000000000000")
                 whitelistService.enable(true, changedBy)
@@ -212,12 +211,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 whitelistService.enable(false, changedBy)
                 sender.sendMessage(Messages.Commands.Whitelist.DISABLED)
             }
-            
-            "reload" -> {
-                whitelistService.reload()
-                sender.sendMessage(Messages.Commands.Whitelist.RELOADED)
-            }
-            
+
             "info" -> {
                 if (args.size < 3) {
                     sender.sendMessage(Messages.Commands.Whitelist.INFO_USAGE)
@@ -268,10 +262,10 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
     }
     
     /**
-     * Handles the Discord connect command.
-     * Usage: /cloudly connect <discord_username>
+     * Handles the Discord link command.
+     * Usage: /cloudly link <discord_username>
      */
-    private fun handleDiscordConnectCommand(sender: Player, args: Array<out String>) {
+    private fun handleDiscordLinkCommand(sender: Player, args: Array<out String>) {
         val discordService = plugin.getDiscordService()
         val whitelistService = plugin.getWhitelistService()
         
@@ -303,7 +297,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         
         // Check command arguments
         if (args.size < 2) {
-            sender.sendMessage(Messages.Commands.Discord.CONNECT_USAGE)
+            sender.sendMessage(Messages.Commands.Discord.LINK_USAGE)
             return
         }
         
@@ -316,77 +310,102 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         }
         
         sender.sendMessage(Messages.Commands.Discord.verifying(discordUsername))
-        
-        // Perform Discord verification using coroutines
+
         coroutineScope.launch {
             try {
-                val verificationResult = discordService.verifyDiscordUser(sender.uniqueId, discordUsername)
-                
-                // Switch back to main thread for player interaction
+                val requestResult = discordService.requestVerificationCode(
+                    playerUuid = sender.uniqueId,
+                    playerName = sender.name,
+                    discordInput = discordUsername,
+                    whitelistService = whitelistService
+                )
+
                 Bukkit.getScheduler().runTask(plugin, Runnable {
-                    handleDiscordVerificationResult(sender, verificationResult, discordUsername)
+                    when (requestResult) {
+                        is DiscordCodeRequestResult.CodeSent -> {
+                            sender.sendMessage(Messages.Commands.Discord.CODE_SENT)
+                        }
+                        DiscordCodeRequestResult.ServiceDisabled -> {
+                            sender.sendMessage(Messages.Commands.Discord.DISABLED)
+                        }
+                        DiscordCodeRequestResult.UserNotFound -> {
+                            sender.sendMessage(Messages.Commands.Discord.userNotFound(discordUsername))
+                        }
+                        DiscordCodeRequestResult.NotServerMember -> {
+                            sender.sendMessage(Messages.Commands.Discord.notServerMember(discordUsername))
+                        }
+                        DiscordCodeRequestResult.MissingRole -> {
+                            sender.sendMessage(Messages.Commands.Discord.missingRole(discordUsername))
+                        }
+                        DiscordCodeRequestResult.AccountAlreadyLinked -> {
+                            val discordConnection = whitelistService.getPlayer(sender.uniqueId)?.discordConnection
+                            val alreadyName = discordConnection?.discordUsername ?: discordUsername
+                            sender.sendMessage(Messages.Commands.Discord.alreadyConnected(alreadyName))
+                        }
+                        DiscordCodeRequestResult.AccountInUse -> {
+                            sender.sendMessage(Messages.Commands.Discord.ACCOUNT_ALREADY_IN_USE)
+                        }
+                        DiscordCodeRequestResult.PendingAlreadyActive -> {
+                            sender.sendMessage(Messages.Commands.Discord.CODE_ALREADY_PENDING)
+                        }
+                        is DiscordCodeRequestResult.DmFailed -> {
+                            sender.sendMessage(Messages.Commands.Discord.CODE_SEND_FAILED)
+                            plugin.logger.warning("Discord DM konnte nicht gesendet werden: ${requestResult.reason}")
+                        }
+                        is DiscordCodeRequestResult.ApiError -> {
+                            sender.sendMessage(Messages.Commands.Discord.API_ERROR)
+                            plugin.logger.warning("Discord API Fehler: ${requestResult.message}")
+                        }
+                    }
                 })
             } catch (e: Exception) {
                 plugin.logger.severe("Fehler bei Discord-Verifizierung: ${e.message}")
                 e.printStackTrace()
-                
-                // Send error message to player
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     sender.sendMessage(Messages.Commands.Discord.VERIFICATION_ERROR)
                 })
             }
         }
     }
-    
+
     /**
-     * Handle the result of Discord verification.
+     * Handles the Discord unlink command.
+     * Usage: /cloudly unlink
      */
-    private fun handleDiscordVerificationResult(
-        sender: Player, 
-        result: DiscordVerificationResult, 
-        inputUsername: String
-    ) {
+    private fun handleDiscordUnlinkCommand(sender: Player) {
+        val discordService = plugin.getDiscordService()
         val whitelistService = plugin.getWhitelistService()
-        
-        when (result) {
-            is DiscordVerificationResult.Success -> {
-                // Create Discord connection
-                val discordConnection = plugin.getDiscordService().createDiscordConnection(result)
-                
-                // Update whitelist player with Discord connection
-                val currentPlayer = whitelistService.getPlayer(sender.uniqueId)
-                if (currentPlayer != null) {
-                    if (whitelistService.updatePlayerDiscord(sender.uniqueId, discordConnection, sender.uniqueId)) {
-                        sender.sendMessage(Messages.Commands.Discord.connectedSuccessfully(result.username))
-                        
-                        // Mark player as verified if verification is required
-                        if (plugin.getConfigManager().getBoolean("discord.require_verification", false)) {
-                            plugin.getDiscordVerificationListener().markPlayerVerified(sender)
-                        }
-                    } else {
-                        sender.sendMessage(Messages.Commands.Discord.CONNECTION_FAILED)
-                    }
-                } else {
-                    sender.sendMessage(Messages.Commands.Discord.NOT_WHITELISTED)
-                }
-            }
-            is DiscordVerificationResult.UserNotFound -> {
-                sender.sendMessage(Messages.Commands.Discord.userNotFound(inputUsername))
-            }
-            is DiscordVerificationResult.NotServerMember -> {
-                sender.sendMessage(Messages.Commands.Discord.notServerMember(inputUsername))
-            }
-            is DiscordVerificationResult.MissingRole -> {
-                sender.sendMessage(Messages.Commands.Discord.missingRole(inputUsername))
-            }
-            is DiscordVerificationResult.ServiceDisabled -> {
-                sender.sendMessage(Messages.Commands.Discord.DISABLED)
-            }
-            is DiscordVerificationResult.ApiError -> {
-                sender.sendMessage(Messages.Commands.Discord.API_ERROR)
-                plugin.logger.warning("Discord API Fehler: ${result.message}")
-            }
+
+        val whitelistPlayer = whitelistService.getPlayer(sender.uniqueId)
+        if (whitelistPlayer == null) {
+            sender.sendMessage(Messages.Commands.Discord.NOT_WHITELISTED)
+            return
         }
+
+        val pendingActive = discordService.hasPendingVerification(sender.uniqueId)
+        val discordConnection = whitelistPlayer.discordConnection
+
+        if (!pendingActive && discordConnection == null) {
+            sender.sendMessage(Messages.Commands.Discord.UNLINKED_NO_ACCOUNT)
+            return
+        }
+
+        if (pendingActive) {
+            discordService.resetVerificationState(sender.uniqueId)
+            sender.sendMessage(Messages.Commands.Discord.UNLINKED_PENDING_CANCELLED)
+        }
+
+        if (discordConnection != null) {
+            val removed = whitelistService.clearPlayerDiscord(sender.uniqueId, sender.uniqueId)
+            if (!removed) {
+                sender.sendMessage(Messages.Commands.Discord.UNLINK_FAILED)
+                return
+            }
+            sender.sendMessage(Messages.Commands.Discord.unlinkedSuccessfully(discordConnection.discordUsername))
+        }
+
+        discordService.resetVerificationState(sender.uniqueId)
+        plugin.getDiscordVerificationListener().restartVerification(sender, force = true)
     }
     
     /**
@@ -400,8 +419,8 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         // Show admin commands if user has admin permission
         if (sender.hasPermission("cloudly.admin")) {
             sender.sendMessage(Messages.Commands.Help.ADMIN_HEADER)
-            sender.sendMessage(Messages.Commands.Help.RELOAD)
             sender.sendMessage(Messages.Commands.Help.INFO)
+            sender.sendMessage(Messages.Commands.Help.ADMIN_GUI)
         }
         
         // Show whitelist commands if user has whitelist permission
@@ -410,9 +429,10 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
             sender.sendMessage(Messages.Commands.Help.WHITELIST)
         }
         
-        // Show Discord connect command (available to all players)
+        // Show Discord link commands (available to all players)
         sender.sendMessage(Messages.Commands.Help.DISCORD_HEADER)
         sender.sendMessage(Messages.Commands.Help.DISCORD_CONNECT)
+        sender.sendMessage(Messages.Commands.Help.DISCORD_UNLINK)
 
         // Show general commands
         sender.sendMessage(Messages.Commands.Help.GENERAL_HEADER)
@@ -434,7 +454,8 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 
                 // Admin commands
                 if (sender.hasPermission("cloudly.admin")) {
-                    subcommands.addAll(listOf("reload", "info"))
+                    subcommands.add("admin")
+                    subcommands.add("info")
                 }
                 
                 // Whitelist commands
@@ -442,8 +463,9 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     subcommands.add("whitelist")
                 }
                 
-                // Discord connect is available to all players
-                subcommands.add("connect")
+                // Discord link commands are available to all players
+                subcommands.add("link")
+                subcommands.add("unlink")
                 
                 // Help is always available
                 subcommands.add("help")
@@ -453,18 +475,26 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
             2 -> {
                 // Subcommand arguments
                 when (args[0].lowercase()) {
+                    "admin" -> {
+                        if (sender.hasPermission("cloudly.admin")) {
+                            listOf("gui").filter { it.startsWith(args[1].lowercase()) }
+                        } else emptyList()
+                    }
                     "whitelist" -> {
                         if (sender.hasPermission("cloudly.whitelist")) {
-                            listOf("add", "remove", "list", "gui", "on", "off", "reload", "info")
+                            listOf("add", "remove", "list", "on", "off", "info")
                                 .filter { it.startsWith(args[1].lowercase()) }
                         } else emptyList()
                     }
+                    "link" -> emptyList()
+                    "unlink" -> emptyList()
                     else -> emptyList()
                 }
             }
             3 -> {
                 // Three-level arguments
                 when (args[0].lowercase()) {
+                    "admin" -> emptyList()
                     "whitelist" -> {
                         if (sender.hasPermission("cloudly.whitelist") &&
                             (args[1].equals("add", ignoreCase = true) || 
