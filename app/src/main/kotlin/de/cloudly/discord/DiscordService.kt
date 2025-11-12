@@ -1,14 +1,15 @@
 package de.cloudly.discord
 
 import de.cloudly.CloudlyPaper
-import de.cloudly.utils.SchedulerUtils
 import de.cloudly.whitelist.model.DiscordConnection
 import kotlinx.coroutines.*
 import okhttp3.*
+import org.bukkit.Bukkit
 import org.bukkit.scheduler.BukkitTask
 import org.json.JSONObject
 import java.io.IOException
 import java.time.Instant
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
@@ -22,7 +23,6 @@ import java.util.logging.Level
 class DiscordService(private val plugin: CloudlyPaper) {
     
     private val configManager = plugin.getConfigManager()
-    private val languageManager = plugin.getLanguageManager()
     
     private var httpClient: OkHttpClient? = null
     private var botToken: String? = null
@@ -33,12 +33,19 @@ class DiscordService(private val plugin: CloudlyPaper) {
     // Cache for Discord user lookups to reduce API calls
     private val userCache = ConcurrentHashMap<String, CachedDiscordUser>()
     
+    // Player-side rate limiting (30 second cooldown per player)
+    private val playerCooldowns = ConcurrentHashMap<UUID, Long>()
+    
     // Coroutine scope for async operations
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     // Rate limiting for Discord API
     private val rateLimiter = Semaphore(5) // Max 5 concurrent requests
     private val lastRequestTime = AtomicLong(0)
+    
+    // Role verification configuration
+    private var requireRole = false
+    private var requiredRoleId: String? = null
     
     /**
      * Rate limit Discord API calls to prevent hitting rate limits.
@@ -89,6 +96,10 @@ class DiscordService(private val plugin: CloudlyPaper) {
             apiTimeout = configManager.getInt("discord.api_timeout", 10).toLong()
             cacheDuration = configManager.getInt("discord.cache_duration", 30).toLong()
             
+            // Load role verification settings
+            requireRole = configManager.getBoolean("discord.require_role", false)
+            requiredRoleId = configManager.getString("discord.required_role_id", "")
+            
             plugin.logger.info("Discord config loaded successfully")
             
             if (botToken.isNullOrBlank() || botToken == "YOUR_BOT_TOKEN_HERE") {
@@ -125,7 +136,7 @@ class DiscordService(private val plugin: CloudlyPaper) {
      * This prevents memory leaks from expired cache entries accumulating.
      */
     private fun startCacheCleanup() {
-        cacheCleanupTask = SchedulerUtils.runTaskTimerAsynchronously(plugin, Runnable {
+        cacheCleanupTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, Runnable {
             val removed = userCache.entries.removeIf { it.value.isExpired(cacheDuration) }
             if (removed && configManager.getBoolean("plugin.debug", false)) {
                 plugin.logger.info("Discord cache cleanup: removed expired entries")
@@ -144,14 +155,48 @@ class DiscordService(private val plugin: CloudlyPaper) {
     }
     
     /**
+     * Check if player is on cooldown for Discord verification.
+     * @param uuid The player's UUID
+     * @return true if on cooldown, false otherwise
+     */
+    fun isOnCooldown(uuid: UUID): Boolean {
+        val lastAttempt = playerCooldowns[uuid] ?: return false
+        val cooldownMs = 30_000L // 30 seconds
+        return System.currentTimeMillis() - lastAttempt < cooldownMs
+    }
+    
+    /**
+     * Get remaining cooldown time in seconds.
+     */
+    fun getRemainingCooldown(uuid: UUID): Long {
+        val lastAttempt = playerCooldowns[uuid] ?: return 0
+        val cooldownMs = 30_000L
+        val elapsed = System.currentTimeMillis() - lastAttempt
+        val remaining = cooldownMs - elapsed
+        return if (remaining > 0) remaining / 1000 else 0
+    }
+    
+    /**
+     * Set cooldown for player.
+     */
+    private fun setCooldown(uuid: UUID) {
+        playerCooldowns[uuid] = System.currentTimeMillis()
+    }
+    
+    /**
      * Verify if a Discord user exists and is a member of the configured server.
      * This method is async and should be called from a coroutine or background thread.
+     * @param uuid The player's UUID (for cooldown tracking)
+     * @param discordUsername The Discord username to verify
      */
-    suspend fun verifyDiscordUser(discordUsername: String): DiscordVerificationResult {
+    suspend fun verifyDiscordUser(uuid: UUID, discordUsername: String): DiscordVerificationResult {
         if (!isEnabled()) {
             plugin.logger.info("Discord verification failed: Service not enabled")
             return DiscordVerificationResult.ServiceDisabled
         }
+        
+        // Set cooldown
+        setCooldown(uuid)
         
         return withContext(Dispatchers.IO) {
             try {
@@ -184,6 +229,16 @@ class DiscordService(private val plugin: CloudlyPaper) {
                 if (!isMember) {
                     plugin.logger.info("Discord user is not a member of the server: ${discordUser.username}")
                     return@withContext DiscordVerificationResult.NotServerMember
+                }
+                
+                // Check role if required
+                if (requireRole && !requiredRoleId.isNullOrBlank()) {
+                    plugin.logger.info("Checking role membership for user: ${discordUser.id}")
+                    val hasRole = checkRoleMembership(discordUser.id, requiredRoleId!!)
+                    if (!hasRole) {
+                        plugin.logger.info("Discord user does not have required role: ${discordUser.username}")
+                        return@withContext DiscordVerificationResult.MissingRole
+                    }
                 }
                 
                 plugin.logger.info("Discord verification successful for user: ${discordUser.username}")
@@ -278,6 +333,46 @@ class DiscordService(private val plugin: CloudlyPaper) {
     }
     
     /**
+     * Check if a Discord user has a specific role.
+     */
+    private suspend fun checkRoleMembership(userId: String, roleId: String): Boolean {
+        val client = httpClient ?: return false
+        val token = botToken ?: return false
+        val guildId = serverId ?: return false
+        
+        val url = "https://discord.com/api/v10/guilds/$guildId/members/$userId"
+        
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bot $token")
+            .header("User-Agent", "CloudlyMC/1.0")
+            .build()
+        
+        return withContext(Dispatchers.IO) {
+            rateLimit {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        return@use false
+                    }
+                    
+                    val responseBody = response.body?.string() ?: return@use false
+                    val member = JSONObject(responseBody)
+                    val roles = member.getJSONArray("roles")
+                    
+                    // Check if required role is in the roles list
+                    for (i in 0 until roles.length()) {
+                        if (roles.getString(i) == roleId) {
+                            return@use true
+                        }
+                    }
+                    
+                    false
+                }
+            }
+        }
+    }
+    
+    /**
      * Create a Discord connection object from verification result.
      */
     fun createDiscordConnection(result: DiscordVerificationResult.Success): DiscordConnection {
@@ -322,6 +417,7 @@ sealed class DiscordVerificationResult {
     object ServiceDisabled : DiscordVerificationResult()
     object UserNotFound : DiscordVerificationResult()
     object NotServerMember : DiscordVerificationResult()
+    object MissingRole : DiscordVerificationResult()
     data class Success(val discordId: String, val username: String) : DiscordVerificationResult()
     data class ApiError(val message: String) : DiscordVerificationResult()
 }

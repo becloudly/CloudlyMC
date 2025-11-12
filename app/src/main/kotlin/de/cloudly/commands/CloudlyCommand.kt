@@ -1,11 +1,9 @@
 package de.cloudly.commands
 
 import de.cloudly.CloudlyPaper
-import de.cloudly.config.HotReloadManager
+import de.cloudly.Messages
 import de.cloudly.discord.DiscordVerificationResult
-import de.cloudly.utils.SchedulerUtils
 import de.cloudly.utils.TimeUtils
-import de.cloudly.whitelist.model.WhitelistPlayer
 import kotlinx.coroutines.*
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
@@ -13,19 +11,14 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
-import java.time.Instant
-import java.time.ZoneId
-import java.util.Date
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Main command handler for the Cloudly plugin.
- * Handles all /cloudly subcommands including hot-reload functionality.
+ * Handles all /cloudly subcommands.
  */
 class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCompleter {
-    
-    private val hotReloadManager = HotReloadManager(plugin)
     
     // Coroutine scope for async Discord operations
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -39,22 +32,20 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         label: String,
         args: Array<out String>
     ): Boolean {
-        val languageManager = plugin.getLanguageManager()
-        
         // Handle subcommands
         when (args.getOrNull(0)?.lowercase()) {
             "reload" -> {
                 // Check admin permission for reload
                 if (!sender.hasPermission("cloudly.admin")) {
-                    sender.sendMessage(languageManager.getMessage("commands.no_permission"))
+                    sender.sendMessage(Messages.Commands.NO_PERMISSION)
                     return true
                 }
-                handleReloadCommand(sender, args)
+                handleReloadCommand(sender)
             }
             "info" -> {
                 // Check admin permission for info
                 if (!sender.hasPermission("cloudly.admin")) {
-                    sender.sendMessage(languageManager.getMessage("commands.no_permission"))
+                    sender.sendMessage(Messages.Commands.NO_PERMISSION)
                     return true
                 }
                 handleInfoCommand(sender)
@@ -62,7 +53,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
             "whitelist" -> {
                 // Check whitelist permission for whitelist commands
                 if (!sender.hasPermission("cloudly.whitelist")) {
-                    sender.sendMessage(languageManager.getMessage("commands.no_permission"))
+                    sender.sendMessage(Messages.Commands.NO_PERMISSION)
                     return true
                 }
                 handleWhitelistCommand(sender, args)
@@ -70,14 +61,14 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
             "connect" -> {
                 // Discord connect command - available to all users
                 if (sender !is Player) {
-                    sender.sendMessage(languageManager.getMessage("commands.discord.players_only"))
+                    sender.sendMessage(Messages.Commands.Discord.PLAYERS_ONLY)
                     return true
                 }
                 handleDiscordConnectCommand(sender, args)
             }
             "help", null -> handleHelpCommand(sender)
             else -> {
-                sender.sendMessage(languageManager.getMessage("commands.unknown_subcommand", "subcommand" to args[0]))
+                sender.sendMessage(Messages.Commands.unknownSubcommand(args[0]))
                 handleHelpCommand(sender)
             }
         }
@@ -86,67 +77,18 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
     }
     
     /**
-     * Check if a player is on cooldown for a command.
-     * 
-     * @param player The player to check
-     * @param seconds The cooldown duration in seconds
-     * @return true if the player can use the command, false if still on cooldown
+     * Handles the reload subcommand.
+     * Usage: /cloudly reload
      */
-    private fun checkCooldown(player: Player, seconds: Int): Boolean {
-        val now = System.currentTimeMillis()
-        val lastUse = cooldowns[player.uniqueId] ?: 0
-        return if (now - lastUse >= seconds * 1000) {
-            cooldowns[player.uniqueId] = now
-            true
-        } else {
-            false
-        }
-    }
-    
-    /**
-     * Get the remaining cooldown time for a player in seconds.
-     * 
-     * @param player The player to check
-     * @param seconds The cooldown duration in seconds
-     * @return The remaining cooldown time in seconds, or 0 if no cooldown
-     */
-    private fun getRemainingCooldown(player: Player, seconds: Int): Long {
-        val now = System.currentTimeMillis()
-        val lastUse = cooldowns[player.uniqueId] ?: 0
-        val elapsed = now - lastUse
-        val cooldownMs = seconds * 1000L
-        return if (elapsed < cooldownMs) {
-            (cooldownMs - elapsed) / 1000
-        } else {
-            0
-        }
-    }
-    
-    /**
-     * Handles the reload subcommand with optional specific targets.
-     * Usage: /cloudly reload [config|lang|all]
-     */
-    private fun handleReloadCommand(sender: CommandSender, args: Array<out String>) {
-        val languageManager = plugin.getLanguageManager()
-        val target = args.getOrNull(1)?.lowercase()
-        
-        when (target) {
-            "config" -> {
-                sender.sendMessage(languageManager.getMessage("commands.reload.starting_config"))
-                hotReloadManager.reloadConfigOnly(sender)
-            }
-            "lang", "language", "languages" -> {
-                sender.sendMessage(languageManager.getMessage("commands.reload.starting_languages"))
-                hotReloadManager.reloadLanguagesOnly(sender)
-            }
-            "all", null -> {
-                sender.sendMessage(languageManager.getMessage("commands.reload.starting_full"))
-                hotReloadManager.performHotReload(sender)
-            }
-            else -> {
-                sender.sendMessage(languageManager.getMessage("commands.reload.invalid_target", "target" to target))
-                sender.sendMessage(languageManager.getMessage("commands.reload.usage"))
-            }
+    private fun handleReloadCommand(sender: CommandSender) {
+        sender.sendMessage(Messages.Commands.Reload.STARTING_CONFIG)
+        try {
+            plugin.getConfigManager().reloadConfig()
+            sender.sendMessage(Messages.Commands.Reload.CONFIG_SUCCESS)
+        } catch (e: Exception) {
+            sender.sendMessage(Messages.Commands.Reload.CONFIG_FAILED)
+            plugin.logger.warning("Fehler beim Neuladen der Konfiguration: ${e.message}")
+            e.printStackTrace()
         }
     }
     
@@ -155,39 +97,33 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
      * Displays plugin information and current configuration status.
      */
     private fun handleInfoCommand(sender: CommandSender) {
-        val languageManager = plugin.getLanguageManager()
         val configManager = plugin.getConfigManager()
         
         sender.sendMessage("")
-        sender.sendMessage(languageManager.getMessage("commands.info.header"))
-        sender.sendMessage(languageManager.getMessage("commands.info.version", "version" to plugin.description.version))
-        sender.sendMessage(languageManager.getMessage("commands.info.language", "language" to languageManager.getCurrentLanguage()))
-        sender.sendMessage(languageManager.getMessage("commands.info.debug", "debug" to configManager.getBoolean("plugin.debug", false)))
-        
-        // Server type detection
-        val serverType = if (de.cloudly.utils.SchedulerUtils.isFolia()) "Folia" else "Paper/Spigot"
-        sender.sendMessage(languageManager.getMessage("commands.info.server_type", "type" to serverType))
-        sender.sendMessage(languageManager.getMessage("commands.info.author"))
-        sender.sendMessage(languageManager.getMessage("commands.info.footer"))
+        sender.sendMessage(Messages.Commands.Info.HEADER)
+        sender.sendMessage(Messages.Commands.Info.version(plugin.description.version))
+        sender.sendMessage(Messages.Commands.Info.debug(configManager.getBoolean("plugin.debug", false)))
+        sender.sendMessage(Messages.Commands.Info.SERVER_TYPE)
+        sender.sendMessage(Messages.Commands.Info.AUTHOR)
+        sender.sendMessage(Messages.Commands.Info.FOOTER)
     }
 
     /**
      * Handles the whitelist subcommand and its nested subcommands.
-     * Usage: /cloudly whitelist <add|remove|list|on|off|reload|info>
+     * Usage: /cloudly whitelist <add|remove|list|gui|on|off|reload|info>
      */
     private fun handleWhitelistCommand(sender: CommandSender, args: Array<out String>) {
-        val languageManager = plugin.getLanguageManager()
         val whitelistService = plugin.getWhitelistService()
         
         if (args.size < 2) {
-            sender.sendMessage(languageManager.getMessage("commands.whitelist.usage"))
+            sender.sendMessage(Messages.Commands.Whitelist.USAGE)
             return
         }
 
         when (args[1].lowercase()) {
             "add" -> {
                 if (args.size < 3) {
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.add_usage"))
+                    sender.sendMessage(Messages.Commands.Whitelist.ADD_USAGE)
                     return
                 }
                 
@@ -196,7 +132,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 // Try to get UUID from online player first
                 val targetPlayer = Bukkit.getPlayer(playerName)
                 val uuid = targetPlayer?.uniqueId ?: run {
-                    // For offline players, get UUID from Bukkit's offline player (works even if they never played)
+                    // For offline players, get UUID from Bukkit's offline player
                     val offlinePlayer = Bukkit.getOfflinePlayer(playerName)
                     offlinePlayer.uniqueId
                 }
@@ -204,22 +140,21 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 val addedBy = if (sender is Player) sender.uniqueId else UUID.fromString("00000000-0000-0000-0000-000000000000")
                 
                 if (whitelistService.addPlayer(uuid, playerName, addedBy)) {
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.player_added", "player" to playerName))
+                    sender.sendMessage(Messages.Commands.Whitelist.playerAdded(playerName))
                 } else {
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.add_failed", "player" to playerName))
+                    sender.sendMessage(Messages.Commands.Whitelist.addFailed(playerName))
                 }
             }
             
             "remove" -> {
                 if (args.size < 3) {
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.remove_usage"))
+                    sender.sendMessage(Messages.Commands.Whitelist.REMOVE_USAGE)
                     return
                 }
                 
                 val playerName = args[2]
                 val targetPlayer = Bukkit.getPlayer(playerName)
                 val uuid = targetPlayer?.uniqueId ?: run {
-                    // For offline players, get UUID from Bukkit's offline player (works even if they never played)
                     val offlinePlayer = Bukkit.getOfflinePlayer(playerName)
                     offlinePlayer.uniqueId
                 }
@@ -230,39 +165,36 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     // Check if the player is currently online and kick them
                     val onlinePlayer = Bukkit.getPlayer(uuid)
                     if (onlinePlayer != null && onlinePlayer.isOnline) {
-                        // Kick the player with a whitelist message
-                        onlinePlayer.kickPlayer(languageManager.getMessage("commands.whitelist.player_removed_kick_message"))
-                        sender.sendMessage(languageManager.getMessage("commands.whitelist.player_removed_and_kicked", "player" to playerName))
+                        onlinePlayer.kickPlayer(Messages.Commands.Whitelist.PLAYER_REMOVED_KICK_MESSAGE)
+                        sender.sendMessage(Messages.Commands.Whitelist.playerRemovedAndKicked(playerName))
                     } else {
-                        sender.sendMessage(languageManager.getMessage("commands.whitelist.player_removed", "player" to playerName))
+                        sender.sendMessage(Messages.Commands.Whitelist.playerRemoved(playerName))
                     }
                 } else {
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.player_not_whitelisted", "player" to playerName))
+                    sender.sendMessage(Messages.Commands.Whitelist.playerNotWhitelisted(playerName))
                 }
             }
             
             "list" -> {
                 val players = whitelistService.getAllPlayers()
                 if (players.isEmpty()) {
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.list_empty"))
+                    sender.sendMessage(Messages.Commands.Whitelist.LIST_EMPTY)
                     return
                 }
                 
                 sender.sendMessage("")
-                sender.sendMessage(languageManager.getMessage("commands.whitelist.list_header", "count" to players.size.toString()))
+                sender.sendMessage(Messages.Commands.Whitelist.listHeader(players.size))
                 players.forEach { player ->
                     val date = TimeUtils.formatTimestamp(player.addedAt)
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.list_entry", 
-                        "username" to player.username, 
-                        "date" to date))
+                    sender.sendMessage(Messages.Commands.Whitelist.listEntry(player.username, date))
                 }
-                sender.sendMessage(languageManager.getMessage("commands.whitelist.list_footer"))
+                sender.sendMessage(Messages.Commands.Whitelist.LIST_FOOTER)
             }
             
             "gui" -> {
                 // Open GUI for players only
                 if (sender !is Player) {
-                    sender.sendMessage(languageManager.getMessage("gui.whitelist.only_players"))
+                    sender.sendMessage(Messages.Gui.Whitelist.ONLY_PLAYERS)
                     return
                 }
                 
@@ -272,30 +204,29 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
             "on" -> {
                 val changedBy = if (sender is Player) sender.uniqueId else UUID.fromString("00000000-0000-0000-0000-000000000000")
                 whitelistService.enable(true, changedBy)
-                sender.sendMessage(languageManager.getMessage("commands.whitelist.enabled"))
+                sender.sendMessage(Messages.Commands.Whitelist.ENABLED)
             }
             
             "off" -> {
                 val changedBy = if (sender is Player) sender.uniqueId else UUID.fromString("00000000-0000-0000-0000-000000000000")
                 whitelistService.enable(false, changedBy)
-                sender.sendMessage(languageManager.getMessage("commands.whitelist.disabled"))
+                sender.sendMessage(Messages.Commands.Whitelist.DISABLED)
             }
             
             "reload" -> {
                 whitelistService.reload()
-                sender.sendMessage(languageManager.getMessage("commands.whitelist.reloaded"))
+                sender.sendMessage(Messages.Commands.Whitelist.RELOADED)
             }
             
             "info" -> {
                 if (args.size < 3) {
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.info_usage"))
+                    sender.sendMessage(Messages.Commands.Whitelist.INFO_USAGE)
                     return
                 }
                 
                 val playerName = args[2]
                 val targetPlayer = Bukkit.getPlayer(playerName)
                 val uuid = targetPlayer?.uniqueId ?: run {
-                    // For offline players, get UUID from Bukkit's offline player (works even if they never played)
                     val offlinePlayer = Bukkit.getOfflinePlayer(playerName)
                     offlinePlayer.uniqueId
                 }
@@ -312,26 +243,26 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                     val date = TimeUtils.formatTimestamp(whitelistPlayer.addedAt)
                     
                     sender.sendMessage("")
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.info_header", "player" to whitelistPlayer.username))
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_by", "name" to addedByName))
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.info_added_on", "date" to date))
+                    sender.sendMessage(Messages.Commands.Whitelist.infoHeader(whitelistPlayer.username))
+                    sender.sendMessage(Messages.Commands.Whitelist.infoAddedBy(addedByName))
+                    sender.sendMessage(Messages.Commands.Whitelist.infoAddedOn(date))
                     
                     // Show Discord connection info if available
                     if (whitelistPlayer.discordConnection != null) {
                         val discord = whitelistPlayer.discordConnection
-                        val status = if (discord.verified) "§aVerified" else "§cNot verified"
+                        val status = if (discord.verified) "§aVerifiziert" else "§cNicht verifiziert"
                         sender.sendMessage("  §e▪ §fDiscord§8: §7${discord.discordUsername} §8(§7$status§8)")
                     } else {
-                        sender.sendMessage(languageManager.getMessage("commands.whitelist.info_discord_not_connected"))
+                        sender.sendMessage("  §e▪ §fDiscord§8: §cNicht verbunden")
                     }
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.info_footer"))
+                    sender.sendMessage(Messages.Commands.Whitelist.INFO_FOOTER)
                 } else {
-                    sender.sendMessage(languageManager.getMessage("commands.whitelist.player_not_whitelisted", "player" to playerName))
+                    sender.sendMessage(Messages.Commands.Whitelist.playerNotWhitelisted(playerName))
                 }
             }
             
             else -> {
-                sender.sendMessage(languageManager.getMessage("commands.whitelist.invalid_subcommand"))
+                sender.sendMessage(Messages.Commands.Whitelist.INVALID_SUBCOMMAND)
             }
         }
     }
@@ -341,42 +272,38 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
      * Usage: /cloudly connect <discord_username>
      */
     private fun handleDiscordConnectCommand(sender: Player, args: Array<out String>) {
-        val languageManager = plugin.getLanguageManager()
         val discordService = plugin.getDiscordService()
         val whitelistService = plugin.getWhitelistService()
         
-        // Check cooldown to prevent command spam and API abuse
-        val cooldownSeconds = 30
-        if (!checkCooldown(sender, cooldownSeconds)) {
-            val remaining = getRemainingCooldown(sender, cooldownSeconds)
-            sender.sendMessage(languageManager.getMessage("commands.discord.cooldown", 
-                "seconds" to remaining.toString()))
+        // Check cooldown using Discord service's built-in cooldown tracking
+        if (discordService.isOnCooldown(sender.uniqueId)) {
+            val remaining = discordService.getRemainingCooldown(sender.uniqueId)
+            sender.sendMessage(Messages.Commands.Discord.cooldown(remaining.toInt()))
             return
         }
         
         // Check if Discord service is enabled
         if (!discordService.isEnabled()) {
-            sender.sendMessage(languageManager.getMessage("commands.discord.disabled"))
+            sender.sendMessage(Messages.Commands.Discord.DISABLED)
             return
         }
         
         // Check if player is whitelisted
         val whitelistPlayer = whitelistService.getPlayer(sender.uniqueId)
         if (whitelistPlayer == null) {
-            sender.sendMessage(languageManager.getMessage("commands.discord.not_whitelisted"))
+            sender.sendMessage(Messages.Commands.Discord.NOT_WHITELISTED)
             return
         }
         
         // Check if player already has Discord connected
         if (whitelistPlayer.discordConnection != null && whitelistPlayer.discordConnection.verified) {
-            sender.sendMessage(languageManager.getMessage("commands.discord.already_connected", 
-                "discord_username" to whitelistPlayer.discordConnection.discordUsername))
+            sender.sendMessage(Messages.Commands.Discord.alreadyConnected(whitelistPlayer.discordConnection.discordUsername))
             return
         }
         
         // Check command arguments
         if (args.size < 2) {
-            sender.sendMessage(languageManager.getMessage("commands.discord.connect_usage"))
+            sender.sendMessage(Messages.Commands.Discord.CONNECT_USAGE)
             return
         }
         
@@ -384,55 +311,29 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         
         // Validate Discord username format (basic validation)
         if (discordUsername.length < 2 || discordUsername.length > 32) {
-            sender.sendMessage(languageManager.getMessage("commands.discord.invalid_username"))
+            sender.sendMessage(Messages.Commands.Discord.INVALID_USERNAME)
             return
         }
         
-        sender.sendMessage(languageManager.getMessage("commands.discord.verifying", "discord_username" to discordUsername))
+        sender.sendMessage(Messages.Commands.Discord.verifying(discordUsername))
         
-        // Check if Discord service is available
-        if (!discordService.isEnabled()) {
-            sender.sendMessage(languageManager.getMessage("commands.discord.disabled"))
-            return
-        }
-        
-        // Perform Discord verification using pure coroutines instead of mixing with schedulers
+        // Perform Discord verification using coroutines
         coroutineScope.launch {
             try {
-                val verificationResult = discordService.verifyDiscordUser(discordUsername)
+                val verificationResult = discordService.verifyDiscordUser(sender.uniqueId, discordUsername)
                 
                 // Switch back to main thread for player interaction
-                // Use a simple approach that works on both Paper and Folia
-                if (SchedulerUtils.isFolia()) {
-                    // On Folia, try to run the task directly
-                    try {
-                        handleDiscordVerificationResult(sender, verificationResult, discordUsername)
-                    } catch (e: Exception) {
-                        plugin.logger.severe("Error handling Discord verification result on Folia: ${e.message}")
-                        e.printStackTrace()
-                    }
-                } else {
-                    // On Paper, use scheduler
-                    SchedulerUtils.runTask(plugin, Runnable {
-                        handleDiscordVerificationResult(sender, verificationResult, discordUsername)
-                    })
-                }
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    handleDiscordVerificationResult(sender, verificationResult, discordUsername)
+                })
             } catch (e: Exception) {
-                plugin.logger.severe("Error during Discord verification: ${e.message}")
+                plugin.logger.severe("Fehler bei Discord-Verifizierung: ${e.message}")
                 e.printStackTrace()
                 
-                // Send error message to player - handle threading safely
-                if (SchedulerUtils.isFolia()) {
-                    try {
-                        sender.sendMessage(languageManager.getMessage("commands.discord.verification_error"))
-                    } catch (ex: Exception) {
-                        plugin.logger.severe("Error sending error message on Folia: ${ex.message}")
-                    }
-                } else {
-                    SchedulerUtils.runTask(plugin, Runnable {
-                        sender.sendMessage(languageManager.getMessage("commands.discord.verification_error"))
-                    })
-                }
+                // Send error message to player
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    sender.sendMessage(Messages.Commands.Discord.VERIFICATION_ERROR)
+                })
             }
         }
     }
@@ -445,7 +346,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         result: DiscordVerificationResult, 
         inputUsername: String
     ) {
-        val languageManager = plugin.getLanguageManager()
         val whitelistService = plugin.getWhitelistService()
         
         when (result) {
@@ -456,32 +356,35 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
                 // Update whitelist player with Discord connection
                 val currentPlayer = whitelistService.getPlayer(sender.uniqueId)
                 if (currentPlayer != null) {
-                    val updatedPlayer = currentPlayer.copy(discordConnection = discordConnection)
-                    
                     if (whitelistService.updatePlayerDiscord(sender.uniqueId, discordConnection, sender.uniqueId)) {
-                        sender.sendMessage(languageManager.getMessage("commands.discord.connected_successfully", 
-                            "discord_username" to result.username))
+                        sender.sendMessage(Messages.Commands.Discord.connectedSuccessfully(result.username))
+                        
+                        // Mark player as verified if verification is required
+                        if (plugin.getConfigManager().getBoolean("discord.require_verification", false)) {
+                            plugin.getDiscordVerificationListener().markPlayerVerified(sender)
+                        }
                     } else {
-                        sender.sendMessage(languageManager.getMessage("commands.discord.connection_failed"))
+                        sender.sendMessage(Messages.Commands.Discord.CONNECTION_FAILED)
                     }
                 } else {
-                    sender.sendMessage(languageManager.getMessage("commands.discord.not_whitelisted"))
+                    sender.sendMessage(Messages.Commands.Discord.NOT_WHITELISTED)
                 }
             }
             is DiscordVerificationResult.UserNotFound -> {
-                sender.sendMessage(languageManager.getMessage("commands.discord.user_not_found", 
-                    "discord_username" to inputUsername))
+                sender.sendMessage(Messages.Commands.Discord.userNotFound(inputUsername))
             }
             is DiscordVerificationResult.NotServerMember -> {
-                sender.sendMessage(languageManager.getMessage("commands.discord.not_server_member", 
-                    "discord_username" to inputUsername))
+                sender.sendMessage(Messages.Commands.Discord.notServerMember(inputUsername))
+            }
+            is DiscordVerificationResult.MissingRole -> {
+                sender.sendMessage(Messages.Commands.Discord.missingRole(inputUsername))
             }
             is DiscordVerificationResult.ServiceDisabled -> {
-                sender.sendMessage(languageManager.getMessage("commands.discord.disabled"))
+                sender.sendMessage(Messages.Commands.Discord.DISABLED)
             }
             is DiscordVerificationResult.ApiError -> {
-                sender.sendMessage(languageManager.getMessage("commands.discord.api_error"))
-                plugin.logger.warning("Discord API error: ${result.message}")
+                sender.sendMessage(Messages.Commands.Discord.API_ERROR)
+                plugin.logger.warning("Discord API Fehler: ${result.message}")
             }
         }
     }
@@ -491,33 +394,31 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
      * Displays available commands and their usage.
      */
     private fun handleHelpCommand(sender: CommandSender) {
-        val languageManager = plugin.getLanguageManager()
-        
         sender.sendMessage("")
-        sender.sendMessage(languageManager.getMessage("commands.help.header"))
+        sender.sendMessage(Messages.Commands.Help.HEADER)
         
         // Show admin commands if user has admin permission
         if (sender.hasPermission("cloudly.admin")) {
-            sender.sendMessage(languageManager.getMessage("commands.help.admin_header"))
-            sender.sendMessage(languageManager.getMessage("commands.help.reload"))
-            sender.sendMessage(languageManager.getMessage("commands.help.info"))
+            sender.sendMessage(Messages.Commands.Help.ADMIN_HEADER)
+            sender.sendMessage(Messages.Commands.Help.RELOAD)
+            sender.sendMessage(Messages.Commands.Help.INFO)
         }
         
         // Show whitelist commands if user has whitelist permission
         if (sender.hasPermission("cloudly.whitelist")) {
-            sender.sendMessage(languageManager.getMessage("commands.help.whitelist_header"))
-            sender.sendMessage(languageManager.getMessage("commands.help.whitelist"))
+            sender.sendMessage(Messages.Commands.Help.WHITELIST_HEADER)
+            sender.sendMessage(Messages.Commands.Help.WHITELIST)
         }
         
         // Show Discord connect command (available to all players)
-        sender.sendMessage(languageManager.getMessage("commands.help.discord_header"))
-        sender.sendMessage(languageManager.getMessage("commands.help.discord.connect"))
+        sender.sendMessage(Messages.Commands.Help.DISCORD_HEADER)
+        sender.sendMessage(Messages.Commands.Help.DISCORD_CONNECT)
 
         // Show general commands
-        sender.sendMessage(languageManager.getMessage("commands.help.general_header"))
-        sender.sendMessage(languageManager.getMessage("commands.help.help"))
+        sender.sendMessage(Messages.Commands.Help.GENERAL_HEADER)
+        sender.sendMessage(Messages.Commands.Help.HELP)
         
-        sender.sendMessage(languageManager.getMessage("commands.help.separator"))
+        sender.sendMessage(Messages.Commands.Help.SEPARATOR)
     }
     
     override fun onTabComplete(
@@ -552,12 +453,6 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
             2 -> {
                 // Subcommand arguments
                 when (args[0].lowercase()) {
-                    "reload" -> {
-                        if (sender.hasPermission("cloudly.admin")) {
-                            listOf("config", "lang", "all")
-                                .filter { it.startsWith(args[1].lowercase()) }
-                        } else emptyList()
-                    }
                     "whitelist" -> {
                         if (sender.hasPermission("cloudly.whitelist")) {
                             listOf("add", "remove", "list", "gui", "on", "off", "reload", "info")
@@ -594,7 +489,7 @@ class CloudlyCommand(private val plugin: CloudlyPaper) : CommandExecutor, TabCom
         try {
             coroutineScope.cancel()
         } catch (e: Exception) {
-            plugin.logger.warning("Error shutting down CloudlyCommand: ${e.message}")
+            plugin.logger.warning("Fehler beim Herunterfahren von CloudlyCommand: ${e.message}")
         }
     }
 }

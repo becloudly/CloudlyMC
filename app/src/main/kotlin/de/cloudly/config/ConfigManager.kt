@@ -1,5 +1,6 @@
 package de.cloudly.config
 
+import de.cloudly.Messages
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
@@ -15,32 +16,6 @@ class ConfigManager(private val plugin: JavaPlugin) {
     
     private var config: FileConfiguration? = null
     private var configFile: File? = null
-    private var languageManager: LanguageManager? = null
-    
-    /**
-     * Set the language manager for translated messages.
-     */
-    fun setLanguageManager(languageManager: LanguageManager) {
-        this.languageManager = languageManager
-    }
-    
-    /**
-     * Get a translated message, fallback to English if language manager is not set.
-     */
-    private fun getMessage(key: String, vararg placeholders: Pair<String, Any>): String {
-        return languageManager?.getMessage(key, *placeholders) ?: when (key) {
-            "config.directory_created" -> "Created cloudly configuration directory"
-            "config.default_created" -> "Created default config.yml in cloudly folder"
-            "config.copy_failed" -> "Could not copy default config"
-            "config.loaded_successfully" -> "Configuration loaded successfully"
-            "config.default_file_created" -> "Created default configuration file"
-            "config.create_failed" -> "Could not create default config file"
-            "config.saved_successfully" -> "Configuration saved successfully"
-            "config.save_failed" -> "Could not save config file"
-            "config.reloaded" -> "Configuration reloaded"
-            else -> key
-        }
-    }
     
     /**
      * Initialize the configuration system.
@@ -52,7 +27,7 @@ class ConfigManager(private val plugin: JavaPlugin) {
         if (!pluginFolder.exists()) {
             pluginFolder.mkdirs()
             if (getBoolean("plugin.debug", false)) {
-                plugin.logger.info(getMessage("config.directory_created"))
+                plugin.logger.info(Messages.Config.DIRECTORY_CREATED)
             }
         }
         
@@ -76,7 +51,7 @@ class ConfigManager(private val plugin: JavaPlugin) {
             
             config = YamlConfiguration.loadConfiguration(file)
             if (getBoolean("plugin.debug", false)) {
-                plugin.logger.info(getMessage("config.loaded_successfully"))
+                plugin.logger.info(Messages.Config.LOADED_SUCCESSFULLY)
             }
         }
     }
@@ -92,14 +67,14 @@ class ConfigManager(private val plugin: JavaPlugin) {
                     resourceStream.copyTo(output)
                 }
                 if (getBoolean("plugin.debug", false)) {
-                    plugin.logger.info(getMessage("config.default_created"))
+                    plugin.logger.info(Messages.Config.DEFAULT_CREATED)
                 }
             } else {
                 // Fallback if resource is not found
                 createDefaultConfig(targetFile)
             }
         } catch (e: Exception) {
-            plugin.logger.log(Level.WARNING, getMessage("config.copy_failed"), e)
+            plugin.logger.log(Level.WARNING, Messages.Config.COPY_FAILED, e)
             createDefaultConfig(targetFile)
         }
     }
@@ -112,12 +87,11 @@ class ConfigManager(private val plugin: JavaPlugin) {
             file.createNewFile()
             val defaultConfig = YamlConfiguration()
             defaultConfig.set("plugin.debug", false)
-            defaultConfig.set("plugin.language", "en")
             defaultConfig.save(file)
             config = defaultConfig
-            plugin.logger.info(getMessage("config.default_file_created"))
+            plugin.logger.info(Messages.Config.DEFAULT_FILE_CREATED)
         } catch (e: IOException) {
-            plugin.logger.log(Level.SEVERE, getMessage("config.create_failed"), e)
+            plugin.logger.log(Level.SEVERE, Messages.Config.CREATE_FAILED, e)
         }
     }
     
@@ -129,9 +103,9 @@ class ConfigManager(private val plugin: JavaPlugin) {
             config?.let { cfg ->
                 try {
                     cfg.save(file)
-                    plugin.logger.info(getMessage("config.saved_successfully"))
+                    plugin.logger.info(Messages.Config.SAVED_SUCCESSFULLY)
                 } catch (e: IOException) {
-                    plugin.logger.log(Level.SEVERE, getMessage("config.save_failed"), e)
+                    plugin.logger.log(Level.SEVERE, Messages.Config.SAVE_FAILED, e)
                 }
             }
         }
@@ -142,7 +116,7 @@ class ConfigManager(private val plugin: JavaPlugin) {
      */
     fun reloadConfig() {
         loadConfig()
-        plugin.logger.info(getMessage("config.reloaded"))
+        plugin.logger.info(Messages.Config.RELOADED)
     }
     
     /**

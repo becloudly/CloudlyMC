@@ -1,6 +1,7 @@
 package de.cloudly.gui
 
 import de.cloudly.CloudlyPaper
+import de.cloudly.Messages
 import org.bukkit.entity.Player
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -24,7 +25,7 @@ class WhitelistGuiManager(private val plugin: CloudlyPaper) {
         // Check if whitelist is empty
         val whitelistedPlayers = plugin.getWhitelistService().getAllPlayers()
         if (whitelistedPlayers.isEmpty()) {
-            player.sendMessage(plugin.getLanguageManager().getMessage("commands.whitelist.list_empty"))
+            player.sendMessage(Messages.Commands.Whitelist.LIST_EMPTY)
             return
         }
         

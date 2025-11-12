@@ -1,106 +1,150 @@
-# ☁️ Cloudly Plugin Configuration ☁️
+﻿#  Cloudly Plugin Konfiguration 
 
-# Plugin Settings
+# Plugin-Einstellungen
 plugin:
-  # Enable debug mode for verbose logging
+  # Debug-Modus für ausführlichere Logs aktivieren
   debug: false
-  
-  # Available languages: en (English), de (German)
-  language: "en"
 
 # ======================================================================================
 
-# Discord Settings
+# Schutzmechanismen für den Gameplay
+protections:
+  anti_command_block:
+    # Verhindert, dass Nicht-Operatoren mit Commandblöcken interagieren oder sie besitzen
+    enabled: true
+    # Sendet eine Warnung an alle Admins/Operatoren, wenn Commandblöcke ersetzt werden
+    notify_admins: true
+
+# ======================================================================================
+
+# Discord-Einstellungen
 discord:
-  # Enable Discord integration
+  # Discord-Integration aktivieren
   enabled: false
   
-  # Discord bot token (required for Discord integration)
-  # Get this from https://discord.com/developers/applications
-  bot_token: "YOUR_BOT_TOKEN_HERE"
+  # Discord Bot-Token (erforderlich für Discord-Integration)
+  # Erhältlich unter: https://discord.com/developers/applications
+  bot_token: "DEIN_BOT_TOKEN_HIER"
   
-  # Discord server (guild) ID where the bot should verify users
-  # Enable Developer Mode in Discord, right-click your server, and copy ID
-  server_id: "YOUR_SERVER_ID_HERE"
+  # Discord Server (Guild) ID, auf dem der Bot Benutzer verifizieren soll
+  # Entwicklermodus in Discord aktivieren, Rechtsklick auf Server, ID kopieren
+  server_id: "DEINE_SERVER_ID_HIER"
   
-  # How long to wait for Discord API response (in seconds)
+  # Wartezeit für Discord API-Antwort (in Sekunden)
   api_timeout: 10
   
-  # Cache Discord verification results for this many minutes
+  # Discord-Verifizierungsergebnisse für diese Anzahl Minuten zwischenspeichern
   cache_duration: 30
+  
+  # Discord-Verifizierung für alle Spieler erforderlich
+  # Wenn aktiviert, müssen Spieler ihr Discord-Konto verknüpfen und verifizieren
+  require_verification: false
+  
+  # Zeit, die Spieler zur Verifizierung haben (in Minuten)
+  # Nach dieser Zeit werden nicht verifizierte Spieler gekickt
+  verification_timeout_minutes: 5
+  
+  # Bestimmte Discord-Rolle für Verifizierung erforderlich
+  require_role: false
+  
+  # Discord-Rollen-ID für Verifizierung (nur wenn require_role aktiviert ist)
+  # Entwicklermodus in Discord aktivieren, Rechtsklick auf Rolle, ID kopieren
+  required_role_id: "DEINE_ROLLEN_ID_HIER"
 
 # ======================================================================================
 
-# Player Connection Settings
+# Warteschlangen-Einstellungen
+queue:
+  # Warteschlangen-System aktivieren
+  # Spieler werden in der Warteschlange eingereiht und mit Priorität beitreten
+  enabled: true
+  
+  # Verzögerung zwischen Spielerbeitritten (in Sekunden)
+  # Verhindert Serverüberlastung bei hohem Verkehr
+  join_delay_seconds: 3
+  
+  # Zeitfenster (in Sekunden), in dem freigegebene Spieler erneut verbinden können
+  ready_timeout_seconds: 15
+  
+  # Prioritätssystem (von höchster bis niedrigster):
+  # - Operatoren: Umgehen Warteschlange komplett
+  # - Gewhitelistete Spieler: Hohe Priorität
+  # - Erstspieler: Mittlere Priorität
+  # - Normale Spieler: Normale Priorität
+
+# ======================================================================================
+
+# Spielerverbindungs-Einstellungen
 player_connection:
-  # Remove default join/leave messages from chat and console
-  # This allows for custom join/leave messages to be implemented later
+  # Standard Beitritts-/Verlassen-Nachrichten aus Chat und Konsole entfernen
   remove_default_messages: true
   
-  # Custom Join/Leave Messages
+  # Eigene Beitritts-/Verlassen-Nachrichten
   custom_messages:
-    # Enable custom join messages
+    # Eigene Beitrittsnachrichten aktivieren
     join:
       enabled: true
-      # Available placeholders: {player_name}, {player_display_name}, {server_name}
+      # Im Chat anzeigen
       broadcast_to_chat: true
+      # In Konsole anzeigen
       broadcast_to_console: true
     
-    # Enable custom leave messages  
+    # Eigene Verlassen-Nachrichten aktivieren
     leave:
       enabled: true
-      # Available placeholders: {player_name}, {player_display_name}, {server_name}
+      # Im Chat anzeigen
       broadcast_to_chat: true
+      # In Konsole anzeigen
       broadcast_to_console: true
 
 # ======================================================================================
 
-# Global Storage Configuration
-# This storage system is used by all parts of the plugin (whitelist, player data, etc.)
+# Globale Speicher-Konfiguration
+# Wird von allen Plugin-Teilen verwendet (Whitelist, Spielerdaten, etc.)
 storage:
-  # Default storage type for new repositories
-  # Available options: json, sqlite, mysql
+  # Standard-Speichertyp
+  # Verfügbare Optionen: json, sqlite, mysql
   default_type: "json"
   
-  # JSON Storage Settings
+  # JSON-Speicher-Einstellungen
   json:
-    # Base directory for JSON files (relative to plugin folder)
+    # Basisverzeichnis für JSON-Dateien (relativ zum Plugin-Ordner)
     base_path: "data"
-    # File extension for JSON files
+    # Dateiendung für JSON-Dateien
     file_extension: ".json"
-    # Whether to format JSON files with indentation for readability
+    # JSON-Dateien formatiert mit Einrückung für bessere Lesbarkeit
     pretty_print: true
   
-  # SQLite Storage Settings
+  # SQLite-Speicher-Einstellungen
   sqlite:
-    # Base directory for SQLite databases (relative to plugin folder)
+    # Basisverzeichnis für SQLite-Datenbanken (relativ zum Plugin-Ordner)
     base_path: "data"
-    # File extension for SQLite databases
+    # Dateiendung für SQLite-Datenbanken
     file_extension: ".db"
-    # Journal mode for SQLite (WAL, DELETE, TRUNCATE, PERSIST, MEMORY, OFF)
+    # Journal-Modus für SQLite (WAL, DELETE, TRUNCATE, PERSIST, MEMORY, OFF)
     journal_mode: "WAL"
-    # Synchronous mode for SQLite (OFF, NORMAL, FULL, EXTRA)
+    # Synchroner Modus für SQLite (OFF, NORMAL, FULL, EXTRA)
     synchronous: "NORMAL"
   
-  # MySQL Storage Settings
+  # MySQL-Speicher-Einstellungen
   mysql:
     host: "localhost"
     port: 3306
     database: "cloudly_plugin"
     username: "root"
     password: ""
-    # Prefix for all tables created by the storage system
+    # Präfix für alle vom Speichersystem erstellten Tabellen
     table_prefix: "cloudly_"
-    # Connection timeout in milliseconds
+    # Verbindungs-Timeout in Millisekunden
     connection_timeout: 30000
-    # Whether to use SSL for the connection
+    # SSL für die Verbindung verwenden
     use_ssl: false
-    # Connection pool size
+    # Verbindungspool-Größe
     pool_size: 10
 
 # ======================================================================================
 
-# Whitelist Settings
+# Whitelist-Einstellungen
 whitelist:
-  # Enable custom whitelist (overrides Minecraft's built-in whitelist)
+  # Eigene Whitelist aktivieren (überschreibt Minecrafts eingebaute Whitelist)
   enabled: false

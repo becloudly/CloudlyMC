@@ -3,26 +3,25 @@ package de.cloudly
 import de.cloudly.commands.CloudlyCommand
 import de.cloudly.commands.VanillaWhitelistCommand
 import de.cloudly.config.ConfigManager
-import de.cloudly.config.HotReloadManager
-import de.cloudly.config.LanguageManager
 import de.cloudly.discord.DiscordService
 import de.cloudly.gui.WhitelistGuiManager
+import de.cloudly.listeners.AntiCommandBlockListener
 import de.cloudly.listeners.PlayerConnectionListener
 import de.cloudly.listeners.PlayerChatListener
-import de.cloudly.utils.SchedulerUtils
 import de.cloudly.whitelist.WhitelistService
 import org.bukkit.plugin.java.JavaPlugin
 
 class CloudlyPaper : JavaPlugin() {
     
     private lateinit var configManager: ConfigManager
-    private lateinit var languageManager: LanguageManager
-    private lateinit var hotReloadManager: HotReloadManager
     private lateinit var whitelistService: WhitelistService
     private lateinit var whitelistGuiManager: WhitelistGuiManager
     private lateinit var discordService: DiscordService
+    private lateinit var queueService: de.cloudly.queue.QueueService
     private lateinit var playerConnectionListener: PlayerConnectionListener
     private lateinit var playerChatListener: PlayerChatListener
+    private lateinit var discordVerificationListener: de.cloudly.listeners.DiscordVerificationListener
+    private lateinit var antiCommandBlockListener: AntiCommandBlockListener
     private lateinit var cloudlyCommand: CloudlyCommand
     
     companion object {
@@ -60,6 +59,26 @@ class CloudlyPaper : JavaPlugin() {
         return discordService
     }
     
+    /**
+     * Get the queue service instance
+     */
+    fun getQueueService(): de.cloudly.queue.QueueService {
+        if (!::queueService.isInitialized) {
+            throw IllegalStateException("Plugin not fully initialized")
+        }
+        return queueService
+    }
+    
+    /**
+     * Get the Discord verification listener instance
+     */
+    fun getDiscordVerificationListener(): de.cloudly.listeners.DiscordVerificationListener {
+        if (!::discordVerificationListener.isInitialized) {
+            throw IllegalStateException("Plugin not fully initialized")
+        }
+        return discordVerificationListener
+    }
+    
     override fun onEnable() {
         // Set plugin instance
         instance = this
@@ -67,28 +86,18 @@ class CloudlyPaper : JavaPlugin() {
         // Initialize configuration system
         configManager = ConfigManager(this)
         configManager.initialize()
-        
-        // Initialize language system
-        languageManager = LanguageManager(this, configManager)
-        languageManager.initialize()
-        
-        // Connect language manager to config manager for translated messages
-        configManager.setLanguageManager(languageManager)
-        
-        // Initialize hot-reload manager
-        hotReloadManager = HotReloadManager(this)
+        initializeConfigDefaults()
         
         // Register commands
         registerCommands()
         
-        // Log plugin information using translations
-        logger.info(languageManager.getMessage("plugin.enabled", "version" to description.version))
+        // Log plugin information
+        logger.info(Messages.Plugin.enabled(description.version))
         
-        // Log server type detection
+        // Log debug mode if enabled
         val debugMode = configManager.getBoolean("plugin.debug", false)
-        val serverType = if (SchedulerUtils.isFolia(debugMode)) "Folia" else "Paper/Spigot"
         if (debugMode) {
-            logger.info("Detected server type: $serverType")
+            logger.info(Messages.Plugin.DEBUG_ENABLED)
         }
         
         // Initialize whitelist service
@@ -102,6 +111,10 @@ class CloudlyPaper : JavaPlugin() {
         discordService = DiscordService(this)
         discordService.initialize()
         
+        // Initialize connection queue service
+        queueService = de.cloudly.queue.QueueService(this)
+        queueService.initialize()
+        
         // Initialize player connection listener
         playerConnectionListener = PlayerConnectionListener(this)
         server.pluginManager.registerEvents(playerConnectionListener, this)
@@ -110,9 +123,14 @@ class CloudlyPaper : JavaPlugin() {
         playerChatListener = PlayerChatListener(this)
         server.pluginManager.registerEvents(playerChatListener, this)
         
-        if (debugMode) {
-            logger.info(languageManager.getMessage("plugin.debug_enabled"))
-        }
+        // Initialize Discord verification listener
+        discordVerificationListener = de.cloudly.listeners.DiscordVerificationListener(this)
+        server.pluginManager.registerEvents(discordVerificationListener, this)
+
+        // Initialize anti command block listener
+        antiCommandBlockListener = AntiCommandBlockListener(this)
+        server.pluginManager.registerEvents(antiCommandBlockListener, this)
+        antiCommandBlockListener.runInitialScan()
     }
     
     override fun onDisable() {
@@ -131,6 +149,20 @@ class CloudlyPaper : JavaPlugin() {
             discordService.shutdown()
         }
         
+        // Close queue service resources
+        if (::queueService.isInitialized) {
+            queueService.shutdown()
+        }
+        
+        // Close Discord verification listener resources
+        if (::discordVerificationListener.isInitialized) {
+            discordVerificationListener.shutdown()
+        }
+        
+        if (::antiCommandBlockListener.isInitialized) {
+            antiCommandBlockListener.shutdown()
+        }
+
         // Close command handler resources
         if (::cloudlyCommand.isInitialized) {
             cloudlyCommand.shutdown()
@@ -141,13 +173,24 @@ class CloudlyPaper : JavaPlugin() {
             configManager.saveConfig()
         }
         
-        if (::languageManager.isInitialized) {
-            logger.info(languageManager.getMessage("plugin.disabled"))
-        } else {
-            logger.info("Cloudly Plugin disabled")
-        }
+        logger.info(Messages.Plugin.DISABLED)
     }
     
+    private fun initializeConfigDefaults() {
+        var changed = false
+        if (!configManager.contains("protections.anti_command_block.enabled")) {
+            configManager.set("protections.anti_command_block.enabled", true)
+            changed = true
+        }
+        if (!configManager.contains("protections.anti_command_block.notify_admins")) {
+            configManager.set("protections.anti_command_block.notify_admins", true)
+            changed = true
+        }
+        if (changed) {
+            configManager.saveConfig()
+        }
+    }
+
     /**
      * Register all plugin commands.
      */
@@ -170,14 +213,4 @@ class CloudlyPaper : JavaPlugin() {
      * Get the configuration manager instance.
      */
     fun getConfigManager(): ConfigManager = configManager
-    
-    /**
-     * Get the language manager instance.
-     */
-    fun getLanguageManager(): LanguageManager = languageManager
-    
-    /**
-     * Get the hot-reload manager instance.
-     */
-    fun getHotReloadManager(): HotReloadManager = hotReloadManager
 }

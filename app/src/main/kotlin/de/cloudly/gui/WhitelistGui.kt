@@ -1,6 +1,7 @@
 package de.cloudly.gui
 
 import de.cloudly.CloudlyPaper
+import de.cloudly.Messages
 import de.cloudly.whitelist.model.WhitelistPlayer
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -71,8 +72,7 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
      * Creates the inventory with proper title and size.
      */
     private fun createInventory() {
-        val languageManager = plugin.getLanguageManager()
-        val title = languageManager.getMessage("gui.whitelist.title", "count" to whitelistedPlayers.size.toString())
+        val title = Messages.Gui.Whitelist.title(whitelistedPlayers.size)
         inventory = Bukkit.createInventory(null, INVENTORY_SIZE, title)
     }
     
@@ -124,7 +124,6 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
      * Adds whitelisted player items to the inventory.
      */
     private fun addPlayerItems(inv: Inventory) {
-        val languageManager = plugin.getLanguageManager()
         val startIndex = currentPage * playersPerPage
         val endIndex = minOf(startIndex + playersPerPage, whitelistedPlayers.size)
         
@@ -132,7 +131,7 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
             val player = whitelistedPlayers[i]
             val slotIndex = getPlayerSlotIndex(i - startIndex)
             
-            val playerItem = createPlayerItem(player, languageManager)
+            val playerItem = createPlayerItem(player)
             inv.setItem(slotIndex, playerItem)
         }
     }
@@ -149,16 +148,14 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
     /**
      * Creates a player item with skull and detailed information.
      */
-    private fun createPlayerItem(player: WhitelistPlayer, languageManager: de.cloudly.config.LanguageManager): ItemStack {
+    private fun createPlayerItem(player: WhitelistPlayer): ItemStack {
         val playerItem = ItemStack(Material.PLAYER_HEAD)
         
         // Check for special status (OP) before setting item meta
         val offlinePlayer = Bukkit.getOfflinePlayer(player.uuid)
-        val onlinePlayer = Bukkit.getPlayer(player.uuid)
         
         // Check if player is OP
         val isOp = offlinePlayer.isOp
-        
         val hasSpecialStatus = isOp
         
         playerItem.itemMeta = (playerItem.itemMeta as SkullMeta).apply {
@@ -175,7 +172,7 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
             
             // Add special status indicators
             if (isOp) {
-                lore.add(languageManager.getMessage("gui.whitelist.player_op_status"))
+                lore.add(Messages.Gui.Whitelist.PLAYER_OP_STATUS)
             }
             
             // Add separator if special status was shown
@@ -187,42 +184,42 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
             val addedByName = if (player.addedBy != null) {
                 val addedByUuid = player.addedBy
                 if (addedByUuid == UUID.fromString("00000000-0000-0000-0000-000000000000")) {
-                    languageManager.getMessage("gui.whitelist.console")
+                    Messages.Gui.Whitelist.CONSOLE
                 } else {
-                    Bukkit.getOfflinePlayer(addedByUuid).name ?: languageManager.getMessage("gui.whitelist.unknown")
+                    Bukkit.getOfflinePlayer(addedByUuid).name ?: Messages.Gui.Whitelist.UNKNOWN
                 }
             } else {
-                languageManager.getMessage("gui.whitelist.unknown")
+                Messages.Gui.Whitelist.UNKNOWN
             }
-            lore.add(languageManager.getMessage("gui.whitelist.player_added_by", "name" to addedByName))
+            lore.add(Messages.Gui.Whitelist.playerAddedBy(addedByName))
             
             // Format date
             val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
             val dateStr = player.addedAt.atZone(ZoneId.systemDefault()).format(formatter)
-            lore.add(languageManager.getMessage("gui.whitelist.player_added_on", "date" to dateStr))
+            lore.add(Messages.Gui.Whitelist.playerAddedOn(dateStr))
             
             // Add reason if available
             if (!player.reason.isNullOrBlank()) {
-                lore.add(languageManager.getMessage("gui.whitelist.player_reason", "reason" to player.reason))
+                lore.add("§7Grund: §f${player.reason}")
             }
             
             // Add Discord connection info
             if (player.discordConnection != null) {
                 val discord = player.discordConnection
                 if (discord.verified) {
-                    lore.add(languageManager.getMessage("gui.whitelist.player_discord_verified", "username" to discord.discordUsername))
+                    lore.add(Messages.Gui.Whitelist.playerDiscordVerified(discord.discordUsername))
                 } else {
-                    lore.add(languageManager.getMessage("gui.whitelist.player_discord_connected", "username" to discord.discordUsername))
+                    lore.add(Messages.Gui.Whitelist.playerDiscordConnected(discord.discordUsername))
                 }
             } else {
-                lore.add(languageManager.getMessage("gui.whitelist.player_discord_not_connected"))
+                lore.add(Messages.Gui.Whitelist.PLAYER_DISCORD_NOT_CONNECTED)
             }
             
             // Add action hints
             lore.add("§7")
-            lore.add(languageManager.getMessage("gui.whitelist.actions_title"))
-            lore.add(languageManager.getMessage("gui.whitelist.action_left_click"))
-            lore.add(languageManager.getMessage("gui.whitelist.action_right_click"))
+            lore.add(Messages.Gui.Whitelist.ACTIONS_TITLE)
+            lore.add(Messages.Gui.Whitelist.ACTION_LEFT_CLICK)
+            lore.add(Messages.Gui.Whitelist.ACTION_RIGHT_CLICK)
             
             setLore(lore)
             
@@ -232,9 +229,9 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
             }
         }
         
-        // Add enchantment glow for players with special status (must be done on ItemStack)
+        // Add enchantment glow for players with special status
         if (hasSpecialStatus) {
-            playerItem.addUnsafeEnchantment(Enchantment.DURABILITY, 1)
+            playerItem.addUnsafeEnchantment(Enchantment.UNBREAKING, 1)
         }
         
         return playerItem
@@ -244,15 +241,14 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
      * Adds navigation items to the inventory.
      */
     private fun addNavigationItems(inv: Inventory) {
-        val languageManager = plugin.getLanguageManager()
         val totalPages = getTotalPages()
         
         // Previous page button
         if (currentPage > 0) {
             val prevItem = ItemStack(NAVIGATION_MATERIAL).apply {
                 itemMeta = itemMeta?.apply {
-                    setDisplayName(languageManager.getMessage("gui.whitelist.previous_page"))
-                    setLore(listOf(languageManager.getMessage("gui.whitelist.previous_page_lore", "page" to currentPage.toString())))
+                    setDisplayName(Messages.Gui.Whitelist.PREVIOUS_PAGE)
+                    setLore(listOf(Messages.Gui.Whitelist.previousPageLore(currentPage)))
                 }
             }
             inv.setItem(layout.getSlot("prev_page"), prevItem)
@@ -261,17 +257,15 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
         // Info item
         val infoItem = ItemStack(INFO_MATERIAL).apply {
             itemMeta = itemMeta?.apply {
-                setDisplayName(languageManager.getMessage("gui.whitelist.info_title"))
+                setDisplayName(Messages.Gui.Whitelist.INFO_TITLE)
                 setLore(listOf(
                     "§7",
-                    languageManager.getMessage("gui.whitelist.info_total_players", "count" to whitelistedPlayers.size.toString()),
-                    languageManager.getMessage("gui.whitelist.info_current_page", 
-                        "current" to (currentPage + 1).toString(), 
-                        "total" to totalPages.toString()),
-                    languageManager.getMessage("gui.whitelist.info_players_per_page", "count" to playersPerPage.toString()),
+                    Messages.Gui.Whitelist.infoTotalPlayers(whitelistedPlayers.size),
+                    Messages.Gui.Whitelist.infoCurrentPage(currentPage + 1, totalPages),
+                    Messages.Gui.Whitelist.infoPlayersPerPage(playersPerPage),
                     "§7",
-                    languageManager.getMessage("gui.whitelist.info_add_command"),
-                    languageManager.getMessage("gui.whitelist.info_remove_command")
+                    Messages.Gui.Whitelist.INFO_ADD_COMMAND,
+                    Messages.Gui.Whitelist.INFO_REMOVE_COMMAND
                 ))
             }
         }
@@ -280,8 +274,8 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
         // Refresh button
         val refreshItem = ItemStack(REFRESH_MATERIAL).apply {
             itemMeta = itemMeta?.apply {
-                setDisplayName(languageManager.getMessage("gui.whitelist.refresh_button"))
-                setLore(listOf(languageManager.getMessage("gui.whitelist.refresh_lore")))
+                setDisplayName(Messages.Gui.Whitelist.REFRESH_BUTTON)
+                setLore(listOf(Messages.Gui.Whitelist.REFRESH_LORE))
             }
         }
         inv.setItem(layout.getSlot("refresh"), refreshItem)
@@ -290,8 +284,8 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
         if (currentPage < totalPages - 1) {
             val nextItem = ItemStack(NAVIGATION_MATERIAL).apply {
                 itemMeta = itemMeta?.apply {
-                    setDisplayName(languageManager.getMessage("gui.whitelist.next_page"))
-                    setLore(listOf(languageManager.getMessage("gui.whitelist.next_page_lore", "page" to (currentPage + 2).toString())))
+                    setDisplayName(Messages.Gui.Whitelist.NEXT_PAGE)
+                    setLore(listOf(Messages.Gui.Whitelist.nextPageLore(currentPage + 2)))
                 }
             }
             inv.setItem(layout.getSlot("next_page"), nextItem)
@@ -330,14 +324,14 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
                 }
             }
             layout.getSlot("info") -> {
-                // Show information (no refresh here, just informational)
+                // Show information (no action, just informational)
             }
             layout.getSlot("refresh") -> {
                 // Refresh the GUI
                 loadWhitelistedPlayers()
                 if (whitelistedPlayers.isEmpty()) {
                     viewer.closeInventory()
-                    viewer.sendMessage(plugin.getLanguageManager().getMessage("commands.whitelist.list_empty"))
+                    viewer.sendMessage(Messages.Commands.Whitelist.LIST_EMPTY)
                 } else {
                     // Adjust page if necessary
                     val totalPages = getTotalPages()
@@ -345,7 +339,7 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
                         currentPage = maxOf(0, totalPages - 1)
                     }
                     updateInventory()
-                    viewer.sendMessage(plugin.getLanguageManager().getMessage("gui.whitelist.refreshed"))
+                    viewer.sendMessage(Messages.Gui.Whitelist.REFRESHED)
                 }
             }
             else -> {
@@ -364,53 +358,52 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
         val meta = item.itemMeta as? SkullMeta ?: return
         val owningPlayer = meta.owningPlayer ?: return
         val playerUuid = owningPlayer.uniqueId
-        val languageManager = plugin.getLanguageManager()
-        val playerName = owningPlayer.name ?: languageManager.getMessage("gui.whitelist.unknown")
+        val playerName = owningPlayer.name ?: Messages.Gui.Whitelist.UNKNOWN
         
         when (event.click) {
             org.bukkit.event.inventory.ClickType.LEFT -> {
                 // Show detailed player information
                 viewer.closeInventory()
-                viewer.sendMessage(languageManager.getMessage("gui.whitelist.player_details", "player" to playerName))
+                viewer.sendMessage(Messages.Gui.Whitelist.playerDetails(playerName))
                 
                 val whitelistPlayer = plugin.getWhitelistService().getPlayer(playerUuid)
                 if (whitelistPlayer != null) {
                     val addedByUuid = whitelistPlayer.addedBy ?: UUID.fromString("00000000-0000-0000-0000-000000000000")
                     val addedByName = if (addedByUuid == UUID.fromString("00000000-0000-0000-0000-000000000000")) {
-                        languageManager.getMessage("gui.whitelist.console")
+                        Messages.Gui.Whitelist.CONSOLE
                     } else {
-                        Bukkit.getOfflinePlayer(addedByUuid).name ?: languageManager.getMessage("gui.whitelist.unknown")
+                        Bukkit.getOfflinePlayer(addedByUuid).name ?: Messages.Gui.Whitelist.UNKNOWN
                     }
                     
                     val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
                     val dateStr = whitelistPlayer.addedAt.atZone(ZoneId.systemDefault()).format(formatter)
                     
-                    viewer.sendMessage(languageManager.getMessage("commands.whitelist.info_header", "player" to whitelistPlayer.username))
-                    viewer.sendMessage(languageManager.getMessage("commands.whitelist.info_added_by", "name" to addedByName))
-                    viewer.sendMessage(languageManager.getMessage("commands.whitelist.info_added_on", "date" to dateStr))
+                    viewer.sendMessage(Messages.Commands.Whitelist.infoHeader(whitelistPlayer.username))
+                    viewer.sendMessage(Messages.Commands.Whitelist.infoAddedBy(addedByName))
+                    viewer.sendMessage(Messages.Commands.Whitelist.infoAddedOn(dateStr))
                     if (!whitelistPlayer.reason.isNullOrBlank()) {
-                        viewer.sendMessage(languageManager.getMessage("commands.whitelist.info_reason", "reason" to whitelistPlayer.reason))
+                        viewer.sendMessage("§e▪ §fGrund§8: §7${whitelistPlayer.reason}")
                     }
                 }
             }
             
             org.bukkit.event.inventory.ClickType.RIGHT -> {
-                // Remove player from whitelist (with confirmation)
+                // Remove player from whitelist (with permission check)
                 if (viewer.hasPermission("cloudly.whitelist.remove")) {
                     if (plugin.getWhitelistService().removePlayer(playerUuid)) {
-                        viewer.sendMessage(languageManager.getMessage("gui.whitelist.player_removed", "player" to playerName))
+                        viewer.sendMessage(Messages.Gui.Whitelist.playerRemoved(playerName))
                         
                         // Check if the player is online and kick them
                         val onlinePlayer = Bukkit.getPlayer(playerUuid)
                         if (onlinePlayer != null && onlinePlayer.isOnline) {
-                            onlinePlayer.kickPlayer(languageManager.getMessage("commands.whitelist.player_removed_kick_message"))
+                            onlinePlayer.kickPlayer(Messages.Commands.Whitelist.PLAYER_REMOVED_KICK_MESSAGE)
                         }
                         
                         // Refresh the GUI
                         loadWhitelistedPlayers()
                         if (whitelistedPlayers.isEmpty()) {
                             viewer.closeInventory()
-                            viewer.sendMessage(languageManager.getMessage("commands.whitelist.list_empty"))
+                            viewer.sendMessage(Messages.Commands.Whitelist.LIST_EMPTY)
                         } else {
                             // Adjust page if necessary
                             val totalPages = getTotalPages()
@@ -420,10 +413,10 @@ class WhitelistGui(private val plugin: CloudlyPaper, private val viewer: Player)
                             updateInventory()
                         }
                     } else {
-                        viewer.sendMessage(languageManager.getMessage("gui.whitelist.remove_failed", "player" to playerName))
+                        viewer.sendMessage(Messages.Gui.Whitelist.removeFailed(playerName))
                     }
                 } else {
-                    viewer.sendMessage(languageManager.getMessage("commands.no_permission"))
+                    viewer.sendMessage(Messages.Commands.NO_PERMISSION)
                 }
             }
             

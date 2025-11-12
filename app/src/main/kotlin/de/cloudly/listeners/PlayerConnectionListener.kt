@@ -1,28 +1,41 @@
 package de.cloudly.listeners
 
 import de.cloudly.CloudlyPaper
-import de.cloudly.utils.PlaceholderProcessor
+import de.cloudly.Messages
 import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerLoginEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import java.util.logging.Level
 
 /**
- * Handles player connection events (join/leave) to provide custom messages.
- * This replaces the default Minecraft join/leave messages with configurable custom ones.
+ * Handles player connection events (join/leave/login) to provide custom messages and queue management.
+ * This replaces the default Minecraft join/leave messages with configurable custom ones and
+ * integrates with the connection queue system.
  */
 class PlayerConnectionListener(private val plugin: CloudlyPaper) : Listener {
     
-    private val placeholderProcessor = PlaceholderProcessor()
-    
-    init {
-        // Register standard placeholders for player connection messages
-        placeholderProcessor.register("player_name") { it.name }
-        placeholderProcessor.register("player_display_name") { it.displayName }
-        placeholderProcessor.register("server_name") { Bukkit.getServer().name }
+    /**
+     * Handle player login events for queue system.
+     * This runs before the player actually joins and can prevent them from joining.
+     */
+    @EventHandler(priority = EventPriority.LOW)
+    fun onPlayerLogin(event: PlayerLoginEvent) {
+        try {
+            // Check if queue is enabled and add player to queue if needed
+            val queueService = plugin.getQueueService()
+            if (queueService.isEnabled()) {
+                val addedToQueue = queueService.addToQueue(event)
+                if (addedToQueue) {
+                    plugin.logger.info("Player ${event.player.name} added to connection queue")
+                }
+            }
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "Failed to handle player login event for queue", e)
+        }
     }
     
     /**
@@ -46,22 +59,18 @@ class PlayerConnectionListener(private val plugin: CloudlyPaper) : Listener {
                 val broadcastToChat = plugin.getConfigManager().getBoolean("player_connection.custom_messages.join.broadcast_to_chat", true)
                 val broadcastToConsole = plugin.getConfigManager().getBoolean("player_connection.custom_messages.join.broadcast_to_console", true)
                 
-                // Get messages from language files
-                val chatMessage = plugin.getLanguageManager().getMessage("player_connection.join.chat")
-                val consoleMessage = plugin.getLanguageManager().getMessage("player_connection.join.console")
-                
-                // Replace placeholders using PlaceholderProcessor
-                val replacedChatMessage = placeholderProcessor.process(chatMessage, player)
-                val replacedConsoleMessage = placeholderProcessor.process(consoleMessage, player)
+                // Get messages from Messages object
+                val chatMessage = Messages.PlayerConnection.Join.chat(player.name)
+                val consoleMessage = Messages.PlayerConnection.Join.console(player.name)
                 
                 // Broadcast to chat
                 if (broadcastToChat) {
-                    Bukkit.broadcastMessage(replacedChatMessage)
+                    Bukkit.broadcastMessage(chatMessage)
                 }
                 
                 // Broadcast to console
                 if (broadcastToConsole) {
-                    plugin.logger.info(replacedConsoleMessage)
+                    plugin.logger.info(consoleMessage)
                 }
             }
         } catch (e: Exception) {
@@ -90,22 +99,18 @@ class PlayerConnectionListener(private val plugin: CloudlyPaper) : Listener {
                 val broadcastToChat = plugin.getConfigManager().getBoolean("player_connection.custom_messages.leave.broadcast_to_chat", true)
                 val broadcastToConsole = plugin.getConfigManager().getBoolean("player_connection.custom_messages.leave.broadcast_to_console", true)
                 
-                // Get messages from language files
-                val chatMessage = plugin.getLanguageManager().getMessage("player_connection.leave.chat")
-                val consoleMessage = plugin.getLanguageManager().getMessage("player_connection.leave.console")
-                
-                // Replace placeholders using PlaceholderProcessor
-                val replacedChatMessage = placeholderProcessor.process(chatMessage, player)
-                val replacedConsoleMessage = placeholderProcessor.process(consoleMessage, player)
+                // Get messages from Messages object
+                val chatMessage = Messages.PlayerConnection.Leave.chat(player.name)
+                val consoleMessage = Messages.PlayerConnection.Leave.console(player.name)
                 
                 // Broadcast to chat
                 if (broadcastToChat) {
-                    Bukkit.broadcastMessage(replacedChatMessage)
+                    Bukkit.broadcastMessage(chatMessage)
                 }
                 
                 // Broadcast to console
                 if (broadcastToConsole) {
-                    plugin.logger.info(replacedConsoleMessage)
+                    plugin.logger.info(consoleMessage)
                 }
             }
         } catch (e: Exception) {

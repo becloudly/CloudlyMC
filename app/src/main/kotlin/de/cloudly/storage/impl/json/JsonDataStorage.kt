@@ -3,7 +3,6 @@ package de.cloudly.storage.impl.json
 import de.cloudly.storage.core.DataStorage
 import de.cloudly.storage.core.StorageException
 import de.cloudly.storage.core.StorageOperationException
-import de.cloudly.utils.SchedulerUtils
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import org.json.JSONObject
@@ -238,7 +237,7 @@ class JsonDataStorage(
      * Flushes every 5 seconds if there are pending writes.
      */
     private fun startPeriodicFlush() {
-        flushTask = SchedulerUtils.runTaskTimerAsynchronously(plugin, Runnable {
+        flushTask = org.bukkit.Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, Runnable {
             if (pendingWrites.compareAndSet(true, false)) {
                 try {
                     saveData()
