@@ -28,6 +28,11 @@ object Messages {
         fun kickOffline(player: String) = "§c§l✗ §cSpieler §f$player§c ist nicht online."
         const val KICK_MESSAGE = "§c§lDu wurdest vom Team gekickt. Bitte melde dich im Support."
 
+        fun teleportToPlayerSuccess(player: String) = "§a§l✓ §aDu wurdest zu §f$player§a teleportiert."
+        fun teleportPlayerHereSuccess(player: String) = "§a§l✓ §aSpieler §f$player§a wurde zu dir teleportiert."
+        fun teleportTargetOffline(player: String) = "§c§l✗ §cSpieler §f$player§c ist nicht online."
+        const val TELEPORT_SAME_PLAYER = "§c§l✗ §cDu kannst dich nicht zu dir selbst teleportieren."
+
         fun tempBanSuccess(player: String, duration: String) = "§a§l✓ §aSpieler §f$player§a wurde für §e$duration§a gebannt."
         fun permaBanSuccess(player: String) = "§4§l✓ §cSpieler §f$player§c wurde permanent gebannt und vollständig entfernt."
         fun banAlreadyActive(player: String) = "§e⚠ Spieler §f$player§e ist bereits gebannt."
@@ -241,6 +246,13 @@ object Messages {
             const val INFO_ADD_COMMAND = "§e/cloudly whitelist add <spieler> §7um Spieler aufzunehmen"
             const val INFO_REMOVE_COMMAND = "§e/cloudly whitelist remove <spieler> §7um Spieler zu entfernen"
 
+            const val PENDING_ATTEMPTS_BUTTON = "§c§lWhitelist-Anfragen"
+            fun pendingAttemptsLore(count: Int) = if (count > 0) {
+                "§7Offene Anfragen: §f$count"
+            } else {
+                "§7Keine offenen Anfragen"
+            }
+
             fun playerAddedBy(name: String) = "§7Hinzugefügt von: §f$name"
             fun playerAddedOn(date: String) = "§7Hinzugefügt am: §f$date"
             fun playerReason(reason: String) = "§7Grund: §f$reason"
@@ -274,6 +286,11 @@ object Messages {
             fun infoAddedBy(name: String) = Admin.playerAddedBy(name)
             fun infoAddedOn(date: String) = Admin.playerAddedOn(date)
             fun infoReason(reason: String) = "§7Grund: §f$reason"
+            fun infoOnline(isOnline: Boolean) = if (isOnline) "§7Status: §aOnline" else "§7Status: §cOffline"
+            fun infoWorld(world: String?) = "§7Welt: §f${world ?: "Unbekannt"}"
+            fun infoGamemode(mode: String?) = "§7Spielmodus: §f${mode ?: "Unbekannt"}"
+            fun infoLocation(x: Int, y: Int, z: Int) = "§7Position: §f$x§7, §f$y§7, §f$z"
+            fun infoPing(ping: Int) = "§7Ping: §f$ping ms"
             const val BAN_STATUS_NONE = "§aKein aktiver Bann"
             const val BAN_STATUS_ACTIVE = "§cAktiver Bann"
             const val BAN_STATUS_PERMANENT = "§4Permanenter Bann"
@@ -285,6 +302,12 @@ object Messages {
             const val BUTTON_KICK = "§c§lKick"
             const val BUTTON_KICK_LORE = "§7Wirft den Spieler sofort vom Server"
             const val BUTTON_TEMP_BAN = "§6§lTemporärer Bann"
+            const val BUTTON_VIEW_INVENTORY = "§bInventar ansehen"
+            const val BUTTON_VIEW_INVENTORY_LORE = "§7Öffnet das Inventar schreibgeschützt"
+            const val BUTTON_TELEPORT_TO_PLAYER = "§dTeleport zu Spieler"
+            const val BUTTON_TELEPORT_TO_PLAYER_LORE = "§7Teleportiert dich zum Spieler"
+            const val BUTTON_TELEPORT_PLAYER_HERE = "§dSpieler her teleportieren"
+            const val BUTTON_TELEPORT_PLAYER_HERE_LORE = "§7Teleportiert den Spieler zu dir"
             const val BUTTON_TEMP_BAN_LORE = "§7Öffnet Bann-Dauern zur Auswahl"
             const val BUTTON_PERMA_BAN = "§4§lPermanenter Bann"
             const val BUTTON_PERMA_BAN_LORE = "§7Entfernt den Spieler dauerhaft und löscht Daten"
@@ -295,8 +318,34 @@ object Messages {
             const val TEMP_BAN_OPTION_LORE = "§7Klicke, um diesen Bann anzuwenden"
             const val TEMP_BAN_BACK = "§7Zurück"
             const val TEMP_BAN_BACK_LORE = "§7Zurück zu den Admin-Tools"
+            fun inventoryTitle(player: String) = "§6§lInventar §8| §f$player"
             const val CONSOLE = "Konsole"
             const val UNKNOWN = "Unbekannt"
+        }
+
+        object PendingWhitelist {
+            fun title(count: Int) = "§6§lWhitelist-Anfragen §8- §7$count Spieler"
+            const val NO_ATTEMPTS = "§e⚠ Es liegen keine Join-Versuche vor"
+            fun playerLabel(name: String) = "§c§l$name"
+            fun infoUuid(uuid: String) = "§7UUID: §f$uuid"
+            fun infoFirstAttempt(timestamp: String) = "§7Erster Versuch: §f$timestamp"
+            fun infoLastAttempt(timestamp: String) = "§7Letzter Versuch: §f$timestamp"
+            fun infoAttempts(count: Int) = "§7Versuche: §f$count"
+            fun infoAddress(address: String) = "§7Letzte Adresse: §f$address"
+            const val ACTIONS_TITLE = "§e§lAktionen:"
+            const val ACTION_LEFT_CLICK = "§7• §fLinksklick: Details anzeigen"
+            const val ACTION_RIGHT_CLICK = "§7• §cRechtsklick: Eintrag entfernen"
+            fun detailTitle(player: String) = "§6§lAnfrage §8| §f$player"
+            const val BUTTON_ADD = "§aZur Whitelist hinzufügen"
+            const val BUTTON_ADD_LORE = "§7Fügt den Spieler der Whitelist hinzu"
+            const val BUTTON_DISMISS = "§cEintrag verwerfen"
+            const val BUTTON_DISMISS_LORE = "§7Entfernt den Eintrag ohne weitere Aktion"
+            const val BUTTON_BACK = "§7Zurück"
+            const val BUTTON_BACK_LORE = "§7Klicke, um zur Übersicht zurückzukehren"
+            const val DETAIL_NO_ADDRESS = "§7Keine Adresse verfügbar"
+            const val DETAIL_MESSAGE_HEADER = "§7Letzte Nachricht:"
+            const val DETAIL_NO_MESSAGE = "§7Keine Nachricht verfügbar"
+            const val ENTRY_DISMISSED = "§a✓ Eintrag wurde entfernt"
         }
 
         object Whitelist {

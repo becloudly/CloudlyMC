@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
 class AdminGuiManager(private val plugin: CloudlyPaper) {
 
     private val openDashboards = ConcurrentHashMap<UUID, AdminGui>()
+    private val openPendingMenus = ConcurrentHashMap<UUID, PendingWhitelistGui>()
 
     /**
      * Opens the admin dashboard for the given player.
@@ -38,6 +39,9 @@ class AdminGuiManager(private val plugin: CloudlyPaper) {
         if (openDashboards.remove(player.uniqueId) != null) {
             player.closeInventory()
         }
+        if (openPendingMenus.remove(player.uniqueId) != null) {
+            player.closeInventory()
+        }
     }
 
     /**
@@ -47,10 +51,39 @@ class AdminGuiManager(private val plugin: CloudlyPaper) {
         openDashboards.remove(playerUuid)
     }
 
+    fun openPendingWhitelistGui(player: Player, initialPage: Int = 0) {
+        closePendingGui(player)
+
+        val attempts = plugin.getWhitelistAttemptService().getAttempts()
+        if (attempts.isEmpty()) {
+            player.sendMessage(Messages.Gui.PendingWhitelist.NO_ATTEMPTS)
+            return
+        }
+
+        val gui = PendingWhitelistGui(plugin, player, initialPage)
+        openPendingMenus[player.uniqueId] = gui
+        gui.open()
+    }
+
+    fun closePendingGui(player: Player) {
+        if (openPendingMenus.remove(player.uniqueId) != null) {
+            player.closeInventory()
+        }
+    }
+
+    internal fun unregisterPendingGui(playerUuid: UUID) {
+        openPendingMenus.remove(playerUuid)
+    }
+
     fun closeAll() {
         openDashboards.keys
             .mapNotNull { plugin.server.getPlayer(it) }
             .forEach { it.closeInventory() }
         openDashboards.clear()
+
+        openPendingMenus.keys
+            .mapNotNull { plugin.server.getPlayer(it) }
+            .forEach { it.closeInventory() }
+        openPendingMenus.clear()
     }
 }

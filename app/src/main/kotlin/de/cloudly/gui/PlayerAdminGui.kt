@@ -7,6 +7,7 @@ import de.cloudly.moderation.model.BanEntry
 import de.cloudly.utils.TimeUtils
 import de.cloudly.whitelist.model.WhitelistPlayer
 import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.Material
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
@@ -45,20 +46,23 @@ class PlayerAdminGui(
     private var activeBan: BanEntry? = null
 
     companion object {
-        private const val INVENTORY_SIZE = 27
+        private const val INVENTORY_SIZE = 45
         private val BORDER_MATERIAL = Material.GRAY_STAINED_GLASS_PANE
         private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter
             .ofPattern("dd.MM.yyyy HH:mm")
             .withZone(ZoneId.systemDefault())
 
-        private const val SLOT_PLAYER_INFO = 4
-        private const val SLOT_DISCORD_INFO = 10
-        private const val SLOT_UNLINK = 11
-        private const val SLOT_FORCE_RELINK = 12
-        private const val SLOT_KICK = 14
-        private const val SLOT_TEMP_BAN = 15
-        private const val SLOT_PERMA_BAN = 16
-        private const val SLOT_BACK = 22
+        private const val SLOT_VIEW_INVENTORY = 11
+        private const val SLOT_PLAYER_INFO = 13
+        private const val SLOT_DISCORD_INFO = 15
+        private const val SLOT_TELEPORT_TO = 19
+        private const val SLOT_TELEPORT_HERE = 21
+        private const val SLOT_UNLINK = 23
+        private const val SLOT_FORCE_RELINK = 25
+        private const val SLOT_KICK = 29
+        private const val SLOT_TEMP_BAN = 31
+        private const val SLOT_BACK = 32
+        private const val SLOT_PERMA_BAN = 33
     }
 
     init {
@@ -91,6 +95,9 @@ class PlayerAdminGui(
         inv.setItem(SLOT_DISCORD_INFO, createDiscordInfoItem(whitelistPlayer))
         inv.setItem(SLOT_UNLINK, createUnlinkItem(whitelistPlayer))
         inv.setItem(SLOT_FORCE_RELINK, createForceRelinkItem())
+        inv.setItem(SLOT_VIEW_INVENTORY, createInventoryViewItem())
+        inv.setItem(SLOT_TELEPORT_TO, createTeleportToItem())
+        inv.setItem(SLOT_TELEPORT_HERE, createTeleportHereItem())
         inv.setItem(SLOT_KICK, createKickItem())
         inv.setItem(SLOT_TEMP_BAN, createTempBanItem())
         inv.setItem(SLOT_PERMA_BAN, createPermaBanItem())
@@ -131,6 +138,17 @@ class PlayerAdminGui(
             val addedAtFormatted = DATE_FORMAT.format(player.addedAt)
             lore.add(Messages.Gui.PlayerAdmin.infoAddedOn(addedAtFormatted))
             player.reason?.takeIf { it.isNotBlank() }?.let { lore.add(Messages.Gui.PlayerAdmin.infoReason(it)) }
+
+            val onlinePlayer = Bukkit.getPlayer(player.uuid)
+            val isOnline = onlinePlayer?.isOnline == true
+            lore.add(Messages.Gui.PlayerAdmin.infoOnline(isOnline))
+            if (onlinePlayer != null && isOnline) {
+                lore.add(Messages.Gui.PlayerAdmin.infoWorld(onlinePlayer.world.name))
+                val location = onlinePlayer.location
+                lore.add(Messages.Gui.PlayerAdmin.infoLocation(location.blockX, location.blockY, location.blockZ))
+                lore.add(Messages.Gui.PlayerAdmin.infoGamemode(formatGamemode(onlinePlayer.gameMode)))
+                lore.add(Messages.Gui.PlayerAdmin.infoPing(onlinePlayer.ping))
+            }
 
             lore.add("§7")
             val ban = activeBan
@@ -213,6 +231,60 @@ class PlayerAdminGui(
         return item
     }
 
+    private fun createInventoryViewItem(): ItemStack {
+        val item = ItemStack(Material.CHEST)
+        item.itemMeta = item.itemMeta?.apply {
+            setDisplayName(Messages.Gui.PlayerAdmin.BUTTON_VIEW_INVENTORY)
+            val lore = mutableListOf<String>()
+            lore.add(Messages.Gui.PlayerAdmin.BUTTON_VIEW_INVENTORY_LORE)
+            if (!viewer.hasPermission("cloudly.admin.viewinventory")) {
+                lore.add(Messages.Gui.PlayerAdmin.ACTION_NO_PERMISSION)
+            }
+            if (Bukkit.getPlayer(targetUuid)?.isOnline != true) {
+                lore.add("§cSpieler ist offline")
+            }
+            setLore(lore)
+            addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+        }
+        return item
+    }
+
+    private fun createTeleportToItem(): ItemStack {
+        val item = ItemStack(Material.COMPASS)
+        item.itemMeta = item.itemMeta?.apply {
+            setDisplayName(Messages.Gui.PlayerAdmin.BUTTON_TELEPORT_TO_PLAYER)
+            val lore = mutableListOf<String>()
+            lore.add(Messages.Gui.PlayerAdmin.BUTTON_TELEPORT_TO_PLAYER_LORE)
+            if (!viewer.hasPermission("cloudly.admin.teleport")) {
+                lore.add(Messages.Gui.PlayerAdmin.ACTION_NO_PERMISSION)
+            }
+            if (Bukkit.getPlayer(targetUuid)?.isOnline != true) {
+                lore.add("§cSpieler ist offline")
+            }
+            setLore(lore)
+            addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+        }
+        return item
+    }
+
+    private fun createTeleportHereItem(): ItemStack {
+        val item = ItemStack(Material.ENDER_PEARL)
+        item.itemMeta = item.itemMeta?.apply {
+            setDisplayName(Messages.Gui.PlayerAdmin.BUTTON_TELEPORT_PLAYER_HERE)
+            val lore = mutableListOf<String>()
+            lore.add(Messages.Gui.PlayerAdmin.BUTTON_TELEPORT_PLAYER_HERE_LORE)
+            if (!viewer.hasPermission("cloudly.admin.teleport")) {
+                lore.add(Messages.Gui.PlayerAdmin.ACTION_NO_PERMISSION)
+            }
+            if (Bukkit.getPlayer(targetUuid)?.isOnline != true) {
+                lore.add("§cSpieler ist offline")
+            }
+            setLore(lore)
+            addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+        }
+        return item
+    }
+
     private fun createKickItem(): ItemStack {
         val item = ItemStack(Material.REDSTONE)
         item.itemMeta = item.itemMeta?.apply {
@@ -277,6 +349,9 @@ class PlayerAdminGui(
         when (event.slot) {
             SLOT_UNLINK -> handleUnlink()
             SLOT_FORCE_RELINK -> handleForceRelink()
+            SLOT_VIEW_INVENTORY -> handleViewInventory()
+            SLOT_TELEPORT_TO -> handleTeleportToPlayer()
+            SLOT_TELEPORT_HERE -> handleTeleportPlayerHere()
             SLOT_KICK -> handleKick()
             SLOT_TEMP_BAN -> handleTempBan()
             SLOT_PERMA_BAN -> handlePermaBan()
@@ -334,6 +409,70 @@ class PlayerAdminGui(
 
         viewer.sendMessage(Messages.Moderation.discordForceRelink(targetName))
         updateInventory()
+    }
+
+    private fun handleViewInventory() {
+        if (!viewer.hasPermission("cloudly.admin.viewinventory")) {
+            viewer.sendMessage(Messages.Moderation.NO_PERMISSION)
+            return
+        }
+
+        val target = Bukkit.getPlayer(targetUuid)
+        if (target == null || !target.isOnline) {
+            viewer.sendMessage(Messages.Moderation.teleportTargetOffline(targetName))
+            return
+        }
+
+        transferring = true
+        PlayerInventoryGui(
+            plugin = plugin,
+            viewer = viewer,
+            target = target
+        ) {
+            PlayerAdminGui(plugin, viewer, targetUuid, target.name ?: targetName, parentPage).open()
+        }.open()
+    }
+
+    private fun handleTeleportToPlayer() {
+        if (!viewer.hasPermission("cloudly.admin.teleport")) {
+            viewer.sendMessage(Messages.Moderation.NO_PERMISSION)
+            return
+        }
+
+        val target = Bukkit.getPlayer(targetUuid)
+        if (target == null || !target.isOnline) {
+            viewer.sendMessage(Messages.Moderation.teleportTargetOffline(targetName))
+            return
+        }
+
+        if (target.uniqueId == viewer.uniqueId) {
+            viewer.sendMessage(Messages.Moderation.TELEPORT_SAME_PLAYER)
+            return
+        }
+
+        viewer.teleport(target.location)
+        viewer.sendMessage(Messages.Moderation.teleportToPlayerSuccess(target.name ?: targetName))
+    }
+
+    private fun handleTeleportPlayerHere() {
+        if (!viewer.hasPermission("cloudly.admin.teleport")) {
+            viewer.sendMessage(Messages.Moderation.NO_PERMISSION)
+            return
+        }
+
+        val target = Bukkit.getPlayer(targetUuid)
+        if (target == null || !target.isOnline) {
+            viewer.sendMessage(Messages.Moderation.teleportTargetOffline(targetName))
+            return
+        }
+
+        if (target.uniqueId == viewer.uniqueId) {
+            viewer.sendMessage(Messages.Moderation.TELEPORT_SAME_PLAYER)
+            return
+        }
+
+        target.teleport(viewer.location)
+        viewer.sendMessage(Messages.Moderation.teleportPlayerHereSuccess(target.name ?: targetName))
     }
 
     private fun handleKick() {
@@ -417,9 +556,12 @@ class PlayerAdminGui(
     @EventHandler
     fun onInventoryClose(event: InventoryCloseEvent) {
         if (event.inventory != inventory || event.player != viewer) return
+        val shouldReopen = reopenDashboard && !transferring
         cleanup()
-        if (reopenDashboard && !transferring) {
-            plugin.getAdminGuiManager().openAdminGui(viewer, parentPage)
+        if (shouldReopen) {
+            plugin.server.scheduler.runTask(plugin, Runnable {
+                plugin.getAdminGuiManager().openAdminGui(viewer, parentPage)
+            })
         }
     }
 
@@ -428,5 +570,14 @@ class PlayerAdminGui(
         cleanedUp = true
         InventoryClickEvent.getHandlerList().unregister(this)
         InventoryCloseEvent.getHandlerList().unregister(this)
+    }
+
+    private fun formatGamemode(mode: GameMode?): String {
+        val raw = mode?.name ?: return Messages.Gui.PlayerAdmin.UNKNOWN
+        return raw.lowercase()
+            .split('_')
+            .joinToString(" ") { part ->
+                part.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+            }
     }
 }

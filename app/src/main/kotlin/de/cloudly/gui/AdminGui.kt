@@ -40,11 +40,13 @@ class AdminGui(
         private val NAVIGATION_MATERIAL = Material.ARROW
         private val INFO_MATERIAL = Material.BOOK
         private val REFRESH_MATERIAL = Material.EMERALD
+        private val PENDING_MATERIAL = Material.WRITABLE_BOOK
 
         private val layout = GuiLayout(6).apply {
             setSlot("prev_page", 5, 0)
             setSlot("refresh", 5, 2)
             setSlot("info", 5, 4)
+            setSlot("pending", 5, 6)
             setSlot("next_page", 5, 8)
         }
     }
@@ -74,7 +76,8 @@ class AdminGui(
         inv.clear()
         addBorderDecoration(inv)
         addPlayerItems(inv)
-        addNavigationItems(inv)
+        val pendingCount = plugin.getWhitelistAttemptService().getAttempts().size
+        addNavigationItems(inv, pendingCount)
     }
 
     private fun addBorderDecoration(inv: Inventory) {
@@ -170,7 +173,7 @@ class AdminGui(
         return playerItem
     }
 
-    private fun addNavigationItems(inv: Inventory) {
+    private fun addNavigationItems(inv: Inventory, pendingCount: Int) {
         val totalPages = getTotalPages()
 
         if (currentPage > 0) {
@@ -197,6 +200,15 @@ class AdminGui(
                 ))
             }
         }
+
+        val pendingItem = ItemStack(PENDING_MATERIAL).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.Admin.PENDING_ATTEMPTS_BUTTON)
+                setLore(listOf(Messages.Gui.Admin.pendingAttemptsLore(pendingCount)))
+            }
+        }
+        inv.setItem(layout.getSlot("pending"), pendingItem)
+
         inv.setItem(layout.getSlot("info"), infoItem)
 
         val refreshItem = ItemStack(REFRESH_MATERIAL).apply {
@@ -255,6 +267,13 @@ class AdminGui(
             }
             layout.getSlot("info") -> {
                 // purely informational
+            }
+            layout.getSlot("pending") -> {
+                if (!viewer.hasPermission("cloudly.whitelist")) {
+                    viewer.sendMessage(Messages.Commands.NO_PERMISSION)
+                    return
+                }
+                plugin.getAdminGuiManager().openPendingWhitelistGui(viewer)
             }
             else -> if (clickedItem.type == Material.PLAYER_HEAD) {
                 handlePlayerItemClick(event, clickedItem)

@@ -28,6 +28,12 @@ permissions:
   cloudly.admin:
     description: Allows the player to manage the server.
     default: op
+    children:
+      cloudly.admin.viewinventory: true
+      cloudly.admin.teleport: true
+      cloudly.moderation: true
+      cloudly.whitelist: true
+      cloudly.discord.manage: true
   
   cloudly.whitelist:
     description: Allows the player to manage the whitelist.
@@ -51,6 +57,14 @@ permissions:
       cloudly.moderation.tempban: true
       cloudly.moderation.permaban: true
       cloudly.discord.manage: true
+
+  cloudly.admin.viewinventory:
+    description: Allows viewing player inventories in admin tools.
+    default: op
+
+  cloudly.admin.teleport:
+    description: Allows teleport actions in admin tools.
+    default: op
 
   cloudly.moderation.kick:
     description: Allows kicking players via the admin tools.

@@ -4,6 +4,7 @@ import de.cloudly.storage.config.StorageConfig
 import de.cloudly.storage.core.DataRepository
 import de.cloudly.storage.factory.StorageFactory
 import de.cloudly.utils.AuditLogger
+import de.cloudly.whitelist.attempts.WhitelistAttemptService
 import de.cloudly.whitelist.model.DiscordConnection
 import de.cloudly.whitelist.model.WhitelistPlayer
 import org.bukkit.entity.Player
@@ -28,6 +29,11 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
     private var auditLogger: AuditLogger? = null
     private var enabled = false
     private var listenerRegistered = false
+    private var attemptService: WhitelistAttemptService? = null
+
+    fun setAttemptService(service: WhitelistAttemptService) {
+        attemptService = service
+    }
     
     /**
      * Log an audit event for whitelist changes.
@@ -111,6 +117,7 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
         if (result) {
             val details = "Username: ${player.name}${reason?.let { ", Reason: $it" } ?: ""}"
             logAuditEvent("WHITELIST_ADD", player.uniqueId, addedBy, details)
+            attemptService?.removeAttempt(player.uniqueId)
         }
         
         return result
@@ -139,6 +146,7 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
         if (result) {
             val details = "Username: $username${reason?.let { ", Reason: $it" } ?: ""}"
             logAuditEvent("WHITELIST_ADD", uuid, addedBy, details)
+            attemptService?.removeAttempt(uuid)
         }
         
         return result
@@ -333,10 +341,10 @@ class WhitelistService(private val plugin: JavaPlugin) : Listener {
         
         // Check if the player is whitelisted
         if (!isWhitelisted(player.uniqueId)) {
-            event.disallow(
-                PlayerLoginEvent.Result.KICK_WHITELIST,
-                "Du bist nicht auf der Whitelist dieses Servers"
-            )
+            val kickMessage = "Du bist nicht auf der Whitelist dieses Servers"
+            event.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, kickMessage)
+            val address = event.address?.hostAddress
+            attemptService?.recordAttempt(player.uniqueId, player.name, address, kickMessage)
         }
     }
 

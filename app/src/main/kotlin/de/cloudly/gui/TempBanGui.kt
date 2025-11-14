@@ -152,7 +152,9 @@ class TempBanGui(
     fun onInventoryClose(event: InventoryCloseEvent) {
         if (event.inventory != inventory || event.player != viewer) return
         cleanup()
-        onReturn(parentPage)
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            onReturn(parentPage)
+        })
     }
 
     private fun cleanup() {

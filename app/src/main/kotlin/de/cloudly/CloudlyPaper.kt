@@ -11,6 +11,7 @@ import de.cloudly.listeners.PlayerConnectionListener
 import de.cloudly.listeners.PlayerChatListener
 import de.cloudly.moderation.BanService
 import de.cloudly.whitelist.WhitelistService
+import de.cloudly.whitelist.attempts.WhitelistAttemptService
 import org.bukkit.plugin.java.JavaPlugin
 
 class CloudlyPaper : JavaPlugin() {
@@ -21,6 +22,7 @@ class CloudlyPaper : JavaPlugin() {
     private lateinit var whitelistGuiManager: WhitelistGuiManager
     private lateinit var discordService: DiscordService
     private lateinit var queueService: de.cloudly.queue.QueueService
+    private lateinit var whitelistAttemptService: WhitelistAttemptService
     private lateinit var playerConnectionListener: PlayerConnectionListener
     private lateinit var playerChatListener: PlayerChatListener
     private lateinit var discordVerificationListener: de.cloudly.listeners.DiscordVerificationListener
@@ -86,6 +88,13 @@ class CloudlyPaper : JavaPlugin() {
         }
         return queueService
     }
+
+    fun getWhitelistAttemptService(): WhitelistAttemptService {
+        if (!::whitelistAttemptService.isInitialized) {
+            throw IllegalStateException("Plugin not fully initialized")
+        }
+        return whitelistAttemptService
+    }
     
     /**
      * Get the Discord verification listener instance
@@ -120,6 +129,8 @@ class CloudlyPaper : JavaPlugin() {
         
         // Initialize whitelist service
         whitelistService = WhitelistService(this)
+        whitelistAttemptService = WhitelistAttemptService()
+        whitelistService.setAttemptService(whitelistAttemptService)
         whitelistService.initialize()
         
         // Initialize moderation/ban service
@@ -172,6 +183,10 @@ class CloudlyPaper : JavaPlugin() {
         
         if (::banService.isInitialized) {
             banService.shutdown()
+        }
+
+        if (::whitelistAttemptService.isInitialized) {
+            whitelistAttemptService.clear()
         }
         
         // Close Discord service resources
