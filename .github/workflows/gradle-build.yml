@@ -55,7 +55,7 @@ jobs:
           echo "Found JAR file: $JAR_FILE"
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: 'cloudly-${{ steps.find-jar.outputs.jar-name }}'
           path: '${{ steps.find-jar.outputs.jar-file }}'
