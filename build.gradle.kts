@@ -36,7 +36,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     
     // JSON library for import/export functionality
-    implementation("org.json:json:20250517")
+    implementation("org.json:json:20251224")
     
     // HTTP client for GitHub API communication
     implementation("com.squareup.okhttp3:okhttp:5.1.0")
