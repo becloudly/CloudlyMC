@@ -2,6 +2,10 @@ package de.cloudly.gui
 
 import de.cloudly.CloudlyPaper
 import de.cloudly.Messages
+import de.cloudly.gui.GuiTheme.applyFrame
+import de.cloudly.gui.GuiTheme.applyGlow
+import de.cloudly.gui.GuiTheme.applyRow
+import de.cloudly.gui.GuiTheme.pane
 import de.cloudly.moderation.BanService
 import de.cloudly.utils.TimeUtils
 import org.bukkit.Bukkit
@@ -32,6 +36,8 @@ class TempBanGui(
     private var inventory: Inventory? = null
     private var cleanedUp = false
 
+    private val optionSlots = listOf(10, 12, 14, 16)
+
     private val options = listOf(
         BanOption("30 Minuten", Duration.ofMinutes(30), Material.SUGAR),
         BanOption("6 Stunden", Duration.ofHours(6), Material.BLAZE_POWDER),
@@ -54,34 +60,32 @@ class TempBanGui(
         val inv = inventory ?: return
         inv.clear()
 
-        val filler = ItemStack(Material.GRAY_STAINED_GLASS_PANE).apply {
-            itemMeta = itemMeta?.apply { setDisplayName("§7") }
-        }
-        for (i in 0..26) {
-            inv.setItem(i, filler)
-        }
+        decorate(inv)
 
         options.forEachIndexed { index, option ->
-            val baseSlot = 10 + index
-            inv.setItem(baseSlot, createOptionItem(option))
+            optionSlots.getOrNull(index)?.let { slot ->
+                inv.setItem(slot, createOptionItem(option))
+            }
         }
 
         inv.setItem(22, createBackItem())
     }
 
     private fun createOptionItem(option: BanOption): ItemStack {
-        val item = ItemStack(option.material)
-        item.itemMeta = item.itemMeta?.apply {
-            setDisplayName(Messages.Gui.PlayerAdmin.tempBanOptionLabel(option.label))
-            val lore = mutableListOf<String>()
-            lore.add(Messages.Gui.PlayerAdmin.TEMP_BAN_OPTION_LORE)
-            if (!viewer.hasPermission("cloudly.moderation.tempban")) {
-                lore.add(Messages.Gui.PlayerAdmin.ACTION_NO_PERMISSION)
+        return ItemStack(option.material).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.PlayerAdmin.tempBanOptionLabel(option.label))
+                val lore = mutableListOf<String>()
+                lore.add(Messages.Gui.PlayerAdmin.TEMP_BAN_OPTION_LORE)
+                lore.add(Messages.Gui.PlayerAdmin.tempBanDuration(option.label))
+                if (!viewer.hasPermission("cloudly.moderation.tempban")) {
+                    lore.add(Messages.Gui.PlayerAdmin.ACTION_NO_PERMISSION)
+                }
+                setLore(lore)
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
             }
-            setLore(lore)
-            addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+            applyGlow(this, viewer.hasPermission("cloudly.moderation.tempban"))
         }
-        return item
     }
 
     private fun createBackItem(): ItemStack {
@@ -106,10 +110,33 @@ class TempBanGui(
             return
         }
 
-        val optionIndex = clicked - 10
-        if (optionIndex in options.indices) {
-            handleOption(options[optionIndex])
+        optionSlots.indexOf(clicked).takeIf { it >= 0 }?.let { index ->
+            if (index < options.size) {
+                handleOption(options[index])
+            }
         }
+    }
+
+    private fun decorate(inv: Inventory) {
+        applyFrame(inv)
+
+        applyRow(inv, 0, pane(Material.BLACK_STAINED_GLASS_PANE, "§0"), setOf(0, 8, 4))
+        val optionColumns = buildSet {
+            add(0)
+            add(8)
+            optionSlots.forEach { add(it % 9) }
+        }
+        applyRow(inv, 1, pane(Material.GRAY_STAINED_GLASS_PANE), optionColumns)
+        applyRow(inv, 2, pane(Material.GRAY_STAINED_GLASS_PANE), setOf(0, 8, 4))
+
+        inv.setItem(4, ItemStack(Material.CLOCK).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.PlayerAdmin.tempBanHeader(targetName))
+                setLore(listOf(Messages.Gui.PlayerAdmin.TEMP_BAN_HEADER_HINT))
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+            }
+        })
+
     }
 
     private fun handleOption(option: BanOption) {

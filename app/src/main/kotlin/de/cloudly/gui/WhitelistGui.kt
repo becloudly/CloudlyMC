@@ -2,13 +2,18 @@ package de.cloudly.gui
 
 import de.cloudly.CloudlyPaper
 import de.cloudly.Messages
+import de.cloudly.gui.GuiTheme.applyFrame
+import de.cloudly.gui.GuiTheme.applyGlow
+import de.cloudly.gui.GuiTheme.applyRow
+import de.cloudly.gui.GuiTheme.pane
+import de.cloudly.gui.GuiTheme.standardFiller
 import de.cloudly.whitelist.model.WhitelistPlayer
 import org.bukkit.Bukkit
 import org.bukkit.Material
-import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.inventory.Inventory
@@ -20,420 +25,350 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 /**
- * Beautiful GUI for displaying whitelisted players.
- * Shows player skulls with detailed information and allows pagination.
+ * Styled overview of all whitelisted players with quick moderation access.
  */
 class WhitelistGui(
     private val plugin: CloudlyPaper,
     private val viewer: Player,
     private val initialPage: Int = 0
 ) : Listener {
-    
+
+    private val whitelistService = plugin.getWhitelistService()
+
     private var inventory: Inventory? = null
     private var currentPage = initialPage
-    private val playersPerPage = 28 // 4 rows of 7 slots for players
     private var whitelistedPlayers: List<WhitelistPlayer> = emptyList()
     private var cleanedUp = false
-    
+    private val displayedPlayers = mutableMapOf<Int, WhitelistPlayer>()
+
     companion object {
-        private const val INVENTORY_SIZE = 54 // 6 rows
-        private val BORDER_MATERIAL = Material.GRAY_STAINED_GLASS_PANE
-        private val NAVIGATION_MATERIAL = Material.ARROW
-        private val INFO_MATERIAL = Material.BOOK
-        private val REFRESH_MATERIAL = Material.EMERALD
-        
-        // Flexible layout system for slot positioning
-        private val layout = GuiLayout(6).apply {
-            setSlot("prev_page", 5, 0)   // Bottom row, left (slot 45)
-            setSlot("refresh", 5, 2)     // Bottom row, left-center (slot 47)
-            setSlot("info", 5, 4)        // Bottom row, center (slot 49)
-            setSlot("next_page", 5, 8)   // Bottom row, right (slot 53)
-        }
+        private const val INVENTORY_SIZE = 54
+        private val PLAYER_SLOTS = listOf(
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34,
+            37, 38, 39, 40, 41, 42, 43
+        )
+
+        private const val SLOT_INFO = 4
+        private const val SLOT_PREV = 45
+        private const val SLOT_BACK = 48
+        private const val SLOT_REFRESH = 49
+        private const val SLOT_NEXT = 53
+
+        private val CONSOLE_UUID: UUID = UUID.fromString("00000000-0000-0000-0000-000000000000")
+        private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter
+            .ofPattern("dd.MM.yyyy HH:mm")
+            .withZone(ZoneId.systemDefault())
     }
-    
+
     init {
-        // Register this as an event listener
         plugin.server.pluginManager.registerEvents(this, plugin)
     }
-    
-    /**
-     * Opens the whitelist GUI for the viewer.
-     */
+
     fun open() {
         loadWhitelistedPlayers()
+        if (whitelistedPlayers.isEmpty()) {
+            viewer.sendMessage(Messages.Commands.Whitelist.LIST_EMPTY)
+            cleanup()
+            plugin.getWhitelistGuiManager().unregisterGui(viewer.uniqueId)
+            return
+        }
+
         createInventory()
         updateInventory()
-        viewer.openInventory(inventory!!)
+        viewer.openInventory(requireNotNull(inventory))
     }
-    
-    /**
-     * Loads whitelisted players from the service.
-     */
+
     private fun loadWhitelistedPlayers() {
-        whitelistedPlayers = plugin.getWhitelistService().getAllPlayers()
+        whitelistedPlayers = whitelistService.getAllPlayers()
     }
-    
-    /**
-     * Creates the inventory with proper title and size.
-     */
+
     private fun createInventory() {
         val title = Messages.Gui.Whitelist.title(whitelistedPlayers.size)
         inventory = Bukkit.createInventory(null, INVENTORY_SIZE, title)
     }
-    
-    /**
-     * Updates the inventory with current page content.
-     */
+
     private fun updateInventory() {
         val inv = inventory ?: return
         inv.clear()
-        
-        // Add border decoration
-        addBorderDecoration(inv)
-        
-        // Add player items
-        addPlayerItems(inv)
-        
-        // Add navigation items
-        addNavigationItems(inv)
+        displayedPlayers.clear()
+
+        decorateInventory(inv)
+        renderPlayers(inv)
+        renderFooter(inv)
     }
-    
-    /**
-     * Adds decorative border to the inventory.
-     */
-    private fun addBorderDecoration(inv: Inventory) {
-        val borderItem = ItemStack(BORDER_MATERIAL).apply {
-            itemMeta = itemMeta?.apply {
-                setDisplayName("§7")
-            }
+
+    private fun decorateInventory(inv: Inventory) {
+        applyFrame(inv)
+
+        val topSkip = setOf(0, 8, SLOT_INFO % 9)
+        applyRow(inv, 0, pane(Material.BLACK_STAINED_GLASS_PANE, "§0"), topSkip)
+
+        val middleSkip = buildSet {
+            add(0)
+            add(8)
+            PLAYER_SLOTS.forEach { add(it % 9) }
         }
-        
-        // Top border
-        for (i in 0..8) {
-            inv.setItem(i, borderItem)
-        }
-        
-        // Bottom border
-        for (i in 45..53) {
-            inv.setItem(i, borderItem)
-        }
-        
-        // Side borders
-        for (row in 1..4) {
-            inv.setItem(row * 9, borderItem)
-            inv.setItem(row * 9 + 8, borderItem)
-        }
+        applyRow(inv, 1, pane(Material.GRAY_STAINED_GLASS_PANE), middleSkip)
+        applyRow(inv, 2, pane(Material.GRAY_STAINED_GLASS_PANE), middleSkip)
+        applyRow(inv, 3, pane(Material.GRAY_STAINED_GLASS_PANE), middleSkip)
+
+        inv.setItem(SLOT_INFO, createInfoItem())
     }
-    
-    /**
-     * Adds whitelisted player items to the inventory.
-     */
-    private fun addPlayerItems(inv: Inventory) {
-        val startIndex = currentPage * playersPerPage
-        val endIndex = minOf(startIndex + playersPerPage, whitelistedPlayers.size)
-        
-        for (i in startIndex until endIndex) {
-            val player = whitelistedPlayers[i]
-            val slotIndex = getPlayerSlotIndex(i - startIndex)
-            
-            val playerItem = createPlayerItem(player)
-            inv.setItem(slotIndex, playerItem)
+
+    private fun renderPlayers(inv: Inventory) {
+        val pageSize = PLAYER_SLOTS.size
+        val startIndex = currentPage * pageSize
+        val endIndex = minOf(startIndex + pageSize, whitelistedPlayers.size)
+
+        PLAYER_SLOTS.forEach { inv.setItem(it, null) }
+
+        var slotIndex = 0
+        for (index in startIndex until endIndex) {
+            val slot = PLAYER_SLOTS.getOrNull(slotIndex) ?: break
+            val player = whitelistedPlayers[index]
+            inv.setItem(slot, createPlayerCard(player))
+            displayedPlayers[slot] = player
+            slotIndex++
         }
     }
-    
-    /**
-     * Gets the inventory slot index for a player item.
-     */
-    private fun getPlayerSlotIndex(relativeIndex: Int): Int {
-        val row = relativeIndex / 7
-        val col = relativeIndex % 7
-        return (row + 1) * 9 + col + 1 // Start from row 1, column 1
-    }
-    
-    /**
-     * Creates a player item with skull and detailed information.
-     */
-    private fun createPlayerItem(player: WhitelistPlayer): ItemStack {
-        val playerItem = ItemStack(Material.PLAYER_HEAD)
-        
-        // Check for special status (OP) before setting item meta
-        val offlinePlayer = Bukkit.getOfflinePlayer(player.uuid)
-        
-        // Check if player is OP
-        val isOp = offlinePlayer.isOp
-        val hasSpecialStatus = isOp
-        
-        playerItem.itemMeta = (playerItem.itemMeta as SkullMeta).apply {
-            // Set player skull
-            owningPlayer = offlinePlayer
-            
-            // Set display name
-            setDisplayName("§a§l${player.username}")
-            
-            // Create detailed lore
-            val lore = mutableListOf<String>()
-            lore.add("§7")
-            lore.add("§7UUID: §f${player.uuid}")
-            
-            // Add special status indicators
-            if (isOp) {
-                lore.add(Messages.Gui.Whitelist.PLAYER_OP_STATUS)
-            }
-            
-            // Add separator if special status was shown
-            if (hasSpecialStatus) {
-                lore.add("§7")
-            }
-            
-            // Added by information
-            val addedByName = if (player.addedBy != null) {
-                val addedByUuid = player.addedBy
-                if (addedByUuid == UUID.fromString("00000000-0000-0000-0000-000000000000")) {
-                    Messages.Gui.Whitelist.CONSOLE
-                } else {
-                    Bukkit.getOfflinePlayer(addedByUuid).name ?: Messages.Gui.Whitelist.UNKNOWN
-                }
-            } else {
-                Messages.Gui.Whitelist.UNKNOWN
-            }
-            lore.add(Messages.Gui.Whitelist.playerAddedBy(addedByName))
-            
-            // Format date
-            val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
-            val dateStr = player.addedAt.atZone(ZoneId.systemDefault()).format(formatter)
-            lore.add(Messages.Gui.Whitelist.playerAddedOn(dateStr))
-            
-            // Add reason if available
-            if (!player.reason.isNullOrBlank()) {
-                lore.add("§7Grund: §f${player.reason}")
-            }
-            
-            // Add Discord connection info
-            if (player.discordConnection != null) {
-                val discord = player.discordConnection
-                if (discord.verified) {
-                    lore.add(Messages.Gui.Whitelist.playerDiscordVerified(discord.discordUsername))
-                } else {
-                    lore.add(Messages.Gui.Whitelist.playerDiscordConnected(discord.discordUsername))
-                }
-            } else {
-                lore.add(Messages.Gui.Whitelist.PLAYER_DISCORD_NOT_CONNECTED)
-            }
-            
-            // Add action hints
-            lore.add("§7")
-            lore.add(Messages.Gui.Whitelist.ACTIONS_TITLE)
-            lore.add(Messages.Gui.Whitelist.ACTION_LEFT_CLICK)
-            lore.add(Messages.Gui.Whitelist.ACTION_RIGHT_CLICK)
-            
-            setLore(lore)
-            
-            // Add item flags for special status (hide enchants)
-            if (hasSpecialStatus) {
-                addItemFlags(ItemFlag.HIDE_ENCHANTS)
+
+    private fun renderFooter(inv: Inventory) {
+        inv.setItem(SLOT_PREV, createPrevItem())
+        inv.setItem(SLOT_BACK, createBackItem())
+        inv.setItem(SLOT_REFRESH, createRefreshItem())
+        inv.setItem(SLOT_NEXT, createNextItem())
+
+        for (slot in 45..53) {
+            if (inv.getItem(slot) == null) {
+                inv.setItem(slot, standardFiller())
             }
         }
-        
-        // Add enchantment glow for players with special status
-        if (hasSpecialStatus) {
-            playerItem.addUnsafeEnchantment(Enchantment.UNBREAKING, 1)
-        }
-        
-        return playerItem
     }
-    
-    /**
-     * Adds navigation items to the inventory.
-     */
-    private fun addNavigationItems(inv: Inventory) {
+
+    private fun createInfoItem(): ItemStack {
         val totalPages = getTotalPages()
-        
-        // Previous page button
-        if (currentPage > 0) {
-            val prevItem = ItemStack(NAVIGATION_MATERIAL).apply {
-                itemMeta = itemMeta?.apply {
-                    setDisplayName(Messages.Gui.Whitelist.PREVIOUS_PAGE)
-                    setLore(listOf(Messages.Gui.Whitelist.previousPageLore(currentPage)))
-                }
-            }
-            inv.setItem(layout.getSlot("prev_page"), prevItem)
-        }
-        
-        // Info item
-        val infoItem = ItemStack(INFO_MATERIAL).apply {
+
+        val lore = mutableListOf<String>()
+        lore.add(Messages.Gui.Whitelist.infoTotalPlayers(whitelistedPlayers.size))
+        lore.add(Messages.Gui.Whitelist.infoCurrentPage(currentPage + 1, totalPages))
+        lore.add(Messages.Gui.Whitelist.infoPlayersPerPage(PLAYER_SLOTS.size))
+        lore.add("§7")
+        lore.add(Messages.Gui.Whitelist.INFO_ADD_COMMAND)
+        lore.add(Messages.Gui.Whitelist.INFO_REMOVE_COMMAND)
+
+        return ItemStack(Material.BOOK).apply {
             itemMeta = itemMeta?.apply {
                 setDisplayName(Messages.Gui.Whitelist.INFO_TITLE)
-                setLore(listOf(
-                    "§7",
-                    Messages.Gui.Whitelist.infoTotalPlayers(whitelistedPlayers.size),
-                    Messages.Gui.Whitelist.infoCurrentPage(currentPage + 1, totalPages),
-                    Messages.Gui.Whitelist.infoPlayersPerPage(playersPerPage),
-                    "§7",
-                    Messages.Gui.Whitelist.INFO_ADD_COMMAND,
-                    Messages.Gui.Whitelist.INFO_REMOVE_COMMAND
-                ))
+                setLore(lore)
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
             }
         }
-        inv.setItem(layout.getSlot("info"), infoItem)
-        
-        // Refresh button
-        val refreshItem = ItemStack(REFRESH_MATERIAL).apply {
+    }
+
+    private fun createPrevItem(): ItemStack? {
+        if (currentPage == 0) return null
+        return ItemStack(Material.ARROW).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.Whitelist.PREVIOUS_PAGE)
+                setLore(listOf(Messages.Gui.Whitelist.previousPageLore(currentPage)))
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+            }
+        }
+    }
+
+    private fun createNextItem(): ItemStack? {
+        if (currentPage >= getTotalPages() - 1) return null
+        return ItemStack(Material.ARROW).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.Whitelist.NEXT_PAGE)
+                setLore(listOf(Messages.Gui.Whitelist.nextPageLore(currentPage + 2)))
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+            }
+        }
+    }
+
+    private fun createBackItem(): ItemStack {
+        return ItemStack(Material.BARRIER).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.Whitelist.BUTTON_BACK)
+                setLore(listOf(Messages.Gui.Whitelist.BUTTON_BACK_LORE))
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+            }
+        }
+    }
+
+    private fun createRefreshItem(): ItemStack {
+        return ItemStack(Material.EMERALD).apply {
             itemMeta = itemMeta?.apply {
                 setDisplayName(Messages.Gui.Whitelist.REFRESH_BUTTON)
                 setLore(listOf(Messages.Gui.Whitelist.REFRESH_LORE))
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
             }
         }
-        inv.setItem(layout.getSlot("refresh"), refreshItem)
-        
-        // Next page button
-        if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack(NAVIGATION_MATERIAL).apply {
-                itemMeta = itemMeta?.apply {
-                    setDisplayName(Messages.Gui.Whitelist.NEXT_PAGE)
-                    setLore(listOf(Messages.Gui.Whitelist.nextPageLore(currentPage + 2)))
+    }
+
+    private fun createPlayerCard(player: WhitelistPlayer): ItemStack {
+        val offlinePlayer = Bukkit.getOfflinePlayer(player.uuid)
+        val isOp = offlinePlayer.isOp
+        val isOnline = Bukkit.getPlayer(player.uuid)?.isOnline == true
+
+        return ItemStack(Material.PLAYER_HEAD).apply {
+            itemMeta = (itemMeta as SkullMeta).apply {
+                owningPlayer = offlinePlayer
+                setDisplayName("§a§l${player.username}")
+
+                val lore = mutableListOf<String>()
+                lore.add(Messages.Gui.Whitelist.infoUuid(player.uuid.toString()))
+                lore.add(Messages.Gui.Whitelist.playerAddedBy(resolveAddedByName(player)))
+                val addedOn = DATE_FORMAT.format(player.addedAt)
+                lore.add(Messages.Gui.Whitelist.playerAddedOn(addedOn))
+                player.reason?.takeIf { it.isNotBlank() }?.let {
+                    lore.add(Messages.Gui.Whitelist.playerReason(it))
                 }
+                lore.add(Messages.Gui.Whitelist.playerOnlineStatus(isOnline))
+                if (isOp) {
+                    lore.add(Messages.Gui.Whitelist.PLAYER_OP_STATUS)
+                }
+                lore.add("§7")
+
+                val discord = player.discordConnection
+                if (discord != null) {
+                    if (discord.verified) {
+                        lore.add(Messages.Gui.Whitelist.playerDiscordVerified(discord.discordUsername))
+                    } else {
+                        lore.add(Messages.Gui.Whitelist.playerDiscordConnected(discord.discordUsername))
+                    }
+                } else {
+                    lore.add(Messages.Gui.Whitelist.PLAYER_DISCORD_NOT_CONNECTED)
+                }
+                lore.add("§7")
+                lore.add(Messages.Gui.Whitelist.ACTIONS_TITLE)
+                lore.add(Messages.Gui.Whitelist.ACTION_LEFT_CLICK)
+                lore.add(Messages.Gui.Whitelist.ACTION_RIGHT_CLICK)
+
+                setLore(lore)
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
             }
-            inv.setItem(layout.getSlot("next_page"), nextItem)
+            applyGlow(this, isOp)
         }
     }
-    
-    /**
-     * Gets the total number of pages.
-     */
-    private fun getTotalPages(): Int {
-        return if (whitelistedPlayers.isEmpty()) 1 else (whitelistedPlayers.size + playersPerPage - 1) / playersPerPage
+
+    private fun resolveAddedByName(player: WhitelistPlayer): String {
+        val addedBy = player.addedBy ?: return Messages.Gui.Whitelist.UNKNOWN
+        if (addedBy == CONSOLE_UUID) return Messages.Gui.Whitelist.CONSOLE
+        return Bukkit.getOfflinePlayer(addedBy).name ?: Messages.Gui.Whitelist.UNKNOWN
     }
-    
-    /**
-     * Handles inventory click events.
-     */
+
+    private fun getTotalPages(): Int {
+        val pageSize = PLAYER_SLOTS.size
+        return if (whitelistedPlayers.isEmpty()) 1 else (whitelistedPlayers.size + pageSize - 1) / pageSize
+    }
+
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {
         if (event.inventory != inventory || event.whoClicked != viewer) return
-        
         event.isCancelled = true
-        val slot = event.slot
-        val clickedItem = event.currentItem ?: return
-        
-        when (slot) {
-            layout.getSlot("prev_page") -> {
-                if (currentPage > 0) {
-                    currentPage--
-                    updateInventory()
-                }
+
+        when (event.slot) {
+            SLOT_PREV -> if (currentPage > 0) {
+                currentPage--
+                updateInventory()
             }
-            layout.getSlot("next_page") -> {
-                if (currentPage < getTotalPages() - 1) {
-                    currentPage++
-                    updateInventory()
-                }
+            SLOT_NEXT -> if (currentPage < getTotalPages() - 1) {
+                currentPage++
+                updateInventory()
             }
-            layout.getSlot("info") -> {
-                // Show information (no action, just informational)
-            }
-            layout.getSlot("refresh") -> {
-                // Refresh the GUI
-                loadWhitelistedPlayers()
-                if (whitelistedPlayers.isEmpty()) {
-                    viewer.closeInventory()
-                    viewer.sendMessage(Messages.Commands.Whitelist.LIST_EMPTY)
-                } else {
-                    // Adjust page if necessary
-                    val totalPages = getTotalPages()
-                    if (currentPage >= totalPages) {
-                        currentPage = maxOf(0, totalPages - 1)
-                    }
-                    updateInventory()
-                    viewer.sendMessage(Messages.Gui.Whitelist.REFRESHED)
-                }
-            }
-            else -> {
-                // Check if it's a player item
-                if (clickedItem.type == Material.PLAYER_HEAD) {
-                    handlePlayerItemClick(event, clickedItem)
-                }
-            }
+            SLOT_REFRESH -> handleRefresh()
+            SLOT_BACK -> handleBack()
+            SLOT_INFO -> Unit
+            else -> handlePlayerSlotClick(event.slot, event.click)
         }
     }
-    
-    /**
-     * Handles clicks on player items.
-     */
-    private fun handlePlayerItemClick(event: InventoryClickEvent, item: ItemStack) {
-        val meta = item.itemMeta as? SkullMeta ?: return
-        val owningPlayer = meta.owningPlayer ?: return
-        val playerUuid = owningPlayer.uniqueId
-        val playerName = owningPlayer.name ?: Messages.Gui.Whitelist.UNKNOWN
-        
-        when (event.click) {
-            org.bukkit.event.inventory.ClickType.LEFT -> {
+
+    private fun handlePlayerSlotClick(slot: Int, click: ClickType) {
+        val target = displayedPlayers[slot] ?: return
+        val targetUuid = target.uuid
+        val targetName = target.username
+
+        when (click) {
+            ClickType.LEFT, ClickType.SHIFT_LEFT -> {
                 if (!viewer.hasPermission("cloudly.moderation")) {
                     viewer.sendMessage(Messages.Gui.Whitelist.NO_PERMISSION_ADMIN)
                     return
                 }
-                WhitelistPlayerAdminGui(plugin, viewer, playerUuid, playerName, currentPage).open()
+                WhitelistPlayerAdminGui(plugin, viewer, targetUuid, targetName, currentPage).open()
             }
-            
-            org.bukkit.event.inventory.ClickType.RIGHT -> {
-                // Remove player from whitelist (with permission check)
-                if (viewer.hasPermission("cloudly.whitelist.remove")) {
-                    if (plugin.getWhitelistService().removePlayer(playerUuid)) {
-                        viewer.sendMessage(Messages.Gui.Whitelist.playerRemoved(playerName))
-                        
-                        // Check if the player is online and kick them
-                        val onlinePlayer = Bukkit.getPlayer(playerUuid)
-                        if (onlinePlayer != null && onlinePlayer.isOnline) {
-                            onlinePlayer.kickPlayer(Messages.Commands.Whitelist.PLAYER_REMOVED_KICK_MESSAGE)
-                        }
-                        
-                        // Refresh the GUI
-                        loadWhitelistedPlayers()
-                        if (whitelistedPlayers.isEmpty()) {
-                            viewer.closeInventory()
-                            viewer.sendMessage(Messages.Commands.Whitelist.LIST_EMPTY)
-                        } else {
-                            // Adjust page if necessary
-                            val totalPages = getTotalPages()
-                            if (currentPage >= totalPages) {
-                                currentPage = maxOf(0, totalPages - 1)
-                            }
-                            updateInventory()
-                        }
-                    } else {
-                        viewer.sendMessage(Messages.Gui.Whitelist.removeFailed(playerName))
-                    }
-                } else {
+            ClickType.RIGHT, ClickType.SHIFT_RIGHT -> {
+                if (!viewer.hasPermission("cloudly.whitelist.remove")) {
                     viewer.sendMessage(Messages.Commands.NO_PERMISSION)
+                    return
+                }
+
+                if (whitelistService.removePlayer(targetUuid)) {
+                    viewer.sendMessage(Messages.Gui.Whitelist.playerRemoved(targetName))
+                    Bukkit.getPlayer(targetUuid)?.takeIf { it.isOnline }
+                        ?.kickPlayer(Messages.Commands.Whitelist.PLAYER_REMOVED_KICK_MESSAGE)
+                    reloadOrClose()
+                } else {
+                    viewer.sendMessage(Messages.Gui.Whitelist.removeFailed(targetName))
                 }
             }
-            
-            else -> {
-                // Do nothing for other click types
-            }
+            else -> Unit
         }
     }
-    
-    /**
-     * Handles inventory close events.
-     */
-    @EventHandler
-    fun onInventoryClose(event: InventoryCloseEvent) {
-        if (event.inventory == inventory && event.player == viewer) {
-            cleanup()
-        }
+
+    private fun handleBack() {
+        viewer.closeInventory()
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            plugin.getAdminGuiManager().openAdminGui(viewer)
+        })
     }
-    
-    /**
-     * Cleans up resources when the GUI is closed.
-     */
-    private fun cleanup() {
-        if (cleanedUp) {
+
+    private fun handleRefresh() {
+        loadWhitelistedPlayers()
+        if (whitelistedPlayers.isEmpty()) {
+            viewer.closeInventory()
+            viewer.sendMessage(Messages.Commands.Whitelist.LIST_EMPTY)
             return
         }
+
+        val totalPages = getTotalPages()
+        if (currentPage >= totalPages) {
+            currentPage = maxOf(0, totalPages - 1)
+        }
+        updateInventory()
+        viewer.sendMessage(Messages.Gui.Whitelist.REFRESHED)
+    }
+
+    private fun reloadOrClose() {
+        loadWhitelistedPlayers()
+        if (whitelistedPlayers.isEmpty()) {
+            viewer.closeInventory()
+            viewer.sendMessage(Messages.Commands.Whitelist.LIST_EMPTY)
+        } else {
+            val totalPages = getTotalPages()
+            if (currentPage >= totalPages) {
+                currentPage = maxOf(0, totalPages - 1)
+            }
+            updateInventory()
+        }
+    }
+
+    @EventHandler
+    fun onInventoryClose(event: InventoryCloseEvent) {
+        if (event.inventory != inventory || event.player != viewer) return
+        cleanup()
+        plugin.getWhitelistGuiManager().unregisterGui(viewer.uniqueId)
+    }
+
+    private fun cleanup() {
+        if (cleanedUp) return
         cleanedUp = true
-        // Unregister this listener
         InventoryClickEvent.getHandlerList().unregister(this)
         InventoryCloseEvent.getHandlerList().unregister(this)
-        plugin.getWhitelistGuiManager().unregisterGui(viewer.uniqueId)
+        displayedPlayers.clear()
+        inventory = null
     }
 }

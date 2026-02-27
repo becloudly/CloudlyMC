@@ -2,6 +2,10 @@ package de.cloudly.gui
 
 import de.cloudly.CloudlyPaper
 import de.cloudly.Messages
+import de.cloudly.gui.GuiTheme.applyFrame
+import de.cloudly.gui.GuiTheme.applyGlow
+import de.cloudly.gui.GuiTheme.applyRow
+import de.cloudly.gui.GuiTheme.pane
 import de.cloudly.whitelist.attempts.WhitelistAttemptService
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -42,12 +46,12 @@ class PendingWhitelistDetailGui(
             .ofPattern("dd.MM.yyyy HH:mm")
             .withZone(ZoneId.systemDefault())
 
-        private val BORDER_MATERIAL = Material.GRAY_STAINED_GLASS_PANE
-        private const val SLOT_INFO = 13
-        private const val SLOT_MESSAGE = 11
-        private const val SLOT_ADD = 14
-        private const val SLOT_DISMISS = 15
-        private const val SLOT_BACK = 22
+        private const val SLOT_PLAYER = 11
+        private const val SLOT_META = 13
+        private const val SLOT_MESSAGE = 15
+        private const val SLOT_ADD = 21
+        private const val SLOT_DISMISS = 23
+        private const val SLOT_BACK = 26
     }
 
     init {
@@ -90,97 +94,114 @@ class PendingWhitelistDetailGui(
             return
         }
 
-        fillBorder(inv)
-        inv.setItem(SLOT_INFO, createInfoItem(snapshot))
-        inv.setItem(SLOT_MESSAGE, createMessageItem(snapshot))
-        inv.setItem(SLOT_ADD, createAddItem())
-        inv.setItem(SLOT_DISMISS, createDismissItem())
-        inv.setItem(SLOT_BACK, createBackItem())
+        decorateInventory(inv)
+        inv.setItem(SLOT_PLAYER, createPlayerCard(snapshot))
+        inv.setItem(SLOT_META, createMetaCard(snapshot))
+        inv.setItem(SLOT_MESSAGE, createMessageCard(snapshot))
+        inv.setItem(SLOT_ADD, createAddButton())
+        inv.setItem(SLOT_DISMISS, createDismissButton())
+        inv.setItem(SLOT_BACK, createBackButton())
     }
 
-    private fun fillBorder(inv: Inventory) {
-        val borderItem = ItemStack(BORDER_MATERIAL).apply {
-            itemMeta = itemMeta?.apply { setDisplayName("§7") }
+    private fun decorateInventory(inv: Inventory) {
+        applyFrame(inv)
+
+        val skipRow = setOf(0, 8, SLOT_PLAYER % 9, SLOT_META % 9, SLOT_MESSAGE % 9)
+        applyRow(inv, 0, pane(Material.BLACK_STAINED_GLASS_PANE, "§0"), skipRow)
+        applyRow(inv, 1, pane(Material.GRAY_STAINED_GLASS_PANE), buildSet {
+            add(0)
+            add(8)
+            add(SLOT_ADD % 9)
+            add(SLOT_DISMISS % 9)
+            add(SLOT_BACK % 9)
+        })
+        applyRow(inv, 2, pane(Material.GRAY_STAINED_GLASS_PANE), setOf(0, 8, SLOT_BACK % 9))
+    }
+
+    private fun createPlayerCard(snapshot: WhitelistAttemptService.AttemptSnapshot): ItemStack {
+        return ItemStack(Material.PLAYER_HEAD).apply {
+            itemMeta = (itemMeta as SkullMeta).apply {
+                owningPlayer = Bukkit.getOfflinePlayer(snapshot.uuid)
+                setDisplayName(Messages.Gui.PendingWhitelist.playerLabel(snapshot.username))
+                val lore = mutableListOf<String>()
+                lore.add(Messages.Gui.PendingWhitelist.infoUuid(snapshot.uuid.toString()))
+                lore.add(Messages.Gui.PendingWhitelist.infoAttempts(snapshot.attemptCount))
+                setLore(lore)
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+            }
         }
-        for (slot in 0 until INVENTORY_SIZE step 9) {
-            for (col in 0 until 9) {
-                if (slot == 0 || slot == INVENTORY_SIZE - 9 || col == 0 || col == 8) {
-                    inv.setItem(slot + col, borderItem)
+    }
+
+    private fun createMetaCard(snapshot: WhitelistAttemptService.AttemptSnapshot): ItemStack {
+        return ItemStack(Material.WRITABLE_BOOK).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.PendingWhitelist.DETAIL_META_TITLE)
+                val lore = mutableListOf<String>()
+                lore.add(Messages.Gui.PendingWhitelist.infoFirstAttempt(DATE_FORMAT.format(snapshot.firstAttempt)))
+                lore.add(Messages.Gui.PendingWhitelist.infoLastAttempt(DATE_FORMAT.format(snapshot.lastAttempt)))
+                val address = snapshot.lastAddress
+                lore.add(
+                    address?.let { Messages.Gui.PendingWhitelist.infoAddress(it) }
+                        ?: Messages.Gui.PendingWhitelist.DETAIL_NO_ADDRESS
+                )
+                setLore(lore)
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+            }
+        }
+    }
+
+    private fun createMessageCard(snapshot: WhitelistAttemptService.AttemptSnapshot): ItemStack {
+        return ItemStack(Material.PAPER).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.PendingWhitelist.DETAIL_MESSAGE_HEADER)
+                val lore = buildList {
+                    val message = snapshot.lastMessage
+                    if (message.isNullOrBlank()) {
+                        add(Messages.Gui.PendingWhitelist.DETAIL_NO_MESSAGE)
+                    } else {
+                        message.chunked(32).forEach { add("§7$it") }
+                    }
                 }
+                setLore(lore)
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
             }
         }
     }
 
-    private fun createInfoItem(snapshot: WhitelistAttemptService.AttemptSnapshot): ItemStack {
-        val item = ItemStack(Material.PLAYER_HEAD)
-        item.itemMeta = (item.itemMeta as SkullMeta).apply {
-            owningPlayer = Bukkit.getOfflinePlayer(snapshot.uuid)
-            setDisplayName(Messages.Gui.PendingWhitelist.playerLabel(snapshot.username))
-            val lore = mutableListOf<String>()
-            lore.add(Messages.Gui.PendingWhitelist.infoUuid(snapshot.uuid.toString()))
-            lore.add(Messages.Gui.PendingWhitelist.infoAttempts(snapshot.attemptCount))
-            lore.add(Messages.Gui.PendingWhitelist.infoFirstAttempt(DATE_FORMAT.format(snapshot.firstAttempt)))
-            lore.add(Messages.Gui.PendingWhitelist.infoLastAttempt(DATE_FORMAT.format(snapshot.lastAttempt)))
-            snapshot.lastAddress?.let {
-                lore.add(Messages.Gui.PendingWhitelist.infoAddress(it))
-            } ?: lore.add(Messages.Gui.PendingWhitelist.DETAIL_NO_ADDRESS)
-            setLore(lore)
-            addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
-        }
-        return item
-    }
-
-    private fun createMessageItem(snapshot: WhitelistAttemptService.AttemptSnapshot): ItemStack {
-        val item = ItemStack(Material.PAPER)
-        item.itemMeta = item.itemMeta?.apply {
-            setDisplayName(Messages.Gui.PendingWhitelist.DETAIL_MESSAGE_HEADER)
-            val lore = buildList {
-                val message = snapshot.lastMessage
-                if (message.isNullOrBlank()) {
-                    add(Messages.Gui.PendingWhitelist.DETAIL_NO_MESSAGE)
-                } else {
-                    message.chunked(30).forEach { add("§7$it") }
+    private fun createAddButton(): ItemStack {
+        return ItemStack(Material.EMERALD_BLOCK).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.PendingWhitelist.BUTTON_ADD)
+                val lore = mutableListOf<String>()
+                lore.add(Messages.Gui.PendingWhitelist.BUTTON_ADD_LORE)
+                if (!viewer.hasPermission("cloudly.whitelist")) {
+                    lore.add(Messages.Gui.PlayerAdmin.ACTION_NO_PERMISSION)
                 }
+                setLore(lore)
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
             }
-            setLore(lore)
-            addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+            applyGlow(this, viewer.hasPermission("cloudly.whitelist"))
         }
-        return item
     }
 
-    private fun createAddItem(): ItemStack {
-        val item = ItemStack(Material.EMERALD_BLOCK)
-        item.itemMeta = item.itemMeta?.apply {
-            setDisplayName(Messages.Gui.PendingWhitelist.BUTTON_ADD)
-            val lore = mutableListOf<String>()
-            lore.add(Messages.Gui.PendingWhitelist.BUTTON_ADD_LORE)
-            if (!viewer.hasPermission("cloudly.whitelist")) {
-                lore.add(Messages.Gui.PlayerAdmin.ACTION_NO_PERMISSION)
+    private fun createDismissButton(): ItemStack {
+        return ItemStack(Material.REDSTONE_BLOCK).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.PendingWhitelist.BUTTON_DISMISS)
+                setLore(listOf(Messages.Gui.PendingWhitelist.BUTTON_DISMISS_LORE))
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
             }
-            setLore(lore)
-            addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
         }
-        return item
     }
 
-    private fun createDismissItem(): ItemStack {
-        val item = ItemStack(Material.REDSTONE_BLOCK)
-        item.itemMeta = item.itemMeta?.apply {
-            setDisplayName(Messages.Gui.PendingWhitelist.BUTTON_DISMISS)
-            setLore(listOf(Messages.Gui.PendingWhitelist.BUTTON_DISMISS_LORE))
-            addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+    private fun createBackButton(): ItemStack {
+        return ItemStack(Material.ARROW).apply {
+            itemMeta = itemMeta?.apply {
+                setDisplayName(Messages.Gui.PendingWhitelist.BUTTON_BACK)
+                setLore(listOf(Messages.Gui.PendingWhitelist.BUTTON_BACK_LORE))
+                addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+            }
         }
-        return item
-    }
-
-    private fun createBackItem(): ItemStack {
-        val item = ItemStack(Material.ARROW)
-        item.itemMeta = item.itemMeta?.apply {
-            setDisplayName(Messages.Gui.PendingWhitelist.BUTTON_BACK)
-            setLore(listOf(Messages.Gui.PendingWhitelist.BUTTON_BACK_LORE))
-            addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
-        }
-        return item
     }
 
     @EventHandler
@@ -201,31 +222,21 @@ class PendingWhitelistDetailGui(
             return
         }
 
-        val snapshot = attemptService.getAttempt(attemptUuid)
-        if (snapshot == null) {
+        val snapshot = attemptService.getAttempt(attemptUuid) ?: run {
             viewer.sendMessage(Messages.Gui.PendingWhitelist.NO_ATTEMPTS)
             reopenParent = true
             viewer.closeInventory()
             return
         }
 
-        if (whitelistService.isWhitelisted(snapshot.uuid)) {
-            attemptService.removeAttempt(snapshot.uuid)
-            viewer.sendMessage(Messages.Gui.PendingWhitelist.ENTRY_DISMISSED)
-            reopenParent = true
-            viewer.closeInventory()
-            return
-        }
-
-        val added = whitelistService.addPlayer(snapshot.uuid, snapshot.username, viewer.uniqueId)
-        if (added) {
-            attemptService.removeAttempt(snapshot.uuid)
-            viewer.sendMessage(Messages.Commands.Whitelist.playerAdded(snapshot.username))
+        val result = whitelistService.addPlayer(snapshot.uuid, snapshot.username, viewer.uniqueId)
+        if (result) {
+            attemptService.removeAttempt(attemptUuid)
+            viewer.sendMessage(Messages.Gui.PendingWhitelist.buttonAddSuccess(snapshot.username))
             reopenParent = true
             viewer.closeInventory()
         } else {
-            viewer.sendMessage(Messages.Commands.Whitelist.addFailed(snapshot.username))
-            updateInventory()
+            viewer.sendMessage(Messages.Gui.PendingWhitelist.buttonAddFailed(snapshot.username))
         }
     }
 
@@ -257,6 +268,6 @@ class PendingWhitelistDetailGui(
         cleanedUp = true
         InventoryClickEvent.getHandlerList().unregister(this)
         InventoryCloseEvent.getHandlerList().unregister(this)
-        this.inventory = null
+        inventory = null
     }
 }
