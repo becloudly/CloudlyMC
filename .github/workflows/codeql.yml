@@ -101,11 +101,11 @@ jobs:
           
     - if: matrix.build-mode == 'manual'
       name: Generate templates
-      run: ./gradlew generateTemplates --no-daemon --info
+      run: ./gradlew generateTemplates --no-daemon --no-build-cache --info
           
     - if: matrix.build-mode == 'manual'
       name: Build with Gradle
-      run: ./gradlew clean build --no-daemon --info --stacktrace
+      run: ./gradlew clean build --no-daemon --no-build-cache --info --stacktrace
       
     - if: matrix.build-mode == 'manual'
       name: Verify build output
